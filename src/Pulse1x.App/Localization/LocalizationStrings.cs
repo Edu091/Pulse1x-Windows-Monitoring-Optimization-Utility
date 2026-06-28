@@ -45,6 +45,14 @@ internal static partial class LocalizationStrings
         ["About_Description"] = "Pulse1x é um monitor de hardware simples, moderno e leve para Windows. " +
             "Acompanhe em tempo real o uso e a temperatura da CPU e GPU, memória RAM, espaço em disco e velocidade de rede.",
 
+        // ---- Doação ----
+        ["About_DonateTitle"] = "Apoie o Pulse1x",
+        ["About_DonateDescription"] = "O Pulse1x é gratuito e feito por uma única pessoa. Se ele te ajudou, " +
+            "considere fazer uma doação voluntária via Pix — qualquer valor ajuda a manter o projeto vivo.",
+        ["About_DonatePixKeyLabel"] = "Chave Pix (aleatória):",
+        ["About_DonateCopyKey"] = "Copiar chave",
+        ["About_DonateCopied"] = "Chave copiada!",
+
         // ---- Detalhes do componente ----
         ["Detail_Title"] = "Detalhes",
 
@@ -963,6 +971,14 @@ internal static partial class LocalizationStrings
         ["About_Version"] = "Version 1.0.0",
         ["About_Description"] = "Pulse1x is a simple, modern and lightweight hardware monitor for Windows. " +
             "Track CPU and GPU usage and temperature, RAM, disk space and network speed in real time.",
+
+        // ---- Donation ----
+        ["About_DonateTitle"] = "Support Pulse1x",
+        ["About_DonateDescription"] = "Pulse1x is free and made by a single person. If it helped you, " +
+            "consider making a voluntary donation via Pix — any amount helps keep the project alive.",
+        ["About_DonatePixKeyLabel"] = "Pix key (random):",
+        ["About_DonateCopyKey"] = "Copy key",
+        ["About_DonateCopied"] = "Key copied!",
 
         // ---- Component details ----
         ["Detail_Title"] = "Details",
