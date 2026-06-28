@@ -83,7 +83,7 @@
                 <ui:Button x:Name="DonateButton" HorizontalContentAlignment="Left" Click="DonateButton_Click">
                     <StackPanel Orientation="Horizontal">
                         <Border x:Name="DonateIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Coffee24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <ui:SymbolIcon Symbol="DrinkCoffee24" Foreground="#DC2626" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Donate], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
