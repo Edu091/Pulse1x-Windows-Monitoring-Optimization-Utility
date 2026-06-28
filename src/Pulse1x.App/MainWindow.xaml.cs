@@ -19,6 +19,7 @@ public partial class MainWindow : FluentWindow
     private readonly UtilityPage _utilityPage;
     private readonly SettingsPage _settingsPage;
     private readonly AboutPage _aboutPage;
+    private readonly DonatePage _donatePage;
 
     private Control[] _navButtons = System.Array.Empty<Control>();
     private UIElement[] _navIndicators = System.Array.Empty<UIElement>();
@@ -36,7 +37,8 @@ public partial class MainWindow : FluentWindow
         LatencyPage latencyPage,
         UtilityPage utilityPage,
         SettingsPage settingsPage,
-        AboutPage aboutPage)
+        AboutPage aboutPage,
+        DonatePage donatePage)
     {
         InitializeComponent();
 
@@ -48,17 +50,18 @@ public partial class MainWindow : FluentWindow
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
         _aboutPage = aboutPage;
+        _donatePage = donatePage;
 
         _navButtons = new Control[]
         {
             DashboardButton, OptimizationButton, HealthButton, LatencyButton,
-            UtilityButton, SettingsButton, AboutButton,
+            UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
         // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
         _navIndicators = new UIElement[]
         {
             DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator,
-            UtilityIndicator, SettingsIndicator, AboutIndicator,
+            UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
         };
 
         // Anima a entrada de cada página ao navegar (fade + leve deslize), respeitando o
@@ -162,6 +165,8 @@ public partial class MainWindow : FluentWindow
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_settingsPage, SettingsButton);
 
     private void AboutButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_aboutPage, AboutButton);
+
+    private void DonateButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_donatePage, DonateButton);
 
     private void FluentWindow_StateChanged(object? sender, EventArgs e)
     {

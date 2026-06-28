@@ -2,45 +2,11 @@
     x:Class="Pulse1x.App.Views.AboutPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:anim="clr-namespace:Pulse1x.App.Services"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     Title="Sobre">
     <StackPanel Margin="16" MaxWidth="480">
         <TextBlock Text="Pulse1x" FontSize="24" FontWeight="Bold" />
         <TextBlock Text="{Binding [About_Version], Source={x:Static loc:Loc.Instance}}" Opacity="0.7" Margin="0,4,0,16" />
         <TextBlock Text="{Binding [About_Description], Source={x:Static loc:Loc.Instance}}" TextWrapping="Wrap" Opacity="0.85" />
-
-        <!-- Doação: link/chave Pix voluntária. Sem processamento de pagamento dentro do app —
-             só copia a chave; o usuário paga pelo próprio app do banco. -->
-        <Border CornerRadius="12" Padding="16" Margin="0,20,0,0" BorderThickness="1"
-                Background="{DynamicResource ControlFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-            <StackPanel>
-                <TextBlock Text="{Binding [About_DonateTitle], Source={x:Static loc:Loc.Instance}}"
-                           FontSize="15" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding [About_DonateDescription], Source={x:Static loc:Loc.Instance}}"
-                           TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="0,4,0,12" />
-
-                <TextBlock Text="{Binding [About_DonatePixKeyLabel], Source={x:Static loc:Loc.Instance}}"
-                           FontSize="12" Opacity="0.6" Margin="0,0,0,4" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" CornerRadius="6" Padding="10,7" Margin="0,0,8,0"
-                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
-                        <TextBlock x:Name="PixKeyText" FontFamily="Consolas" FontSize="12"
-                                   TextTrimming="CharacterEllipsis" />
-                    </Border>
-                    <ui:Button Grid.Column="1" Click="CopyPixKey_Click"
-                               Background="#DC2626" Foreground="White" FontWeight="SemiBold"
-                               Content="{Binding [About_DonateCopyKey], Source={x:Static loc:Loc.Instance}}" />
-                </Grid>
-                <TextBlock x:Name="CopiedFeedback" Text="{Binding [About_DonateCopied], Source={x:Static loc:Loc.Instance}}"
-                           Foreground="#22C55E" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" Opacity="0" />
-            </StackPanel>
-        </Border>
     </StackPanel>
 </Page>

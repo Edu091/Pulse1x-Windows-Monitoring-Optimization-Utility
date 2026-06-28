@@ -102,6 +102,7 @@ public partial class App : Application
             onIntervalChanged: dashboardViewModel.UpdateInterval,
             onMinimizeToTrayChanged: _ => { }));
         var aboutPage = new AboutPage();
+        var donatePage = new DonatePage();
 
         // A categoria Saúde reaproveita os mesmos serviços de hardware/sistema (somente leitura)
         // e as ferramentas seguras já existentes (limpeza, SFC/DISM) para as ações.
@@ -125,7 +126,7 @@ public partial class App : Application
         var postFormatTweaksService = new PostFormatTweaksService(specialCommandsService);
         var utilityPage = new UtilityPage(new PostFormatViewModel(appInstallService, postFormatTweaksService));
 
-        mainWindow = new MainWindow(settingsService, dashboardPage, optimizationPage, healthPage, latencyPage, utilityPage, settingsPage, aboutPage);
+        mainWindow = new MainWindow(settingsService, dashboardPage, optimizationPage, healthPage, latencyPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {
