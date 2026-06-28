@@ -1,0 +1,12 @@
+<Page
+    x:Class="Pulse1x.App.Views.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    Title="Sobre">
+    <StackPanel Margin="16" MaxWidth="480">
+        <TextBlock Text="Pulse1x" FontSize="24" FontWeight="Bold" />
+        <TextBlock Text="{Binding [About_Version], Source={x:Static loc:Loc.Instance}}" Opacity="0.7" Margin="0,4,0,16" />
+        <TextBlock Text="{Binding [About_Description], Source={x:Static loc:Loc.Instance}}" TextWrapping="Wrap" Opacity="0.85" />
+    </StackPanel>
+</Page>

@@ -1,0 +1,33 @@
+<Page
+    x:Class="Pulse1x.App.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    Title="Configurações"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    mc:Ignorable="d">
+    <StackPanel Margin="16" MaxWidth="480">
+        <TextBlock Text="{Binding [Settings_Appearance], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_DarkTheme], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsDarkTheme}" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_Animations], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding AnimationsEnabled}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_AnimationsHint], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+        <TextBlock Text="{Binding [Settings_Language], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="{Binding [Settings_LanguageLabel], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox ItemsSource="{Binding Languages}" DisplayMemberPath="Label" SelectedItem="{Binding SelectedLanguage}" Width="160" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding [Settings_Update], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="{Binding [Settings_UpdateInterval], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox ItemsSource="{Binding AvailableIntervalsMs}" SelectedItem="{Binding UpdateIntervalMs}" Width="160" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding [Settings_System], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_StartWithWindows], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding StartWithWindows}" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_MinimizeToTray], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MinimizeToTray}" />
+    </StackPanel>
+</Page>

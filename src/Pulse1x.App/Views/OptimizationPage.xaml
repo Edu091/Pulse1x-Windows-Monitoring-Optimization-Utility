@@ -1,0 +1,1336 @@
+<Page
+    x:Class="Pulse1x.App.Views.OptimizationPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:anim="clr-namespace:Pulse1x.App.Services"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    d:DataContext="{d:DesignInstance Type=vm:OptimizationViewModel}"
+    mc:Ignorable="d"
+    Title="Otimização">
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="InvBool" />
+        <converters:StringToVisibilityConverter x:Key="StrToVis" />
+
+        <!-- Card genérico de comando (Comandos Especiais) -->
+        <DataTemplate x:Key="SpecialCommandCard">
+            <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="20" VerticalAlignment="Center"
+                               Margin="2,0,10,0" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                    <Grid Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <ui:Button Content="{Binding ButtonText}" Command="{Binding RunCommand}"
+                                   Visibility="{Binding ShowButton, Converter={StaticResource BoolToVis}}"
+                                   Padding="14,6" />
+                        <!-- Comandos com interruptor: ele permanece visível (só desabilitado) e o anel
+                             aparece ao lado durante a execução, em vez de o controle sumir e voltar. -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                    Visibility="{Binding IsToggleCommand, Converter={StaticResource BoolToVis}}">
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,8,0"
+                                             Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
+                            <ui:ToggleSwitch IsChecked="{Binding IsToggleOn, Mode=TwoWay}" OnContent="" OffContent=""
+                                             IsEnabled="{Binding CanToggle}" />
+                        </StackPanel>
+                        <!-- Comandos com botão: anel ocupa o lugar do botão enquanto roda. -->
+                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20"
+                                         Visibility="{Binding ShowButtonRing, Converter={StaticResource BoolToVis}}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Card de uma otimização avançada (toggle + estado + descrição recolhível) -->
+        <DataTemplate x:Key="AdvancedOptCard">
+            <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="20" VerticalAlignment="Center"
+                                   Margin="2,0,12,0" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding StateText}" FontSize="12" Opacity="0.65" Margin="0,1,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                            <!-- O anel aparece ao lado do interruptor durante a operação; o interruptor
+                                 nunca some (apenas fica desabilitado) para não "piscar"/voltar sozinho. -->
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,8,0"
+                                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                            <ui:ToggleSwitch IsChecked="{Binding IsApplied, Mode=TwoWay}"
+                                             IsEnabled="{Binding CanToggle}"
+                                             OnContent="" OffContent="" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Aviso (ex.: SSD) -->
+                    <Border Margin="34,8,0,0" Padding="8,5" CornerRadius="6"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                            Visibility="{Binding HasWarning, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding Warning}" FontSize="12" Opacity="0.85" TextWrapping="Wrap" />
+                    </Border>
+
+                    <!-- Status da última ação -->
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="34,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+
+                    <!-- Detalhes recolhíveis -->
+                    <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}" Background="Transparent"
+                                  BorderThickness="0" HorizontalContentAlignment="Left" Padding="34,6,0,0">
+                        <TextBlock Text="{Binding [Detail_Title], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    </ToggleButton>
+                    <StackPanel Margin="34,2,0,2"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.8" TextWrapping="Wrap"
+                                   LineHeight="18" />
+                        <TextBlock Text="{Binding StateDetail}" FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                                   Margin="0,6,0,0"
+                                   Visibility="{Binding HasStateDetail, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+
+            <!-- Título da categoria -->
+            <TextBlock Text="{Binding [Opt_Title], Source={x:Static loc:Loc.Instance}}" FontSize="20" FontWeight="Bold" Margin="6,0,0,2" />
+            <TextBlock Text="{Binding [Opt_Subtitle], Source={x:Static loc:Loc.Instance}}"
+                       Opacity="0.6" FontSize="13" Margin="6,0,0,16" />
+
+            <!-- ===================== Cartão: Otimização de Memória RAM ===================== -->
+            <Border
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="6,0,6,12">
+                <StackPanel>
+
+                    <!-- Cabeçalho compacto: ícone + nome -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="32" Height="32" CornerRadius="8"
+                                Background="{DynamicResource BrandAccentBrush}">
+                            <TextBlock Text="🧠" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding [Opt_MemTitle], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </StackPanel>
+
+                    <!-- Amostra do uso de RAM -->
+                    <ProgressBar Value="{Binding RamUsagePercent}" Maximum="100" Height="6" Margin="0,12,0,0" />
+
+                    <!-- Botão de otimizar + progresso -->
+                    <Grid Margin="0,12,0,0">
+                        <ui:Button
+                            Content="{Binding [Opt_MemOptimize], Source={x:Static loc:Loc.Instance}}"
+                            Command="{Binding OptimizeMemoryCommand}"
+                            Visibility="{Binding IsOptimizing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
+                            Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                            HorizontalAlignment="Left"
+                            Padding="18,8" />
+
+                        <!-- Estado "otimizando": anel de progresso + barra animada -->
+                        <StackPanel Visibility="{Binding IsOptimizing, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:ProgressRing IsIndeterminate="True" Width="22" Height="22" />
+                                <TextBlock Text="{Binding [Opt_MemOptimizing], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                            </StackPanel>
+                            <ProgressBar Value="{Binding OptimizeProgress}" Maximum="100" Height="6" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Seção recolhível: detalhes, resultado e explicação técnica -->
+                    <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <StackPanel>
+                            <ToggleButton IsChecked="{Binding IsExplainerExpanded, Mode=TwoWay}"
+                                          Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                          HorizontalContentAlignment="Stretch" Padding="14,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding [Opt_MemDetailsHeader], Source={x:Static loc:Loc.Instance}}"
+                                               FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                               Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                    <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                               Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </ToggleButton>
+
+                            <StackPanel Margin="14,0,14,14"
+                                        anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}">
+
+                                <!-- Estatísticas detalhadas de RAM -->
+                                <Border Padding="14" CornerRadius="10" Margin="0,0,0,12"
+                                        Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding [Badge_InUse], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding RamUsedText}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding [Badge_Available], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding RamAvailableText}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Indicador do resultado da última otimização -->
+                                <Border Padding="14" CornerRadius="10" Margin="0,0,0,12"
+                                        Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                        Visibility="{Binding HasResult, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="✅" FontSize="20" VerticalAlignment="Top"
+                                                   Visibility="{Binding LastResultSuccess, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock Text="⚠️" FontSize="20" VerticalAlignment="Top"
+                                                   Visibility="{Binding LastResultSuccess, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                        <StackPanel Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding LastResultMessage}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding LastResultDetails}" Opacity="0.6" FontSize="12" Margin="0,4,0,0"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,12"
+                                           Text="{Binding [Opt_RamIntroBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_Layer1Title], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,10"
+                                           Text="{Binding [Opt_Layer1Body], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_WorkingSetTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,10"
+                                           Text="{Binding [Opt_WorkingSetBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_ExactCallTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,6"
+                                           Text="{Binding [Opt_ExactCallBody], Source={x:Static loc:Loc.Instance}}" />
+                                <StackPanel Margin="2,0,0,10">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,3"
+                                               Text="{Binding [Opt_ExactCallBullet1], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20"
+                                               Text="{Binding [Opt_ExactCallBullet2], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding [Opt_Layer2Title], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,6"
+                                           Text="{Binding [Opt_Layer2Body], Source={x:Static loc:Loc.Instance}}" />
+                                <StackPanel Margin="2,0,0,10">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,3"
+                                               Text="{Binding [Opt_Layer2Bullet1], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,3"
+                                               Text="{Binding [Opt_Layer2Bullet2], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20"
+                                               Text="{Binding [Opt_Layer2Bullet3], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,10"
+                                           Text="{Binding [Opt_PrivilegeBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_RamRiseTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,10"
+                                           Text="{Binding [Opt_RamRiseBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_NoDataLostTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,6"
+                                           Text="{Binding [Opt_NoDataLostBody1], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,10"
+                                           Text="{Binding [Opt_NoDataLostBody2], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_NotTouchedTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <StackPanel Margin="2,0,0,10">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB1], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB2], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB3], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB4], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB5], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NotTouchedB6], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding [Opt_ScopeLimitsTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,2"
+                                           Text="{Binding [Opt_ScopeLimitsBody], Source={x:Static loc:Loc.Instance}}" />
+
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Cartão: Liberar Espaço em Disco ===================== -->
+            <Border
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="6,0,6,12"
+                DataContext="{Binding DiskCleanup}">
+                <StackPanel>
+
+                    <!-- Cabeçalho compacto -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="32" Height="32" CornerRadius="8"
+                                Background="{DynamicResource BrandAccentBrush}">
+                            <TextBlock Text="💾" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding [Opt_DiskTitle], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </StackPanel>
+
+                    <!-- Resumo do disco -->
+                    <Border Margin="0,12,0,0" Padding="14" CornerRadius="10"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding [Badge_Total], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding DiskTotalText}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding [Badge_InUse], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding DiskUsedText}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="{Binding [Badge_Free], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding DiskFreeText}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <ProgressBar Value="{Binding DiskUsagePercent}" Maximum="100" Height="6" Margin="0,12,0,8" />
+                            <Grid Visibility="{Binding HasAnalyzed, Converter={StaticResource BoolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding [Badge_Recoverable], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding RecoverableText}" FontSize="15" FontWeight="Bold"
+                                               Foreground="{DynamicResource BrandAccentBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding [Badge_Found], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding FileCountText}" FontSize="15" FontWeight="Bold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Botões de ação -->
+                    <WrapPanel Orientation="Horizontal" Margin="0,12,0,0"
+                               Visibility="{Binding IsCleaning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                        <ui:Button Content="{Binding [Opt_Analyze], Source={x:Static loc:Loc.Instance}}" Command="{Binding AnalyzeCommand}"
+                                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                   Padding="16,8" Margin="0,0,8,8" />
+                        <ui:Button Content="{Binding [Opt_SmartClean], Source={x:Static loc:Loc.Instance}}" Command="{Binding SmartCleanCommand}"
+                                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                   ToolTip="{Binding [Opt_SmartCleanTooltip], Source={x:Static loc:Loc.Instance}}"
+                                   Padding="16,8" Margin="0,0,8,8" />
+                        <ui:Button Content="{Binding [Opt_FreeSpace], Source={x:Static loc:Loc.Instance}}" Command="{Binding CleanCommand}"
+                                   Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                   Padding="16,8" Margin="0,0,8,8" />
+                        <ui:Button Content="{Binding [Opt_Recuar], Source={x:Static loc:Loc.Instance}}" Command="{Binding CollapseCommand}"
+                                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                   Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}"
+                                   Padding="16,8" Margin="0,0,0,8" />
+                    </WrapPanel>
+
+                    <!-- Análise em andamento -->
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
+                                Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}">
+                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" />
+                        <TextBlock Text="{Binding [Opt_AnalyzingDisk], Source={x:Static loc:Loc.Instance}}"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </StackPanel>
+
+                    <!-- Busca de arquivos grandes em andamento -->
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
+                                Visibility="{Binding IsScanningLargeFiles, Converter={StaticResource BoolToVis}}">
+                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" />
+                        <TextBlock Text="{Binding [Opt_SearchingBig], Source={x:Static loc:Loc.Instance}}"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </StackPanel>
+
+                    <!-- Seleção e lista de categorias -->
+                    <StackPanel Margin="0,12,0,0"
+                                Visibility="{Binding HasAnalyzed, Converter={StaticResource BoolToVis}}">
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding SelectedRecoverableText}"
+                                       VerticalAlignment="Center" FontWeight="SemiBold" Opacity="0.85" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ui:Button Content="{Binding [Opt_SelectAll], Source={x:Static loc:Loc.Instance}}" Command="{Binding SelectAllCommand}"
+                                           FontSize="12" Padding="8,4" Margin="0,0,6,0" />
+                                <ui:Button Content="{Binding [Opt_DeselectAll], Source={x:Static loc:Loc.Instance}}" Command="{Binding DeselectAllCommand}"
+                                           FontSize="12" Padding="8,4" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding Categories}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding SafetyLabel}" FontSize="11" Opacity="0.7" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding SizeText}" VerticalAlignment="Center"
+                                                           FontWeight="SemiBold" Margin="8,0,8,0" />
+                                                <ToggleButton Grid.Column="3" IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                              Style="{StaticResource GhostToggle}" anim:Anim.Spin="{Binding IsExpanded}"
+                                                              Content="⌄" FontSize="14" Padding="6,4" VerticalAlignment="Center" />
+                                            </Grid>
+
+                                            <StackPanel Margin="26,8,0,0"
+                                                        anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Description}" Opacity="0.7" FontSize="12"
+                                                           TextWrapping="Wrap" Margin="0,0,0,6" />
+                                                <ItemsControl ItemsSource="{Binding Details}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,0,0,3">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12"
+                                                                           Opacity="0.8" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontSize="12"
+                                                                           Opacity="0.6" Margin="8,0,0,0" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Arquivos grandes encontrados (Limpeza Inteligente) -->
+                    <StackPanel Margin="0,12,0,0"
+                                Visibility="{Binding HasScannedLargeFiles, Converter={StaticResource BoolToVis}}">
+
+                        <!-- Mensagem quando nada é encontrado -->
+                        <Border Padding="14" CornerRadius="10"
+                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                Visibility="{Binding LargeFilesEmpty, Converter={StaticResource BoolToVis}}">
+                            <TextBlock TextWrapping="Wrap" Opacity="0.8"
+                                       Text="{Binding [Opt_NoBigFiles], Source={x:Static loc:Loc.Instance}}" />
+                        </Border>
+
+                        <!-- Lista de arquivos grandes -->
+                        <StackPanel Visibility="{Binding LargeFilesEmpty, Converter={StaticResource InvBool}}">
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding SelectedLargeText}"
+                                           VerticalAlignment="Center" FontWeight="SemiBold" Opacity="0.85" />
+                                <ui:Button Grid.Column="1" Appearance="Danger" Content="{Binding [Opt_DeleteSelected], Source={x:Static loc:Loc.Instance}}"
+                                           Command="{Binding DeleteLargeFilesCommand}" FontSize="12" Padding="12,6" />
+                            </Grid>
+                            <TextBlock Text="{Binding [Opt_BigFilesNote], Source={x:Static loc:Loc.Instance}}"
+                                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                            <ItemsControl ItemsSource="{Binding LargeFiles}" MaxHeight="320">
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,4" CornerRadius="8" BorderThickness="1" Padding="10"
+                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding FileName}" FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding FolderText}" FontSize="11" Opacity="0.6"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                    <TextBlock Text="{Binding SizeText}" FontWeight="SemiBold"
+                                                               HorizontalAlignment="Right" />
+                                                    <TextBlock Text="{Binding ModifiedText}" FontSize="11" Opacity="0.5"
+                                                               HorizontalAlignment="Right" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Aplicativos grandes instalados -->
+                        <StackPanel Margin="0,16,0,0" Visibility="{Binding HasApps, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding [Opt_BigAppsTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,2" />
+                            <TextBlock Text="{Binding [Opt_BigAppsDesc], Source={x:Static loc:Loc.Instance}}"
+                                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                            <ItemsControl ItemsSource="{Binding InstalledApps}" MaxHeight="320">
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,4" CornerRadius="8" BorderThickness="1" Padding="10"
+                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding SubtitleText}" FontSize="11" Opacity="0.6"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" Margin="8,0,8,0" />
+                                                <ui:Button Grid.Column="2" Content="{Binding [Opt_Uninstall], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="10,5"
+                                                           VerticalAlignment="Center"
+                                                           Command="{Binding DataContext.UninstallAppCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                           CommandParameter="{Binding}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Limpeza em andamento -->
+                    <Border Margin="0,12,0,0" Padding="14" CornerRadius="10"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                            Visibility="{Binding IsCleaning, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" />
+                                <TextBlock Text="{Binding CurrentCategoryText}" VerticalAlignment="Center"
+                                           Margin="10,0,0,0" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <ProgressBar Value="{Binding CleanProgress}" Maximum="100" Height="6" Margin="0,10,0,8" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding RealtimeFreedText}" FontSize="12" Opacity="0.8" />
+                                <TextBlock Grid.Column="1" Text="{Binding RemainingTimeText}" FontSize="12" Opacity="0.6" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Resultado da limpeza -->
+                    <Border Margin="0,12,0,0" Padding="14" CornerRadius="10"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                            Visibility="{Binding HasResult, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✅" FontSize="20" VerticalAlignment="Top" />
+                            <StackPanel Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ResultMessage}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding ResultDetails}" Opacity="0.6" FontSize="12" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Explicação recolhível -->
+                    <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <StackPanel>
+                            <ToggleButton IsChecked="{Binding IsExplainerExpanded, Mode=TwoWay}"
+                                          Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                          HorizontalContentAlignment="Stretch" Padding="14,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding [Opt_CleanExplainerHeader], Source={x:Static loc:Loc.Instance}}"
+                                               FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                               Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                    <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                               Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </ToggleButton>
+
+                            <StackPanel Margin="14,0,14,14"
+                                        anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}">
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                           Text="{Binding [Opt_CleanIntroBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_HowItWorksTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <StackPanel Margin="2,0,0,8">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_HowItWorksB1], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_HowItWorksB2], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_HowItWorksB3], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_HowItWorksB4], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding [Opt_WhatRemovedTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                           Text="{Binding [Opt_WhatRemovedBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                <TextBlock Text="{Binding [Opt_NeverTouchedTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <StackPanel Margin="2,0,0,8">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NeverTouchedB1], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NeverTouchedB2], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NeverTouchedB3], Source={x:Static loc:Loc.Instance}}" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_NeverTouchedB4], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+
+                                <TextBlock TextWrapping="Wrap" Opacity="0.6" FontSize="12"
+                                           Text="{Binding [Opt_CleanSafetyNote], Source={x:Static loc:Loc.Instance}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Cartão: Comandos Especiais ===================== -->
+            <Border
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="6,0,6,12"
+                DataContext="{Binding SpecialCommands}">
+                <StackPanel>
+
+                    <!-- Cabeçalho recolhível do cartão -->
+                    <ToggleButton IsChecked="{Binding IsSectionExpanded, Mode=TwoWay}"
+                                  Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                    Background="{DynamicResource BrandAccentBrush}">
+                                <TextBlock Text="🛠️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding [Opt_SpecialTitle], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding [Opt_SpecialSub], Source={x:Static loc:Loc.Instance}}"
+                                           Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="2" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <StackPanel Margin="0,12,0,0"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}">
+
+                        <!-- ===== Manutenção Rápida (destaque) ===== -->
+                        <Border CornerRadius="10" Padding="14"
+                                Background="{DynamicResource BrandAccentBrush}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding [Opt_QuickMaint], Source={x:Static loc:Loc.Instance}}" FontSize="15" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding [Opt_QuickMaintDesc], Source={x:Static loc:Loc.Instance}}"
+                                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                                   Opacity="0.85" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="1" Content="{Binding [Opt_Execute], Source={x:Static loc:Loc.Instance}}"
+                                               Command="{Binding RunQuickMaintenanceCommand}"
+                                               IsEnabled="{Binding IsMaintenanceRunning, Converter={StaticResource InvBool}}"
+                                               Background="White" Foreground="#DC2626" FontWeight="Bold"
+                                               Padding="18,8" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+
+                                <!-- Progresso + etapas -->
+                                <StackPanel Margin="0,12,0,0"
+                                            Visibility="{Binding IsMaintenanceRunning, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding MaintenanceStepText}"
+                                               Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                               FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ProgressBar Value="{Binding MaintenanceProgress}" Maximum="100" Height="6" />
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding MaintenanceSteps}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
+                                                <TextBlock Text="{Binding Icon}" FontSize="13" Width="22" />
+                                                <TextBlock Text="{Binding Title}"
+                                                           Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" FontSize="13" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Saída de comandos (compartilhada) ===== -->
+                        <Border Margin="0,12,0,0" CornerRadius="10" Padding="12"
+                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                Visibility="{Binding HasOutput, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                            Visibility="{Binding IsRunningCommand, Converter={StaticResource BoolToVis}}">
+                                    <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" />
+                                    <TextBlock Text="{Binding CurrentOperation}" VerticalAlignment="Center"
+                                               Margin="8,0,0,0" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
+                                    <TextBox Text="{Binding OutputLog, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                             Background="Transparent" FontFamily="Consolas" FontSize="11"
+                                             TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" />
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Reparo do Sistema ===== -->
+                        <TextBlock Text="{Binding [Opt_GroupRepair], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,16,0,8" />
+                        <ItemsControl ItemsSource="{Binding RepairCommands}" ItemTemplate="{StaticResource SpecialCommandCard}" />
+
+                        <!-- ===== Desempenho ===== -->
+                        <TextBlock Text="{Binding [Opt_GroupPerformance], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,8,0,8" />
+                        <ItemsControl ItemsSource="{Binding PerformanceCommands}" ItemTemplate="{StaticResource SpecialCommandCard}" />
+
+                        <!-- ===== Recuperação ===== -->
+                        <TextBlock Text="{Binding [Opt_GroupRecovery], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,8,0,8" />
+                        <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛟" FontSize="20" VerticalAlignment="Center" Margin="2,0,10,0" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding [Opt_CreateRestoreTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding [Opt_CreateRestoreDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding RestorePointName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             VerticalAlignment="Center" />
+                                    <ui:Button Grid.Column="1" Content="{Binding [Opt_Create], Source={x:Static loc:Loc.Instance}}" Command="{Binding CreateRestorePointCommand}"
+                                               IsEnabled="{Binding IsCreatingRestorePoint, Converter={StaticResource InvBool}}"
+                                               Padding="14,6" Margin="8,0,0,0" />
+                                </Grid>
+                                <TextBlock Text="{Binding RestorePointStatus}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding RestorePointStatus, Converter={StaticResource StrToVis}}" />
+                            </StackPanel>
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding RecoveryCommands}" ItemTemplate="{StaticResource SpecialCommandCard}" />
+
+                        <!-- ===== Ferramentas do Windows ===== -->
+                        <TextBlock Text="{Binding [Opt_GroupWindowsTools], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,8,0,8" />
+                        <ItemsControl ItemsSource="{Binding WindowsTools}" ItemTemplate="{StaticResource SpecialCommandCard}" />
+
+                        <!-- ===== Rede ===== -->
+                        <TextBlock Text="{Binding [Opt_GroupNetwork], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,8,0,8" />
+                        <ItemsControl ItemsSource="{Binding NetworkCommands}" ItemTemplate="{StaticResource SpecialCommandCard}" />
+
+                        <!-- Informações da Rede -->
+                        <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🌐" FontSize="20" VerticalAlignment="Center" Margin="2,0,10,0" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding [Opt_NetInfoTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding [Opt_NetInfoDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" />
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="2" Content="{Binding [Opt_Show], Source={x:Static loc:Loc.Instance}}" Command="{Binding ShowNetworkCommand}"
+                                               Padding="14,6" Margin="10,0,0,0" />
+                                </Grid>
+                                <Border Margin="0,10,0,0" Padding="10" CornerRadius="6"
+                                        Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                        Visibility="{Binding ShowNetworkInfo, Converter={StaticResource BoolToVis}}">
+                                    <TextBox Text="{Binding NetworkInfoText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                             Background="Transparent" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Gerar Relatório -->
+                        <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📄" FontSize="20" VerticalAlignment="Center" Margin="2,0,10,0" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding [Opt_FullReportTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding [Opt_FullReportDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="32,10,0,0">
+                                    <ui:Button Content="TXT" Command="{Binding GenerateReportCommand}" CommandParameter="TXT"
+                                               Padding="14,6" Margin="0,0,8,0" />
+                                    <ui:Button Content="HTML" Command="{Binding GenerateReportCommand}" CommandParameter="HTML"
+                                               Padding="14,6" Margin="0,0,8,0" />
+                                    <ui:Button Content="PDF" Command="{Binding GenerateReportCommand}" CommandParameter="PDF"
+                                               Padding="14,6" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding ReportStatus}" FontSize="12" Margin="32,8,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding ReportStatus, Converter={StaticResource StrToVis}}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Explicação recolhível ===== -->
+                        <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <ToggleButton IsChecked="{Binding IsExplainerExpanded, Mode=TwoWay}"
+                                              Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                              HorizontalContentAlignment="Stretch" Padding="14,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding [Opt_SpecialExplainerHeader], Source={x:Static loc:Loc.Instance}}"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                        <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </ToggleButton>
+
+                                <StackPanel Margin="14,0,14,14"
+                                            anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                               Text="{Binding [Opt_SpecialIntroBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                    <TextBlock Text="{Binding [Opt_WhatEachGroupDoesTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <StackPanel Margin="2,0,0,8">
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_GroupB1], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_GroupB2], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_GroupB3], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_GroupB4], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_GroupB5], Source={x:Static loc:Loc.Instance}}" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding [Opt_PermissionsTimeTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                               Text="{Binding [Opt_PermissionsBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                    <TextBlock Text="{Binding [Opt_RecommendedMaintTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                               Text="{Binding [Opt_RecommendedBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.6" FontSize="12"
+                                               Text="{Binding [Opt_SpecialNote], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Cartão: Otimizações Avançadas ===================== -->
+            <Border
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="6,0,6,12"
+                DataContext="{Binding AdvancedOptimizations}">
+                <StackPanel>
+
+                    <!-- Cabeçalho recolhível do cartão -->
+                    <ToggleButton IsChecked="{Binding IsSectionExpanded, Mode=TwoWay}"
+                                  Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                    Background="{DynamicResource BrandAccentBrush}">
+                                <TextBlock Text="🎛️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding [Opt_AdvancedTitle], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding [Opt_AdvancedSub], Source={x:Static loc:Loc.Instance}}"
+                                           Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="2" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <StackPanel Margin="0,12,0,0"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}">
+
+                        <!-- Verificação automática de estado -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                    Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVis}}">
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" />
+                            <TextBlock Text="{Binding [Opt_CheckingState], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center"
+                                       Margin="8,0,0,0" Opacity="0.8" />
+                        </StackPanel>
+
+                        <!-- ===== Privacidade ===== -->
+                        <TextBlock Text="{Binding [Opt_CatPrivacy], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,4,0,8" />
+                        <ItemsControl ItemsSource="{Binding PrivacyOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
+
+                        <!-- ===== Desempenho ===== -->
+                        <TextBlock Text="{Binding [Opt_CatPerformance], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <ItemsControl ItemsSource="{Binding PerformanceOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
+
+                        <!-- ===== Ajustes Visuais ===== -->
+                        <TextBlock Text="{Binding [Opt_CatVisual], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <ItemsControl ItemsSource="{Binding VisualProfiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.65"
+                                                           TextWrapping="Wrap" Margin="0,1,0,0" />
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1" Content="{Binding [Opt_Apply], Source={x:Static loc:Loc.Instance}}" Padding="14,6" Margin="10,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Command="{Binding DataContext.ApplyVisualProfileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                       CommandParameter="{Binding}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- ===== Detector de Bloatware ===== -->
+                        <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                DataContext="{Binding Detector}">
+                            <StackPanel>
+                                <ToggleButton IsChecked="{Binding IsSectionExpanded, Mode=TwoWay}"
+                                              Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                              HorizontalContentAlignment="Stretch" Padding="14,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding [Opt_BloatTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding [Opt_BloatSub], Source={x:Static loc:Loc.Instance}}"
+                                                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                        <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </ToggleButton>
+
+                                <StackPanel Margin="14,0,14,14"
+                                            anim:Anim.AnimateVisibility="True" Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}">
+
+                                    <!-- Aviso de segurança -->
+                                    <Border Padding="10" CornerRadius="8" Margin="0,0,0,10"
+                                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                        <TextBlock TextWrapping="Wrap" FontSize="12" Opacity="0.85"
+                                                   Text="{Binding [Opt_BloatSafetyNotice], Source={x:Static loc:Loc.Instance}}" />
+                                    </Border>
+
+                                    <!-- Botão de varredura -->
+                                    <ui:Button Content="{Binding [Opt_BloatScan], Source={x:Static loc:Loc.Instance}}" Command="{Binding ScanCommand}"
+                                               Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                               Padding="16,8" HorizontalAlignment="Left"
+                                               Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                                    <!-- Varredura em andamento -->
+                                    <StackPanel Orientation="Horizontal"
+                                                Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
+                                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" />
+                                        <TextBlock Text="{Binding [Opt_BloatScanning], Source={x:Static loc:Loc.Instance}}"
+                                                   VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.8" />
+                                    </StackPanel>
+
+                                    <!-- Relatório final -->
+                                    <Border Margin="0,12,0,0" Padding="14" CornerRadius="10"
+                                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding [Badge_Removal], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding RemoveCount}" FontSize="18" FontWeight="Bold"
+                                                               Foreground="{DynamicResource BrandAccentBrush}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding [Badge_Optional], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding OptionalCount}" FontSize="18" FontWeight="Bold" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="{Binding [Badge_Keep], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding KeepCount}" FontSize="18" FontWeight="Bold" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Text="{Binding ReportText}" FontSize="12" Opacity="0.8"
+                                                       TextWrapping="Wrap" Margin="0,8,0,0" />
+                                            <CheckBox Content="{Binding [Opt_ShowIgnored], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding ShowIgnored, Mode=TwoWay}"
+                                                      FontSize="12" Margin="0,8,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Nenhum item -->
+                                    <TextBlock Text="{Binding [Opt_BloatEmpty], Source={x:Static loc:Loc.Instance}}"
+                                               Opacity="0.7" Margin="0,12,0,0"
+                                               Visibility="{Binding ShowEmpty, Converter={StaticResource BoolToVis}}" />
+
+                                    <!-- Lista de itens detectados -->
+                                    <ItemsControl ItemsSource="{Binding Items}" Margin="0,12,0,0" MaxHeight="520">
+                                        <ItemsControl.Template>
+                                            <ControlTemplate TargetType="ItemsControl">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsPresenter />
+                                                </ScrollViewer>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                                    <StackPanel>
+                                                        <!-- Cabeçalho do item -->
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="18"
+                                                                       VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="6"
+                                                                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                                            Visibility="{Binding ShowStateBadge, Converter={StaticResource BoolToVis}}">
+                                                                        <TextBlock Text="{Binding StateText}" FontSize="10" Opacity="0.8" />
+                                                                    </Border>
+                                                                </StackPanel>
+                                                                <TextBlock FontSize="11" Opacity="0.6" Margin="0,1,0,0">
+                                                                    <Run Text="{Binding Vendor, Mode=OneWay}" /><Run Text="  •  " /><Run Text="{Binding CategoryLabel, Mode=OneWay}" />
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                            <ui:ProgressRing Grid.Column="2" IsIndeterminate="True" Width="16" Height="16"
+                                                                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                                                        </Grid>
+
+                                                        <!-- Selos de análise -->
+                                                        <WrapPanel Margin="28,6,0,0">
+                                                            <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                                <TextBlock Text="{Binding RecommendationBadge}" FontSize="11" FontWeight="SemiBold" />
+                                                            </Border>
+                                                            <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                                <TextBlock Text="{Binding ImpactBadge}" FontSize="11" />
+                                                            </Border>
+                                                            <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                                <TextBlock Text="{Binding RiskBadge}" FontSize="11" />
+                                                            </Border>
+                                                            <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                                    Visibility="{Binding HasSize, Converter={StaticResource BoolToVis}}">
+                                                                <TextBlock Text="{Binding SizeText}" FontSize="11" />
+                                                            </Border>
+                                                        </WrapPanel>
+
+                                                        <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.75"
+                                                                   TextWrapping="Wrap" Margin="28,6,0,0" />
+
+                                                        <!-- Status da última ação -->
+                                                        <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="28,6,0,0"
+                                                                   TextWrapping="Wrap"
+                                                                   Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+
+                                                        <!-- Ações -->
+                                                        <WrapPanel Margin="28,8,0,0">
+                                                            <ui:Button Content="{Binding [Opt_Disable], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                                       Command="{Binding DisableCommand}"
+                                                                       IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                                       Visibility="{Binding ShowDisable, Converter={StaticResource BoolToVis}}" />
+                                                            <ui:Button Content="{Binding [Opt_Reactivate], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                                       Command="{Binding EnableCommand}"
+                                                                       IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                                       Visibility="{Binding ShowEnable, Converter={StaticResource BoolToVis}}" />
+                                                            <ui:Button Content="{Binding [Opt_Uninstall], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                                       Command="{Binding UninstallCommand}"
+                                                                       IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                                       Visibility="{Binding ShowUninstall, Converter={StaticResource BoolToVis}}" />
+                                                            <ui:Button Content="{Binding [Opt_Ignore], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                                       Command="{Binding IgnoreCommand}" />
+                                                            <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                                          Style="{StaticResource GhostToggle}" Background="Transparent" Padding="10,5" Margin="0,0,0,4">
+                                                                <TextBlock Text="{Binding [Opt_MoreInfo], Source={x:Static loc:Loc.Instance}}" FontSize="12" />
+                                                            </ToggleButton>
+                                                        </WrapPanel>
+
+                                                        <!-- Painel "Mais Informações" -->
+                                                        <Border Margin="28,8,0,0" Padding="12" CornerRadius="8"
+                                                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding [Opt_InfoWhatIs], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding WhatItIs}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                                <TextBlock Text="{Binding [Opt_InfoWhoInstalled], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding WhoInstalled}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                                <TextBlock Text="{Binding [Opt_InfoWhenUsed], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding WhenUsed}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                                <TextBlock Text="{Binding BackgroundText}" FontSize="12" Opacity="0.7" Margin="0,0,0,2" />
+                                                                <TextBlock Text="{Binding StartupImpactText}" FontSize="12" Opacity="0.7" Margin="0,0,0,8" />
+                                                                <TextBlock Text="{Binding [Opt_InfoBenefitsKeep], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding BenefitsKeeping}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                                <TextBlock Text="{Binding [Opt_InfoBenefitsRemove], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding BenefitsRemoving}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                                <TextBlock Text="{Binding [Opt_InfoConsequences], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                                <TextBlock Text="{Binding Consequences}" FontSize="12" Opacity="0.8"
+                                                                           TextWrapping="Wrap" Margin="0,1,0,0" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Histórico / Reversão ===== -->
+                        <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <ToggleButton IsChecked="{Binding IsHistoryExpanded, Mode=TwoWay}"
+                                              Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                              HorizontalContentAlignment="Stretch" Padding="14,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding [Opt_HistoryTitle], Source={x:Static loc:Loc.Instance}}"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsHistoryExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                        <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsHistoryExpanded, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </ToggleButton>
+
+                                <StackPanel Margin="14,0,14,14"
+                                            anim:Anim.AnimateVisibility="True" Visibility="{Binding IsHistoryExpanded, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="0,0,0,8"
+                                               Text="{Binding [Opt_HistoryDesc], Source={x:Static loc:Loc.Instance}}" />
+
+                                    <ui:Button Content="{Binding [Opt_RestoreAll], Source={x:Static loc:Loc.Instance}}"
+                                               Command="{Binding RevertAllCommand}"
+                                               Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}}"
+                                               Margin="0,0,0,10" Padding="14,6" />
+
+                                    <TextBlock Text="{Binding [Opt_NoChanges], Source={x:Static loc:Loc.Instance}}"
+                                               Opacity="0.6" FontSize="12"
+                                               Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                                    <ItemsControl ItemsSource="{Binding History}" MaxHeight="320">
+                                        <ItemsControl.Template>
+                                            <ControlTemplate TargetType="ItemsControl">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsPresenter />
+                                                </ScrollViewer>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,4" CornerRadius="8" BorderThickness="1" Padding="10"
+                                                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding OptimizationTitle}" FontWeight="SemiBold" FontSize="12" />
+                                                            <TextBlock Text="{Binding DisplayTarget}" FontSize="11" Opacity="0.6"
+                                                                       TextWrapping="Wrap" Margin="0,1,0,0" />
+                                                            <TextBlock Text="{Binding DisplayChange}" FontSize="11" Opacity="0.6" Margin="0,1,0,0" />
+                                                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}"
+                                                                       FontSize="11" Opacity="0.45" Margin="0,1,0,0" />
+                                                        </StackPanel>
+                                                        <ui:Button Grid.Column="1" Content="{Binding [Opt_Undo], Source={x:Static loc:Loc.Instance}}" FontSize="11" Padding="10,4"
+                                                                   VerticalAlignment="Center" Margin="8,0,0,0"
+                                                                   Command="{Binding DataContext.RevertChangeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                   CommandParameter="{Binding}" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Explicação recolhível ===== -->
+                        <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <ToggleButton IsChecked="{Binding IsExplainerExpanded, Mode=TwoWay}"
+                                              Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                              HorizontalContentAlignment="Stretch" Padding="14,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding [Opt_AdvancedExplainerHeader], Source={x:Static loc:Loc.Instance}}"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                        <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </ToggleButton>
+
+                                <StackPanel Margin="14,0,14,14"
+                                            anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExplainerExpanded, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20" Margin="0,0,0,8"
+                                               Text="{Binding [Opt_AdvIntroBody], Source={x:Static loc:Loc.Instance}}" />
+
+                                    <TextBlock Text="{Binding [Opt_SafeReversibleTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <StackPanel Margin="2,0,0,8">
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_SafeReversibleB1], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_SafeReversibleB2], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_SafeReversibleB3], Source={x:Static loc:Loc.Instance}}" />
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Margin="0,0,0,3" Text="{Binding [Opt_SafeReversibleB4], Source={x:Static loc:Loc.Instance}}" />
+                                    </StackPanel>
+
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.6" FontSize="12"
+                                               Text="{Binding [Opt_AdvNote], Source={x:Static loc:Loc.Instance}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

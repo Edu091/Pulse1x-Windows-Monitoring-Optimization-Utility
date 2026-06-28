@@ -1,0 +1,28 @@
+<UserControl
+    x:Class="Pulse1x.App.Controls.LiveChart"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Name="Root">
+    <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8" Padding="12" Margin="6">
+        <StackPanel>
+            <TextBlock Text="{Binding Title, ElementName=Root}" FontSize="14" Opacity="0.7" Margin="0,0,0,6" />
+            <Grid x:Name="ChartArea" Height="160" SizeChanged="ChartArea_SizeChanged" ClipToBounds="True">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" />
+                <Border Grid.Row="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" />
+                <Border Grid.Row="2" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" />
+                <Border Grid.Row="3" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" />
+
+                <Polygon x:Name="FillArea" Grid.Row="0" Grid.RowSpan="4" />
+                <Polyline x:Name="LineShape" Grid.Row="0" Grid.RowSpan="4" StrokeThickness="2" StrokeLineJoin="Round" />
+
+                <TextBlock x:Name="EmptyHint" Text="Aguardando dados..." Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

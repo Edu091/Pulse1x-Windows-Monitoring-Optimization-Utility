@@ -1,0 +1,315 @@
+<Page
+    x:Class="Pulse1x.App.Views.UtilityPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:anim="clr-namespace:Pulse1x.App.Services"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    d:DataContext="{d:DesignInstance Type=vm:PostFormatViewModel}"
+    mc:Ignorable="d"
+    Title="Utilidades">
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="InvBool" />
+        <converters:StringToBrushConverter x:Key="StrToBrush" />
+        <converters:StringToVisibilityConverter x:Key="StrToVis" />
+
+        <!-- Card de um aplicativo instalável -->
+        <DataTemplate x:Key="AppCard" DataType="{x:Type vm:AppItemViewModel}">
+            <Border Margin="0,0,0,5" CornerRadius="8" BorderThickness="1" Padding="10"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="6,0,8,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Border Margin="8,0,0,0" CornerRadius="4" Padding="6,1" VerticalAlignment="Center"
+                                    Background="#DC2626"
+                                    Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding [Pf_Recommended], Source={x:Static loc:Loc.Instance}}"
+                                           Foreground="White" FontSize="10" FontWeight="SemiBold" />
+                            </Border>
+                            <Border Margin="8,0,0,0" CornerRadius="4" Padding="6,1" VerticalAlignment="Center"
+                                    BorderThickness="1" BorderBrush="#F59E0B"
+                                    Visibility="{Binding OpensOfficialPage, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding [Pf_OfficialSite], Source={x:Static loc:Loc.Instance}}"
+                                           Foreground="#F59E0B" FontSize="10" FontWeight="SemiBold" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding Publisher}" FontSize="11" Opacity="0.5" />
+                            <TextBlock Text="•" FontSize="11" Opacity="0.5" Margin="6,0" />
+                            <TextBlock Text="{Binding Size}" FontSize="11" Opacity="0.5" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                                   Foreground="{Binding StatusColor, Converter={StaticResource StrToBrush}}"
+                                   Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+
+            <!-- Cabeçalho -->
+            <TextBlock Text="{Binding [Nav_Utility], Source={x:Static loc:Loc.Instance}}" Opacity="0.55" FontSize="12" Margin="6,0,0,0" />
+            <TextBlock Text="{Binding [Pf_Title], Source={x:Static loc:Loc.Instance}}" FontSize="22" FontWeight="Bold" Margin="6,0,0,2" />
+            <TextBlock Text="{Binding [Pf_Subtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="13" Margin="6,0,0,14" TextWrapping="Wrap" />
+
+            <!-- Detecção Inteligente -->
+            <Border CornerRadius="12" Padding="16,14" Margin="6,0,6,14" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="🔍" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding [Pf_DetectionTitle], Source={x:Static loc:Loc.Instance}}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="10,0,0,0"
+                                         Visibility="{Binding IsDetecting, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                    <WrapPanel Visibility="{Binding HasDetection, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Margin="0,0,28,6" MinWidth="200">
+                            <TextBlock Text="{Binding [Pf_DetGpu], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" />
+                            <TextBlock Text="{Binding GpuText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,28,6" MinWidth="200">
+                            <TextBlock Text="{Binding [Pf_DetCpu], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" />
+                            <TextBlock Text="{Binding CpuText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,28,6" MinWidth="160">
+                            <TextBlock Text="{Binding [Pf_DetWindows], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" />
+                            <TextBlock Text="{Binding WindowsText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,28,6" MinWidth="120">
+                            <TextBlock Text="{Binding [Pf_DetArch], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" />
+                            <TextBlock Text="{Binding ArchText}" FontWeight="SemiBold" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,28,6" MinWidth="200">
+                            <TextBlock Text="{Binding [Pf_DetOem], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" />
+                            <TextBlock Text="{Binding OemText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding [Pf_DetectionHint], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.5"
+                               TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding HasDetection, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Aviso: winget ausente -->
+            <Border CornerRadius="10" Padding="14" Margin="6,0,6,14" BorderThickness="1" BorderBrush="#F59E0B"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    Visibility="{Binding ShowWingetWarning, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding [Pf_WingetMissingTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Foreground="#F59E0B" />
+                        <TextBlock Text="{Binding [Pf_WingetMissingDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.7" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <ui:Button Grid.Column="1" VerticalAlignment="Center"
+                               Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                               Content="{Binding [Pf_WingetInstall], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding OpenWingetPageCommand}" />
+                </Grid>
+            </Border>
+
+            <!-- Barra de pesquisa + ações -->
+            <ui:TextBox Margin="6,0,6,8" Icon="{ui:SymbolIcon Search24}"
+                        PlaceholderText="{Binding [Pf_SearchPlaceholder], Source={x:Static loc:Loc.Instance}}"
+                        Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <Grid Margin="6,0,6,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <ui:Button Content="{Binding [Pf_SelectRecommended], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding SelectRecommendedCommand}" Icon="{ui:SymbolIcon Checkmark24}" />
+                    <ui:Button Content="{Binding [Pf_ClearSelection], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding ClearSelectionCommand}" Margin="8,0,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="{Binding SelectedCountText}" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="0,0,10,0" />
+                    <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold" Padding="16,8"
+                               Content="{Binding [Pf_InstallSelected], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding InstallSelectedCommand}" Icon="{ui:SymbolIcon ArrowDownload24}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Perfis prontos -->
+            <StackPanel Orientation="Horizontal" Margin="6,6,6,12" >
+                <TextBlock Text="{Binding [Pf_Profiles], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="0,0,10,0" />
+                <ui:Button Content="{Binding [Pf_ProfileGamer], Source={x:Static loc:Loc.Instance}}" Command="{Binding ApplyProfileCommand}" CommandParameter="Gamer" />
+                <ui:Button Content="{Binding [Pf_ProfileBasic], Source={x:Static loc:Loc.Instance}}" Command="{Binding ApplyProfileCommand}" CommandParameter="Basic" Margin="8,0,0,0" />
+                <ui:Button Content="{Binding [Pf_ProfileDev], Source={x:Static loc:Loc.Instance}}" Command="{Binding ApplyProfileCommand}" CommandParameter="Developer" Margin="8,0,0,0" />
+                <ui:Button Content="{Binding [Pf_ProfileComplete], Source={x:Static loc:Loc.Instance}}" Command="{Binding ApplyProfileCommand}" CommandParameter="Complete" Margin="8,0,0,0" />
+            </StackPanel>
+
+            <!-- Progresso da instalação -->
+            <Border CornerRadius="12" Padding="16" Margin="6,0,6,12" BorderThickness="1" BorderBrush="#DC2626"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    anim:Anim.AnimateVisibility="True"
+                    Visibility="{Binding IsInstalling, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0" />
+                        <TextBlock Text="{Binding [Pf_Installing], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CurrentAppText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0"
+                                   Foreground="#DC2626" />
+                    </StackPanel>
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding InstallProgress}" Height="6" Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding CurrentStatusText}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                    <Border CornerRadius="6" Margin="0,8,0,0" MaxHeight="140"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                            <ItemsControl ItemsSource="{Binding InstallLog}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontSize="11" FontFamily="Consolas" Opacity="0.75" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Resumo final -->
+            <Border CornerRadius="12" Padding="16" Margin="6,0,6,12" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    anim:Anim.AnimateVisibility="True"
+                    Visibility="{Binding HasSummary, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding [Pf_SummaryTitle], Source={x:Static loc:Loc.Instance}}" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SummaryHeadline}" FontWeight="SemiBold" Margin="0,4,0,8" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Summary}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,4" anim:Anim.PopOnLoad="True">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap"
+                                               Foreground="{Binding Color, Converter={StaticResource StrToBrush}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Lista de aplicativos por categoria -->
+            <ItemsControl ItemsSource="{Binding Groups}" Margin="6,0,6,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:CategoryGroupViewModel}">
+                        <StackPanel Margin="0,0,0,16" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding Header}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource AppCard}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Configurações Recomendadas (Otimização Inicial) -->
+            <Border CornerRadius="12" Padding="16" Margin="6,4,6,14" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="{Binding [Pf_SettingsTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding [Pf_SettingsSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0" VerticalAlignment="Center"
+                                             Visibility="{Binding IsApplyingSettings, Converter={StaticResource BoolToVis}}" />
+                            <ui:Button Content="{Binding [Pf_SelectRecommended], Source={x:Static loc:Loc.Instance}}"
+                                       Command="{Binding SelectRecommendedSettingsCommand}" />
+                            <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0"
+                                       Content="{Binding [Pf_ApplySettings], Source={x:Static loc:Loc.Instance}}"
+                                       Command="{Binding ApplySettingsCommand}"
+                                       IsEnabled="{Binding IsApplyingSettings, Converter={StaticResource InvBool}}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{Binding SettingsStatus}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding SettingsStatus, Converter={StaticResource StrToVis}}" />
+
+                    <ItemsControl ItemsSource="{Binding Settings}" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:RecommendedSettingViewModel}">
+                                <Border Margin="0,0,0,5" CornerRadius="8" BorderThickness="1" Padding="10"
+                                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Margin="6,0,8,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Foreground="{Binding StatusColor, Converter={StaticResource StrToBrush}}"
+                                                   Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Sobre a Central Pós-Formatação (recolhível) -->
+            <Border CornerRadius="12" Padding="16" Margin="6,0,6,20" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                <StackPanel>
+                    <ToggleButton IsChecked="{Binding IsAboutExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding [Pf_AboutTitle], Source={x:Static loc:Loc.Instance}}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center" anim:Anim.Spin="{Binding IsAboutExpanded}" />
+                        </Grid>
+                    </ToggleButton>
+                    <StackPanel Margin="0,10,0,0" anim:Anim.AnimateVisibility="True" Visibility="{Binding IsAboutExpanded, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding [Pf_AboutBody], Source={x:Static loc:Loc.Instance}}" Opacity="0.8" FontSize="13" TextWrapping="Wrap" LineHeight="20" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

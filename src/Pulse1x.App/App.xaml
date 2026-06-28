@@ -1,0 +1,159 @@
+<Application x:Class="Pulse1x.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Pulse1x.App"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Light" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que
+                 barras de progresso e quaisquer elementos personalizados usem exatamente o mesmo
+                 tom dos botões/acento do app, sem depender de chaves internas do Wpf.Ui. -->
+            <SolidColorBrush x:Key="BrandAccentBrush" Color="#DC2626" />
+
+            <!-- Os botões "Appearance=Primary" do Wpf.Ui (e outros controles em destaque) não
+                 seguem o SystemAccentColor trocado em App.xaml.cs — eles leem estas chaves
+                 "AccentFillColor*" do tema diretamente. Sobrescrevemos aqui para que também
+                 fiquem vermelhos, com tons mais escuros para hover/pressed. -->
+            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#DC2626" />
+            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#B91C1C" />
+            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#991B1B" />
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#DC2626" />
+            <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#B91C1C" />
+            <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#991B1B" />
+            <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="White" />
+            <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="White" />
+
+            <!-- A barra de rolagem (scrollbar) do Wpf.Ui usa estas chaves para o "polegar"
+                 que se arrasta. Sobrescritas para vermelho, mantendo o padrão de marca. -->
+            <SolidColorBrush x:Key="ScrollBarThumbFill" Color="#DC2626" />
+            <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="#B91C1C" />
+
+            <!-- O ToggleSwitch (interruptor) do Wpf.Ui usa estas chaves para a trilha/contorno
+                 quando ligado — seguem o padrão de marca em vez do azul do SystemAccentColor. -->
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#DC2626" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#B91C1C" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#991B1B" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#DC2626" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#B91C1C" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#991B1B" />
+
+            <!-- O ProgressBar nativo do WPF não é restilizado pelo Wpf.Ui e usa o azul
+                 padrão do Windows (Aero2). Este template substitui a barra de progresso
+                 por uma versão simples cujo preenchimento segue a cor de marca do app,
+                 mantendo o padrão vermelho em todas as categorias. -->
+            <!-- ToggleButton de marca: o ToggleButton padrão do WPF fica AZUL (Aero) quando
+                 marcado. Este template autocontido usa o vermelho do app no estado "checked"
+                 (texto branco), com fundo temático/borda quando desmarcado e estados de hover.
+                 Aplicado por chave (ex.: botão Personalizar e os toggles 👁 do Dashboard). -->
+            <Style x:Key="BrandToggle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="11,6" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bd" CornerRadius="6" SnapsToDevicePixels="True"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#DC2626" />
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#DC2626" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="#B91C1C" />
+                                </MultiTrigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Ghost: cabeçalhos recolhíveis (chevron) que eram ToggleButton padrão e ficavam
+                 AZUIS quando expandidos. Transparente, SEM preenchimento no "checked" (o estado é
+                 indicado pelo próprio chevron ⌄/⌃), com hover sutil. Aplicado por chave aos
+                 cabeçalhos de seção/explicação. NÃO é implícito de propósito: um estilo global de
+                 ToggleButton quebraria o ComboBox (que usa um ToggleButton interno). -->
+            <Style x:Key="GhostToggle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bd" CornerRadius="8" SnapsToDevicePixels="True"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="ProgressBar">
+                <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource BrandAccentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ProgressBar">
+                            <Grid>
+                                <Border
+                                    x:Name="PART_Track"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="3" />
+                                <Border
+                                    x:Name="PART_Indicator"
+                                    Background="{TemplateBinding Foreground}"
+                                    HorizontalAlignment="Left"
+                                    CornerRadius="3" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
