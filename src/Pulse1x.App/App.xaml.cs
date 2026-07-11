@@ -179,8 +179,17 @@ public partial class App : Application
             Localization.Loc.S("Update_PromptTitle"),
             MessageBoxButton.YesNo, MessageBoxImage.Information);
 
-        if (choice == MessageBoxResult.Yes)
-            await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
+        if (choice != MessageBoxResult.Yes) return;
+
+        var installResult = await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
+        if (!installResult.Started)
+        {
+            MessageBox.Show(
+                owner,
+                Localization.Loc.F("Update_InstallFailedBody", installResult.ErrorMessage ?? "?"),
+                Localization.Loc.S("Update_PromptTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     // Grava o erro em %LOCALAPPDATA%\Pulse1x\crash.log e avisa o usuário. Nunca lança (um erro

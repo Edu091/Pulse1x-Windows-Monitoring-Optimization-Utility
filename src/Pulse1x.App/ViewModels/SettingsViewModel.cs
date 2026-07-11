@@ -106,8 +106,10 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             var progress = new Progress<double>(p => DownloadProgress = Math.Round(p * 100));
-            bool started = await _updateService.DownloadAndInstallAsync(url, name, progress);
-            UpdateStatusText = started ? Loc.S("Settings_UpdateInstalling") : Loc.S("Settings_UpdateDownloadFailed");
+            var result = await _updateService.DownloadAndInstallAsync(url, name, progress);
+            UpdateStatusText = result.Started
+                ? Loc.S("Settings_UpdateInstalling")
+                : Loc.F("Settings_UpdateDownloadFailedDetail", result.ErrorMessage ?? "?");
         }
         finally
         {
