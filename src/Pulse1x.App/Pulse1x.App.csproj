@@ -8,6 +8,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\pulse1x.ico</ApplicationIcon>
+    <!-- Baseline local; a Release do GitHub Actions sobrescreve via -p:Version=X.Y.Z (mesmo
+         número da tag), para o GitHubUpdateService comparar a versão em execução com a mais
+         recente publicada. -->
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

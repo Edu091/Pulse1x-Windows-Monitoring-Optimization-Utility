@@ -4,10 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
     Title="Configurações"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     mc:Ignorable="d">
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="InverseBool" />
+    </Page.Resources>
     <StackPanel Margin="16" MaxWidth="480">
         <TextBlock Text="{Binding [Settings_Appearance], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_DarkTheme], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsDarkTheme}" Margin="0,0,0,8" />
@@ -28,6 +33,21 @@
 
         <TextBlock Text="{Binding [Settings_System], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_StartWithWindows], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding StartWithWindows}" Margin="0,0,0,8" />
-        <ui:ToggleSwitch Content="{Binding [Settings_MinimizeToTray], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MinimizeToTray}" />
+        <ui:ToggleSwitch Content="{Binding [Settings_MinimizeToTray], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MinimizeToTray}" Margin="0,0,0,16" />
+
+        <TextBlock Text="{Binding [Settings_AppUpdate], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock Text="{Binding CurrentVersionText}" Opacity="0.6" FontSize="12" Margin="0,0,0,4" />
+        <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+        <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}" Maximum="100" Height="4" Margin="0,0,0,8"
+                     Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BoolToVis}}" />
+        <StackPanel Orientation="Horizontal">
+            <ui:Button Content="{Binding [Settings_UpdateCheckButton], Source={x:Static loc:Loc.Instance}}"
+                       Command="{Binding CheckForUpdatesCommand}" IsEnabled="{Binding IsCheckingUpdate, Converter={StaticResource InverseBool}}"
+                       Margin="0,0,8,0" />
+            <ui:Button Content="{Binding [Settings_UpdateInstallButton], Source={x:Static loc:Loc.Instance}}"
+                       Command="{Binding InstallUpdateCommand}"
+                       Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
+                       Background="#DC2626" Foreground="White" FontWeight="SemiBold" />
+        </StackPanel>
     </StackPanel>
 </Page>

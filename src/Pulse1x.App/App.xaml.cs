@@ -99,6 +99,7 @@ public partial class App : Application
         var optimizationPage = new OptimizationPage(new OptimizationViewModel(memoryOptimizationService, systemMetricsService, diskCleanupService, specialCommandsService, advancedOptimizationService, bloatwareDetectorService));
         var settingsPage = new SettingsPage(new SettingsViewModel(
             settingsService,
+            new GitHubUpdateService(),
             onIntervalChanged: dashboardViewModel.UpdateInterval,
             onMinimizeToTrayChanged: _ => { }));
         var aboutPage = new AboutPage();

@@ -1,0 +1,70 @@
+name: Release
+
+# Publica uma nova versão do Pulse1x sempre que uma tag "vX.Y.Z" é enviada a este repositório
+# (o repositório PRIVADO onde vive o código-fonte). O workflow compila o app, gera o instalador
+# (Inno Setup) e publica a Release com o instalador anexado no repositório PÚBLICO
+# (Edu091/Pulse1x-Windows-Monitoring-Optimization-Utility) — que é o mesmo repositório que o
+# GitHubUpdateService, dentro do app, consulta para saber se há uma versão mais nova.
+#
+# Para criar uma nova versão: dê push numa tag, ex.:
+#   git tag v1.1.0 && git push private v1.1.0
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extrair a versão da tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Self-contained: quem baixa o instalador não precisa ter o .NET Runtime já instalado.
+      - name: Publicar o executável (self-contained, win-x64)
+        run: >
+          dotnet publish src/Pulse1x.App/Pulse1x.App.csproj -c Release -r win-x64
+          --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -o build/app
+
+      - name: Instalar o Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compilar o instalador
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=${{ steps.version.outputs.version }} `
+            /DSourceExeDir="${{ github.workspace }}\build\app" `
+            /DOutputDir="${{ github.workspace }}\build\installer" `
+            installer\Pulse1x.iss
+
+      # PUBLIC_REPO_TOKEN: Personal Access Token com escopo "contents: write" apenas no repositório
+      # público de releases — o GITHUB_TOKEN padrão desta Action não tem permissão para publicar
+      # num repositório diferente do que a executa. Configurado em Settings → Secrets → Actions
+      # deste repositório (privado).
+      - name: Publicar a Release no repositório público
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $installer = Get-ChildItem "build\installer\Pulse1x-Setup-$version.exe" | Select-Object -First 1
+          gh release create "$version" $installer.FullName `
+            --repo Edu091/Pulse1x-Windows-Monitoring-Optimization-Utility `
+            --title "Pulse1x v$version" `
+            --notes "Nova versão do Pulse1x. Baixe o instalador abaixo — o Pulse1x já instalado se atualiza sozinho pela tela Configurações."
