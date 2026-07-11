@@ -319,7 +319,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
                 Disks.Insert(Math.Min(i, Disks.Count), metric);
             }
 
-            metric.Title = $"{reading.Label} • {LocalizeDiskType(reading.TypeText)}";
+            metric.Title = $"{LocalizeDiskLabel(reading.Label)} • {LocalizeDiskType(reading.TypeText)}";
             metric.PrimaryValue = $"{reading.UsagePercent:0.#}%";
             metric.SecondaryValue = $"{reading.UsedGb:0.#} / {reading.TotalGb:0.#} GB • {reading.FreeGb:0.#} {Loc.S("Dashboard_FreeGbSuffix")}";
             metric.UsagePercent = reading.UsagePercent;
@@ -330,7 +330,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private void UpdateSystemInfo(RamReading ram, IReadOnlyList<DiskReading> disks, string uptimeText, int processCount)
     {
         if (_memoryInfoItem is not null)
-            _memoryInfoItem.Value = $"{Math.Round(ram.TotalGb):0} GB ({ram.UsagePercent:0.#}% em uso)";
+            _memoryInfoItem.Value = Loc.F("Dashboard_MemInUse", $"{Math.Round(ram.TotalGb):0}", $"{ram.UsagePercent:0.#}");
 
         if (_storageInfoItem is not null)
         {
@@ -371,6 +371,10 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         var clockText = clockMHz is { } clock ? $"{clock / 1000:0.##} GHz" : "N/D";
         return $"{tempText} • {clockText}";
     }
+
+    // O serviço usa "Disco Local" como rótulo neutro quando o volume não tem nome; traduz aqui.
+    private static string LocalizeDiskLabel(string label) =>
+        label == "Disco Local" ? Loc.S("Dashboard_DiskLocalLabel") : label;
 
     private static string LocalizeDiskType(string typeText) => typeText switch
     {

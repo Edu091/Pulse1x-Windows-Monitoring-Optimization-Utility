@@ -9,6 +9,13 @@ public enum HealthRating { Excelente, MuitoBom, Bom, Atencao, Critico }
 /// <summary>Severidade de um problema detectado no diagnóstico.</summary>
 public enum ProblemSeverity { Baixa, Moderada, Alta, Critica }
 
+/// <summary>
+/// Categoria estrutural do problema, usada pela análise de riscos. A descrição é texto
+/// localizado (PT/EN), então os riscos nunca devem ser derivados por busca de substring
+/// no texto — e sim por esta categoria, que independe do idioma.
+/// </summary>
+public enum ProblemKind { General, DiskCritical, DiskLife, Slowdown }
+
 /// <summary>Nível qualitativo de um risco futuro.</summary>
 public enum RiskLevel { MuitoBaixo, Baixo, Moderado, Alto, MuitoAlto }
 
@@ -50,6 +57,7 @@ public class HealthProblem
 {
     public string Description { get; init; } = "";
     public ProblemSeverity Severity { get; init; }
+    public ProblemKind Kind { get; init; } = ProblemKind.General;
 
     public string SeverityLabel => HealthScale.SeverityLabel(Severity);
     public string SeverityColor => HealthScale.SeverityColor(Severity);

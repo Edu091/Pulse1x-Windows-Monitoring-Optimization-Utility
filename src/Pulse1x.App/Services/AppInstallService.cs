@@ -61,11 +61,11 @@ public class AppInstallService
         {
             if (TryOpenUrl(app.Url))
                 return new InstallResult(InstallOutcome.OpenedOfficialPage, app.Url ?? "");
-            return new InstallResult(InstallOutcome.Failed, "URL oficial indisponível.");
+            return new InstallResult(InstallOutcome.Failed, Localization.Loc.S("Pf_NoOfficialUrl"));
         }
 
         if (!IsWingetAvailable)
-            return new InstallResult(InstallOutcome.Failed, "winget não está disponível.");
+            return new InstallResult(InstallOutcome.Failed, Localization.Loc.S("Pf_WingetUnavailable"));
 
         // -e: correspondência exata do ID. --silent: sem telas do instalador. Os --accept evitam
         // qualquer prompt interativo (que travaria a fila). --source: itens "9XXXX" vêm da Loja.
@@ -151,7 +151,7 @@ public class AppInstallService
             .Where(l => l.Length > 3 && !IsProgressNoise(l))
             .ToList();
         string tail = lines.Count > 0 ? lines[^1] : "";
-        return tail.Length > 0 ? tail : $"winget código {exitCode}";
+        return tail.Length > 0 ? tail : Localization.Loc.F("Pf_WingetExitCode", exitCode);
     }
 
     public static bool TryOpenUrl(string? url)

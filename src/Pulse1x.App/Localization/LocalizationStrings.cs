@@ -938,6 +938,65 @@ internal static partial class LocalizationStrings
         ["Pf_StatusApplied"] = "Aplicada ✓",
         ["Pf_AboutTitle"] = "Sobre a Central Pós-Formatação",
         ["Pf_AboutBody"] = "Objetivo: reunir num só lugar os programas, drivers, componentes e utilitários mais usados após formatar o Windows, economizando tempo.\n\nComo os aplicativos são obtidos: sempre de fontes oficiais. A maioria é instalada pelo Windows Package Manager (winget), que baixa direto do publicador oficial. Drivers e ferramentas de fabricante (NVIDIA, AMD, ASUS, Dell...) abrem a página oficial para download.\n\nComponentes essenciais: bibliotecas que outros programas exigem para funcionar — Visual C++ Redistributable, .NET Runtime, DirectX e WebView2. Sem eles, muitos jogos e aplicativos não abrem.\n\nDrivers x Runtimes x Aplicativos: drivers fazem o Windows conversar com o hardware (vídeo, áudio, rede); runtimes são plataformas que os programas usam para rodar; aplicativos são os programas que você usa no dia a dia.\n\nPerfis prontos: selecionam automaticamente um conjunto típico — Gamer (lojas de jogos + componentes + drivers), Básico (navegador + essenciais), Desenvolvedor (ferramentas de programação) e Completo (os mais populares).",
+
+        // ---- Otimização de RAM (mensagens de resultado) ----
+        ["Opt_MemResultDeep"] = "Memória otimizada com sucesso. Foram liberados {0} MB de RAM (working sets aparados + cache em standby liberada), sem impacto ao sistema.",
+        ["Opt_MemResultBasic"] = "Memória otimizada. Foram liberados {0} MB aparando os working sets dos processos.",
+        ["Opt_MemResultNothing"] = "Otimização concluída. O sistema já estava bem otimizado — havia pouca memória ociosa para liberar.",
+
+        // ---- Dashboard (textos dinâmicos) ----
+        ["Dashboard_MemInUse"] = "{0} GB ({1}% em uso)",
+        ["Dashboard_DiskLocalLabel"] = "Disco Local",
+
+        // ---- Central Pós-Formatação (resultados de comandos) ----
+        ["Pf_UnknownSetting"] = "Configuração desconhecida.",
+        ["Pf_SuggestionsDisabled"] = "Sugestões do Windows desativadas.",
+        ["Pf_StartupManagerOpened"] = "Gerenciador de inicialização aberto.",
+        ["Pf_NoOfficialUrl"] = "URL oficial indisponível.",
+        ["Pf_WingetUnavailable"] = "winget não está disponível.",
+        ["Pf_WingetExitCode"] = "winget código {0}",
+
+        // ---- Limpeza de Disco: categorias ----
+        ["DiskCat_WinTemp_Title"] = "Arquivos Temporários do Windows",
+        ["DiskCat_WinTemp_Desc"] = "Arquivos temporários criados pelo Windows, por instaladores e por aplicativos. Arquivos em uso são automaticamente ignorados.",
+        ["DiskCat_WinCache_Title"] = "Cache do Windows",
+        ["DiskCat_WinCache_Desc"] = "Cache de miniaturas e ícones do Explorer e relatórios de erro antigos. O Windows recria esses caches automaticamente quando precisar.",
+        ["DiskCat_Recycle_Title"] = "Lixeira",
+        ["DiskCat_Recycle_Desc"] = "Esvazia a Lixeira de todas as unidades. Atenção: os itens na Lixeira são apagados de forma permanente e não poderão mais ser restaurados.",
+        ["DiskCat_Browser_Title"] = "Cache de Navegadores",
+        ["DiskCat_Browser_Desc"] = "Remove apenas o cache de páginas, imagens e scripts dos navegadores instalados. Favoritos, senhas, logins, extensões e histórico NÃO são afetados.",
+        ["DiskCat_AppCache_Title"] = "Cache de Aplicativos",
+        ["DiskCat_AppCache_Desc"] = "Despejos de falha e cache de internet legado (WinINet). Conteúdo descartável que aplicativos recriam quando necessário.",
+        ["DiskCat_Gfx_Title"] = "Cache Gráfico",
+        ["DiskCat_Gfx_Desc"] = "Caches de shaders do DirectX e das placas de vídeo. São totalmente recriáveis; após a limpeza, o primeiro carregamento de jogos pode demorar um pouco mais.",
+        ["DiskCat_Fonts_Title"] = "Cache de Fontes",
+        ["DiskCat_Fonts_Desc"] = "Arquivos temporários do cache de fontes. Arquivos em uso pelo serviço de fontes são ignorados automaticamente.",
+        ["DiskCat_Prefetch_Title"] = "Arquivos Prefetch",
+        ["DiskCat_Prefetch_Desc"] = "Remove apenas arquivos de Prefetch obsoletos (mais de 30 dias). O Windows os recria; alguns programas podem abrir um pouco mais devagar na primeira vez depois disso.",
+        ["DiskCat_Updates_Title"] = "Resíduos de Atualizações",
+        ["DiskCat_Updates_Desc"] = "Arquivos de instalação de atualizações do Windows que já foram aplicadas. O Windows volta a baixá-los se precisar.",
+        ["DiskCat_Delivery_Title"] = "Otimização de Entrega",
+        ["DiskCat_Delivery_Desc"] = "Cache usado pelo sistema de distribuição de atualizações (Delivery Optimization). Seguro de remover quando não está mais em uso.",
+        ["DiskCat_Logs_Title"] = "Logs Antigos",
+        ["DiskCat_Logs_Desc"] = "Arquivos de log e diagnóstico do Windows com mais de 7 dias. Logs em uso são ignorados.",
+
+        // ---- Limpeza de Disco: alvos ----
+        ["DiskTgt_UserTemp"] = "Pasta TEMP do usuário",
+        ["DiskTgt_SystemTemp"] = "Pasta TEMP do sistema",
+        ["DiskTgt_ThumbCache"] = "Cache de miniaturas",
+        ["DiskTgt_IconCache"] = "Cache de ícones",
+        ["DiskTgt_WerUser"] = "Relatórios de erro (usuário)",
+        ["DiskTgt_WerSystem"] = "Relatórios de erro (sistema)",
+        ["DiskTgt_RecycleItems"] = "Itens na Lixeira",
+        ["DiskTgt_CrashDumps"] = "Despejos de falha (CrashDumps)",
+        ["DiskTgt_INetCache"] = "Cache de internet (WinINet)",
+        ["DiskTgt_FontCacheUser"] = "Cache de fontes (usuário)",
+        ["DiskTgt_FontCacheSystem"] = "Cache de fontes (sistema)",
+        ["DiskTgt_PrefetchOld"] = "Prefetch obsoleto (> 30 dias)",
+        ["DiskTgt_WuDownloads"] = "Downloads do Windows Update",
+        ["DiskTgt_DoCache"] = "Cache de Delivery Optimization",
+        ["DiskTgt_DoCacheNet"] = "Cache (NetworkService)",
+        ["DiskTgt_WinLogs"] = "Logs do Windows (> 7 dias)",
     };
 
     internal static readonly Dictionary<string, string> En = new()
@@ -1870,5 +1929,64 @@ internal static partial class LocalizationStrings
         ["Pf_StatusApplied"] = "Applied ✓",
         ["Pf_AboutTitle"] = "About the Post-Format Center",
         ["Pf_AboutBody"] = "Goal: gather in one place the most-used programs, drivers, components and utilities after a Windows reinstall, saving time.\n\nHow apps are obtained: always from official sources. Most are installed through the Windows Package Manager (winget), which downloads straight from the official publisher. Drivers and manufacturer tools (NVIDIA, AMD, ASUS, Dell...) open the official download page.\n\nEssential components: libraries other programs require to run — Visual C++ Redistributable, .NET Runtime, DirectX and WebView2. Without them, many games and apps won't start.\n\nDrivers vs Runtimes vs Apps: drivers let Windows talk to the hardware (video, audio, network); runtimes are platforms programs use to run; apps are the programs you use day to day.\n\nQuick profiles: automatically select a typical set — Gamer (game stores + components + drivers), Basic (browser + essentials), Developer (programming tools) and Complete (the most popular).",
+
+        // ---- RAM optimization (result messages) ----
+        ["Opt_MemResultDeep"] = "Memory optimized successfully. {0} MB of RAM were freed (working sets trimmed + standby cache released), with no impact on the system.",
+        ["Opt_MemResultBasic"] = "Memory optimized. {0} MB were freed by trimming process working sets.",
+        ["Opt_MemResultNothing"] = "Optimization complete. The system was already well optimized — there was little idle memory to free.",
+
+        // ---- Dashboard (dynamic texts) ----
+        ["Dashboard_MemInUse"] = "{0} GB ({1}% in use)",
+        ["Dashboard_DiskLocalLabel"] = "Local Disk",
+
+        // ---- Post-Format Center (command results) ----
+        ["Pf_UnknownSetting"] = "Unknown setting.",
+        ["Pf_SuggestionsDisabled"] = "Windows suggestions disabled.",
+        ["Pf_StartupManagerOpened"] = "Startup manager opened.",
+        ["Pf_NoOfficialUrl"] = "Official URL unavailable.",
+        ["Pf_WingetUnavailable"] = "winget is not available.",
+        ["Pf_WingetExitCode"] = "winget exit code {0}",
+
+        // ---- Disk Cleanup: categories ----
+        ["DiskCat_WinTemp_Title"] = "Windows Temporary Files",
+        ["DiskCat_WinTemp_Desc"] = "Temporary files created by Windows, installers and applications. Files in use are skipped automatically.",
+        ["DiskCat_WinCache_Title"] = "Windows Cache",
+        ["DiskCat_WinCache_Desc"] = "Explorer thumbnail and icon caches and old error reports. Windows rebuilds these caches automatically when needed.",
+        ["DiskCat_Recycle_Title"] = "Recycle Bin",
+        ["DiskCat_Recycle_Desc"] = "Empties the Recycle Bin on all drives. Warning: items in the Recycle Bin are permanently deleted and can no longer be restored.",
+        ["DiskCat_Browser_Title"] = "Browser Cache",
+        ["DiskCat_Browser_Desc"] = "Removes only the page, image and script cache of installed browsers. Bookmarks, passwords, logins, extensions and history are NOT affected.",
+        ["DiskCat_AppCache_Title"] = "Application Cache",
+        ["DiskCat_AppCache_Desc"] = "Crash dumps and legacy internet cache (WinINet). Disposable content that applications recreate when needed.",
+        ["DiskCat_Gfx_Title"] = "Graphics Cache",
+        ["DiskCat_Gfx_Desc"] = "DirectX and GPU shader caches. Fully rebuildable; after cleaning, the first load of games may take slightly longer.",
+        ["DiskCat_Fonts_Title"] = "Font Cache",
+        ["DiskCat_Fonts_Desc"] = "Temporary font cache files. Files in use by the font service are skipped automatically.",
+        ["DiskCat_Prefetch_Title"] = "Prefetch Files",
+        ["DiskCat_Prefetch_Desc"] = "Removes only stale Prefetch files (older than 30 days). Windows recreates them; some programs may start slightly slower the first time afterwards.",
+        ["DiskCat_Updates_Title"] = "Update Leftovers",
+        ["DiskCat_Updates_Desc"] = "Installation files of Windows updates that were already applied. Windows downloads them again if needed.",
+        ["DiskCat_Delivery_Title"] = "Delivery Optimization",
+        ["DiskCat_Delivery_Desc"] = "Cache used by the update distribution system (Delivery Optimization). Safe to remove when no longer in use.",
+        ["DiskCat_Logs_Title"] = "Old Logs",
+        ["DiskCat_Logs_Desc"] = "Windows log and diagnostic files older than 7 days. Logs in use are skipped.",
+
+        // ---- Disk Cleanup: targets ----
+        ["DiskTgt_UserTemp"] = "User TEMP folder",
+        ["DiskTgt_SystemTemp"] = "System TEMP folder",
+        ["DiskTgt_ThumbCache"] = "Thumbnail cache",
+        ["DiskTgt_IconCache"] = "Icon cache",
+        ["DiskTgt_WerUser"] = "Error reports (user)",
+        ["DiskTgt_WerSystem"] = "Error reports (system)",
+        ["DiskTgt_RecycleItems"] = "Items in the Recycle Bin",
+        ["DiskTgt_CrashDumps"] = "Crash dumps (CrashDumps)",
+        ["DiskTgt_INetCache"] = "Internet cache (WinINet)",
+        ["DiskTgt_FontCacheUser"] = "Font cache (user)",
+        ["DiskTgt_FontCacheSystem"] = "Font cache (system)",
+        ["DiskTgt_PrefetchOld"] = "Stale Prefetch (> 30 days)",
+        ["DiskTgt_WuDownloads"] = "Windows Update downloads",
+        ["DiskTgt_DoCache"] = "Delivery Optimization cache",
+        ["DiskTgt_DoCacheNet"] = "Cache (NetworkService)",
+        ["DiskTgt_WinLogs"] = "Windows logs (> 7 days)",
     };
 }

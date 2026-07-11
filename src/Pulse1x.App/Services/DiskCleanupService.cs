@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Pulse1x.App.Localization;
 using Pulse1x.App.Models;
 
 namespace Pulse1x.App.Services;
@@ -28,68 +29,62 @@ public class DiskCleanupService
             new()
             {
                 Key = "win_temp",
-                Title = "Arquivos Temporários do Windows",
-                Description = "Arquivos temporários criados pelo Windows, por instaladores e por aplicativos. " +
-                              "Arquivos em uso são automaticamente ignorados.",
+                Title = Loc.S("DiskCat_WinTemp_Title"),
+                Description = Loc.S("DiskCat_WinTemp_Desc"),
                 Safety = CleanupSafety.TotallySafe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Pasta TEMP do usuário", temp, "*", true, 0, true),
-                    new CleanupTarget("Pasta TEMP do sistema", Path.Combine(winRoot, "Temp"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_UserTemp"), temp, "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_SystemTemp"), Path.Combine(winRoot, "Temp"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "win_cache",
-                Title = "Cache do Windows",
-                Description = "Cache de miniaturas e ícones do Explorer e relatórios de erro antigos. " +
-                              "O Windows recria esses caches automaticamente quando precisar.",
+                Title = Loc.S("DiskCat_WinCache_Title"),
+                Description = Loc.S("DiskCat_WinCache_Desc"),
                 Safety = CleanupSafety.TotallySafe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Cache de miniaturas", Path.Combine(local, "Microsoft", "Windows", "Explorer"), "thumbcache_*.db", false, 0, false),
-                    new CleanupTarget("Cache de ícones", Path.Combine(local, "Microsoft", "Windows", "Explorer"), "iconcache_*.db", false, 0, false),
-                    new CleanupTarget("Relatórios de erro (usuário)", Path.Combine(local, "Microsoft", "Windows", "WER"), "*", true, 0, true),
-                    new CleanupTarget("Relatórios de erro (sistema)", Path.Combine(programData, "Microsoft", "Windows", "WER"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_ThumbCache"), Path.Combine(local, "Microsoft", "Windows", "Explorer"), "thumbcache_*.db", false, 0, false),
+                    new CleanupTarget(Loc.S("DiskTgt_IconCache"), Path.Combine(local, "Microsoft", "Windows", "Explorer"), "iconcache_*.db", false, 0, false),
+                    new CleanupTarget(Loc.S("DiskTgt_WerUser"), Path.Combine(local, "Microsoft", "Windows", "WER"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_WerSystem"), Path.Combine(programData, "Microsoft", "Windows", "WER"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "recycle",
-                Title = "Lixeira",
-                Description = "Esvazia a Lixeira de todas as unidades. Atenção: os itens na Lixeira são " +
-                              "apagados de forma permanente e não poderão mais ser restaurados.",
+                Title = Loc.S("DiskCat_Recycle_Title"),
+                Description = Loc.S("DiskCat_Recycle_Desc"),
                 Safety = CleanupSafety.Safe,
                 IsRecycleBin = true,
             },
             new()
             {
                 Key = "browser",
-                Title = "Cache de Navegadores",
-                Description = "Remove apenas o cache de páginas, imagens e scripts dos navegadores instalados. " +
-                              "Favoritos, senhas, logins, extensões e histórico NÃO são afetados.",
+                Title = Loc.S("DiskCat_Browser_Title"),
+                Description = Loc.S("DiskCat_Browser_Desc"),
                 Safety = CleanupSafety.TotallySafe,
                 Targets = BuildBrowserTargets(local, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)),
             },
             new()
             {
                 Key = "app_cache",
-                Title = "Cache de Aplicativos",
-                Description = "Despejos de falha e cache de internet legado (WinINet). Conteúdo descartável " +
-                              "que aplicativos recriam quando necessário.",
+                Title = Loc.S("DiskCat_AppCache_Title"),
+                Description = Loc.S("DiskCat_AppCache_Desc"),
                 Safety = CleanupSafety.Safe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Despejos de falha (CrashDumps)", Path.Combine(local, "CrashDumps"), "*", true, 0, true),
-                    new CleanupTarget("Cache de internet (WinINet)", Path.Combine(local, "Microsoft", "Windows", "INetCache"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_CrashDumps"), Path.Combine(local, "CrashDumps"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_INetCache"), Path.Combine(local, "Microsoft", "Windows", "INetCache"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "gfx",
-                Title = "Cache Gráfico",
-                Description = "Caches de shaders do DirectX e das placas de vídeo. São totalmente recriáveis; " +
-                              "após a limpeza, o primeiro carregamento de jogos pode demorar um pouco mais.",
+                Title = Loc.S("DiskCat_Gfx_Title"),
+                Description = Loc.S("DiskCat_Gfx_Desc"),
                 Safety = CleanupSafety.TotallySafe,
                 Targets = new[]
                 {
@@ -103,62 +98,58 @@ public class DiskCleanupService
             new()
             {
                 Key = "fonts",
-                Title = "Cache de Fontes",
-                Description = "Arquivos temporários do cache de fontes. Arquivos em uso pelo serviço de fontes " +
-                              "são ignorados automaticamente.",
+                Title = Loc.S("DiskCat_Fonts_Title"),
+                Description = Loc.S("DiskCat_Fonts_Desc"),
                 Safety = CleanupSafety.Safe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Cache de fontes (usuário)", Path.Combine(local, "FontCache"), "*", true, 0, true),
-                    new CleanupTarget("Cache de fontes (sistema)", Path.Combine(winRoot, "ServiceProfiles", "LocalService", "AppData", "Local", "FontCache"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_FontCacheUser"), Path.Combine(local, "FontCache"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_FontCacheSystem"), Path.Combine(winRoot, "ServiceProfiles", "LocalService", "AppData", "Local", "FontCache"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "prefetch",
-                Title = "Arquivos Prefetch",
-                Description = "Remove apenas arquivos de Prefetch obsoletos (mais de 30 dias). O Windows os recria; " +
-                              "alguns programas podem abrir um pouco mais devagar na primeira vez depois disso.",
+                Title = Loc.S("DiskCat_Prefetch_Title"),
+                Description = Loc.S("DiskCat_Prefetch_Desc"),
                 Safety = CleanupSafety.RequiresConfirmation,
                 Targets = new[]
                 {
-                    new CleanupTarget("Prefetch obsoleto (> 30 dias)", Path.Combine(winRoot, "Prefetch"), "*.pf", false, 30, false),
+                    new CleanupTarget(Loc.S("DiskTgt_PrefetchOld"), Path.Combine(winRoot, "Prefetch"), "*.pf", false, 30, false),
                 }
             },
             new()
             {
                 Key = "update_residue",
-                Title = "Resíduos de Atualizações",
-                Description = "Arquivos de instalação de atualizações do Windows que já foram aplicadas. " +
-                              "O Windows volta a baixá-los se precisar.",
+                Title = Loc.S("DiskCat_Updates_Title"),
+                Description = Loc.S("DiskCat_Updates_Desc"),
                 Safety = CleanupSafety.Safe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Downloads do Windows Update", Path.Combine(winRoot, "SoftwareDistribution", "Download"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_WuDownloads"), Path.Combine(winRoot, "SoftwareDistribution", "Download"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "delivery",
-                Title = "Otimização de Entrega",
-                Description = "Cache usado pelo sistema de distribuição de atualizações (Delivery Optimization). " +
-                              "Seguro de remover quando não está mais em uso.",
+                Title = Loc.S("DiskCat_Delivery_Title"),
+                Description = Loc.S("DiskCat_Delivery_Desc"),
                 Safety = CleanupSafety.Safe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Cache de Delivery Optimization", Path.Combine(winRoot, "SoftwareDistribution", "DeliveryOptimization"), "*", true, 0, true),
-                    new CleanupTarget("Cache (NetworkService)", Path.Combine(winRoot, "ServiceProfiles", "NetworkService", "AppData", "Local", "Microsoft", "Windows", "DeliveryOptimization", "Cache"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_DoCache"), Path.Combine(winRoot, "SoftwareDistribution", "DeliveryOptimization"), "*", true, 0, true),
+                    new CleanupTarget(Loc.S("DiskTgt_DoCacheNet"), Path.Combine(winRoot, "ServiceProfiles", "NetworkService", "AppData", "Local", "Microsoft", "Windows", "DeliveryOptimization", "Cache"), "*", true, 0, true),
                 }
             },
             new()
             {
                 Key = "logs",
-                Title = "Logs Antigos",
-                Description = "Arquivos de log e diagnóstico do Windows com mais de 7 dias. Logs em uso são ignorados.",
+                Title = Loc.S("DiskCat_Logs_Title"),
+                Description = Loc.S("DiskCat_Logs_Desc"),
                 Safety = CleanupSafety.Safe,
                 Targets = new[]
                 {
-                    new CleanupTarget("Logs do Windows (> 7 dias)", Path.Combine(winRoot, "Logs"), "*.log", true, 7, false),
+                    new CleanupTarget(Loc.S("DiskTgt_WinLogs"), Path.Combine(winRoot, "Logs"), "*.log", true, 7, false),
                 }
             },
         };
@@ -201,7 +192,7 @@ public class DiskCleanupService
                 {
                     var (bytes, count) = QueryRecycleBin();
                     results.Add(new CleanupCategoryResult(category.Key, bytes, count,
-                        new[] { new CleanupDetail("Itens na Lixeira", bytes, count) }));
+                        new[] { new CleanupDetail(Loc.S("DiskTgt_RecycleItems"), bytes, count) }));
                 }
                 else
                 {

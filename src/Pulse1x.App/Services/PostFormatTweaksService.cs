@@ -27,7 +27,7 @@ public class PostFormatTweaksService
         "show_hidden" => SetExplorerDword("Hidden", 1),
         "explorer_this_pc" => SetExplorerDword("LaunchTo", 1),
         "manage_startup" => OpenStartupManager(),
-        _ => new CommandResult(1, "Configuração desconhecida."),
+        _ => new CommandResult(1, Localization.Loc.S("Pf_UnknownSetting")),
     };
 
     private async Task<CommandResult> EnableSystemRestoreAsync()
@@ -66,7 +66,7 @@ public class PostFormatTweaksService
                 "SoftLandingEnabled",
             })
                 key?.SetValue(name, 0, RegistryValueKind.DWord);
-            return new CommandResult(0, "Sugestões do Windows desativadas.");
+            return new CommandResult(0, Localization.Loc.S("Pf_SuggestionsDisabled"));
         }
         catch (Exception ex)
         {
@@ -96,7 +96,7 @@ public class PostFormatTweaksService
         {
             try { _commands.OpenTool("taskmgr.exe", "/7"); }
             catch { _commands.OpenTool("ms-settings:startupapps"); }
-            return new CommandResult(0, "Gerenciador de inicialização aberto.");
+            return new CommandResult(0, Localization.Loc.S("Pf_StartupManagerOpened"));
         }
         catch (Exception ex)
         {

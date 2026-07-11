@@ -93,13 +93,12 @@ public class MemoryOptimizationService
         if (freedMb >= 1)
         {
             message = deepClean
-                ? $"Memória otimizada com sucesso. Foram liberados {freedMb:0} MB de RAM " +
-                  "(working sets aparados + cache em standby liberada), sem impacto ao sistema."
-                : $"Memória otimizada. Foram liberados {freedMb:0} MB aparando os working sets dos processos.";
+                ? Localization.Loc.F("Opt_MemResultDeep", $"{freedMb:0}")
+                : Localization.Loc.F("Opt_MemResultBasic", $"{freedMb:0}");
         }
         else
         {
-            message = "Otimização concluída. O sistema já estava bem otimizado — havia pouca memória ociosa para liberar.";
+            message = Localization.Loc.S("Opt_MemResultNothing");
         }
 
         return new MemoryOptimizationResult(

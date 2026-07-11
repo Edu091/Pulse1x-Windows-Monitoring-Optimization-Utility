@@ -442,7 +442,8 @@ public class NetworkLatencyService
         if (ping.AvgMs >= 100) summary.Add("Lat_FindHighPing");
         if (basics.IsWifi && wifi.SignalPercent is > 0 and < 50) summary.Add("Lat_FindWeakSignal");
         if (channels is { Congested: true }) summary.Add("Lat_FindCongestedChannel");
-        if (basics.IsWifi && wifi.Band.StartsWith("2,4")) summary.Add("Lat_FindUse5Ghz");
+        // O netsh reporta a banda no formato do idioma do Windows ("2,4 GHz" em PT, "2.4 GHz" em EN).
+        if (basics.IsWifi && (wifi.Band.Contains("2,4") || wifi.Band.Contains("2.4"))) summary.Add("Lat_FindUse5Ghz");
         if (driver is { LooksOutdated: true }) summary.Add("Lat_FindOldDriver");
         if (!tcp.AutoTuningLevel.Contains("normal", StringComparison.OrdinalIgnoreCase)
             && tcp.AutoTuningLevel != "—") summary.Add("Lat_FindAutoTuning");

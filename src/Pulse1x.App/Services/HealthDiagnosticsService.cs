@@ -40,8 +40,8 @@ public class HealthDiagnosticsService
     private sealed class Context
     {
         public HealthReport Report { get; } = new();
-        public void Problem(string desc, ProblemSeverity sev) =>
-            Report.Problems.Add(new HealthProblem { Description = desc, Severity = sev });
+        public void Problem(string desc, ProblemSeverity sev, ProblemKind kind = ProblemKind.General) =>
+            Report.Problems.Add(new HealthProblem { Description = desc, Severity = sev, Kind = kind });
         public void Recommend(string text) =>
             Report.Recommendations.Add(new Recommendation { Text = text });
         public void Risk(string name, RiskLevel level) =>
@@ -344,10 +344,10 @@ public class HealthDiagnosticsService
         c.Metrics.Add(new(Loc.S("Health_M_MemoryPressure"), PressureText(s.RamUsageMax)));
         c.Metrics.Add(new(Loc.S("Health_M_StandbyMemory"), standbyMb > 0 ? $"{standbyMb / 1024:0.0} GB" : "N/D"));
 
-        if (s.RamUsageMax >= 92) { score -= 25; ctx.Problem(Loc.F("Health_P_RamUsageVeryHigh", $"{s.RamUsageMax:0}"), ProblemSeverity.Alta); ctx.Recommend(Loc.S("Health_R_RamCloseApps")); }
-        else if (s.RamUsageMax >= 85) { score -= 12; ctx.Problem(Loc.F("Health_P_RamUsageHigh", $"{s.RamUsageMax:0}"), ProblemSeverity.Moderada); ctx.Recommend(Loc.S("Health_R_RamOptimize")); }
+        if (s.RamUsageMax >= 92) { score -= 25; ctx.Problem(Loc.F("Health_P_RamUsageVeryHigh", $"{s.RamUsageMax:0}"), ProblemSeverity.Alta, ProblemKind.Slowdown); ctx.Recommend(Loc.S("Health_R_RamCloseApps")); }
+        else if (s.RamUsageMax >= 85) { score -= 12; ctx.Problem(Loc.F("Health_P_RamUsageHigh", $"{s.RamUsageMax:0}"), ProblemSeverity.Moderada, ProblemKind.Slowdown); ctx.Recommend(Loc.S("Health_R_RamOptimize")); }
         else if (s.RamUsageMax >= 75) { score -= 5; }
-        if (s.RamTotalGb > 0 && s.RamTotalGb < 8) { score -= 10; ctx.Problem(Loc.F("Health_P_RamLowInstalled", $"{s.RamTotalGb:0.0}"), ProblemSeverity.Baixa); }
+        if (s.RamTotalGb > 0 && s.RamTotalGb < 8) { score -= 10; ctx.Problem(Loc.F("Health_P_RamLowInstalled", $"{s.RamTotalGb:0.0}"), ProblemSeverity.Baixa, ProblemKind.Slowdown); }
 
         c.Score = Clamp(score);
         c.Summary = StateText(c.Score);
@@ -495,13 +495,13 @@ public class HealthDiagnosticsService
                     {
                         // Só o volume do sistema, e ainda assim de forma leve: um C: criticamente
                         // cheio é um risco real de desempenho, mas não condena a saúde do disco.
-                        if (freePct < 8) { score -= 10; ctx.Problem(Loc.F("Health_P_VolumeLowFree", vol.Name, $"{freePct:0}"), ProblemSeverity.Alta); ctx.Recommend(Loc.F("Health_R_FreeUpVolume50", vol.Name)); }
-                        else if (freePct < 15) { ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", vol.Name, $"{freePct:0}"), ProblemSeverity.Moderada); ctx.Recommend(Loc.F("Health_R_FreeUpVolume", vol.Name)); }
+                        if (freePct < 8) { score -= 10; ctx.Problem(Loc.F("Health_P_VolumeLowFree", vol.Name, $"{freePct:0}"), ProblemSeverity.Alta, ProblemKind.Slowdown); ctx.Recommend(Loc.F("Health_R_FreeUpVolume50", vol.Name)); }
+                        else if (freePct < 15) { ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", vol.Name, $"{freePct:0}"), ProblemSeverity.Moderada, ProblemKind.Slowdown); ctx.Recommend(Loc.F("Health_R_FreeUpVolume", vol.Name)); }
                     }
                     else if (freePct < 8)
                     {
                         // Volume de dados quase cheio: apenas informa, sem penalizar a nota do disco.
-                        ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", vol.Name, $"{freePct:0}"), ProblemSeverity.Baixa);
+                        ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", vol.Name, $"{freePct:0}"), ProblemSeverity.Baixa, ProblemKind.Slowdown);
                         ctx.Recommend(Loc.F("Health_R_FreeUpVolume", vol.Name));
                     }
                 }
@@ -598,25 +598,25 @@ public class HealthDiagnosticsService
 
                 // Problemas/recomendações conforme a gravidade.
                 if (diskSmart.PredictFailure || diskSmart.Health == DiskHealthStatus.Unhealthy)
-                { ctx.Problem(Loc.F("Health_P_SmartFailure", disk.Model), ProblemSeverity.Critica); ctx.Recommend(Loc.F("Health_R_BackupNow", disk.Model)); }
+                { ctx.Problem(Loc.F("Health_P_SmartFailure", disk.Model), ProblemSeverity.Critica, ProblemKind.DiskCritical); ctx.Recommend(Loc.F("Health_R_BackupNow", disk.Model)); }
                 else if (diskSmart.Health == DiskHealthStatus.Warning)
-                { ctx.Problem(Loc.F("Health_P_DiskWarningState", disk.Model), ProblemSeverity.Alta); ctx.Recommend(Loc.F("Health_R_MonitorDisk", disk.Model)); }
+                { ctx.Problem(Loc.F("Health_P_DiskWarningState", disk.Model), ProblemSeverity.Alta, ProblemKind.DiskCritical); ctx.Recommend(Loc.F("Health_R_MonitorDisk", disk.Model)); }
 
                 if (diskSmart.ReallocatedSectors is { } realloc && realloc > 0)
                 {
                     var sev = realloc >= 50 ? ProblemSeverity.Critica : realloc >= 8 ? ProblemSeverity.Alta : ProblemSeverity.Moderada;
-                    ctx.Problem(Loc.F("Health_P_ReallocatedSectors", disk.Model, realloc), sev);
+                    ctx.Problem(Loc.F("Health_P_ReallocatedSectors", disk.Model, realloc), sev, ProblemKind.DiskCritical);
                     ctx.Recommend(Loc.F("Health_R_MonitorDiskClosely", disk.Model));
                 }
                 if (diskSmart.PendingSectors is { } pending && pending > 0)
-                    ctx.Problem(Loc.F("Health_P_PendingSectors", disk.Model, pending), pending >= 20 ? ProblemSeverity.Critica : ProblemSeverity.Alta);
+                    ctx.Problem(Loc.F("Health_P_PendingSectors", disk.Model, pending), pending >= 20 ? ProblemSeverity.Critica : ProblemSeverity.Alta, ProblemKind.DiskCritical);
                 if (diskSmart.UncorrectableErrors is { } unc && unc > 0)
-                    ctx.Problem(Loc.F("Health_P_UncorrectableErrors", disk.Model, unc), ProblemSeverity.Alta);
+                    ctx.Problem(Loc.F("Health_P_UncorrectableErrors", disk.Model, unc), ProblemSeverity.Alta, ProblemKind.DiskCritical);
                 if (diskSmart.LifeRemainingPercent is { } lr)
                 {
-                    if (lr <= 5) { ctx.Problem(Loc.F("Health_P_SsdLifeCritical", disk.Model, lr), ProblemSeverity.Critica); ctx.Recommend(Loc.F("Health_R_SsdReplaceNow", disk.Model)); }
-                    else if (lr <= 20) { ctx.Problem(Loc.F("Health_P_SsdLifeLow", disk.Model, lr), ProblemSeverity.Alta); ctx.Recommend(Loc.F("Health_R_SsdPlanReplace", disk.Model)); }
-                    else if (lr <= 40) { ctx.Problem(Loc.F("Health_P_SsdLifeModerate", disk.Model, lr), ProblemSeverity.Baixa); }
+                    if (lr <= 5) { ctx.Problem(Loc.F("Health_P_SsdLifeCritical", disk.Model, lr), ProblemSeverity.Critica, ProblemKind.DiskLife); ctx.Recommend(Loc.F("Health_R_SsdReplaceNow", disk.Model)); }
+                    else if (lr <= 20) { ctx.Problem(Loc.F("Health_P_SsdLifeLow", disk.Model, lr), ProblemSeverity.Alta, ProblemKind.DiskLife); ctx.Recommend(Loc.F("Health_R_SsdPlanReplace", disk.Model)); }
+                    else if (lr <= 40) { ctx.Problem(Loc.F("Health_P_SsdLifeModerate", disk.Model, lr), ProblemSeverity.Baixa, ProblemKind.DiskLife); }
                 }
             }
             else
@@ -656,8 +656,8 @@ public class HealthDiagnosticsService
         c.Metrics.Add(new(Loc.S("Health_M_Capacity"), $"{v.TotalGb:0.0} GB"));
         c.Metrics.Add(new(Loc.S("Health_M_FreeSpace"), $"{v.FreeGb:0.0} GB ({freePct:0}%)"));
 
-        if (freePct < 8) { score -= 25; ctx.Problem(Loc.F("Health_P_VolumeLowFree", v.Name, $"{freePct:0}"), ProblemSeverity.Alta); ctx.Recommend(Loc.F("Health_R_FreeUpVolume50Plain", v.Name)); }
-        else if (freePct < 15) { score -= 12; ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", v.Name, $"{freePct:0}"), ProblemSeverity.Moderada); }
+        if (freePct < 8) { score -= 25; ctx.Problem(Loc.F("Health_P_VolumeLowFree", v.Name, $"{freePct:0}"), ProblemSeverity.Alta, ProblemKind.Slowdown); ctx.Recommend(Loc.F("Health_R_FreeUpVolume50Plain", v.Name)); }
+        else if (freePct < 15) { score -= 12; ctx.Problem(Loc.F("Health_P_VolumeLowFreeModerate", v.Name, $"{freePct:0}"), ProblemSeverity.Moderada, ProblemKind.Slowdown); }
 
         c.Score = Clamp(score);
         c.Summary = StateText(c.Score);
@@ -1213,8 +1213,8 @@ public class HealthDiagnosticsService
                 : Loc.F("Health_Drivers_AllUpdated", drivers.Checked)
             : Loc.S("Health_Drivers_Unavailable")));
 
-        if (startupCount > 12) { score -= 18; ctx.Problem(Loc.F("Health_P_StartupMany", startupCount), ProblemSeverity.Moderada); ctx.Recommend(Loc.S("Health_R_DisableStartup")); }
-        else if (startupCount > 7) { score -= 8; ctx.Problem(Loc.F("Health_P_StartupMany", startupCount), ProblemSeverity.Baixa); ctx.Recommend(Loc.S("Health_R_ReviewStartup")); }
+        if (startupCount > 12) { score -= 18; ctx.Problem(Loc.F("Health_P_StartupMany", startupCount), ProblemSeverity.Moderada, ProblemKind.Slowdown); ctx.Recommend(Loc.S("Health_R_DisableStartup")); }
+        else if (startupCount > 7) { score -= 8; ctx.Problem(Loc.F("Health_P_StartupMany", startupCount), ProblemSeverity.Baixa, ProblemKind.Slowdown); ctx.Recommend(Loc.S("Health_R_ReviewStartup")); }
 
         if (problemDevices > 0) { score -= 12; ctx.Problem(Loc.F("Health_P_ProblemDevices", problemDevices), ProblemSeverity.Moderada); ctx.Recommend(Loc.S("Health_R_CheckDeviceManager")); }
 
@@ -1508,9 +1508,10 @@ public class HealthDiagnosticsService
             _ => RiskLevel.Baixo,
         });
 
-        // Falha de SSD: deriva dos problemas de disco já detectados.
-        bool diskCritical = ctx.Report.Problems.Any(p => p.Description.Contains("SMART") || p.Description.Contains("setor"));
-        bool diskLowLife = ctx.Report.Problems.Any(p => p.Description.Contains("Vida útil"));
+        // Falha de SSD: deriva dos problemas de disco já detectados. Usa a categoria (Kind),
+        // nunca o texto — a descrição é localizada e a busca por substring quebrava em inglês.
+        bool diskCritical = ctx.Report.Problems.Any(p => p.Kind == ProblemKind.DiskCritical);
+        bool diskLowLife = ctx.Report.Problems.Any(p => p.Kind == ProblemKind.DiskLife);
         ctx.Risk(Loc.S("Health_Risk_DiskFailure"), diskCritical ? RiskLevel.Alto : diskLowLife ? RiskLevel.Moderado : RiskLevel.MuitoBaixo);
 
         // Instabilidade do sistema.
@@ -1518,8 +1519,7 @@ public class HealthDiagnosticsService
         ctx.Risk(Loc.S("Health_Risk_Instability"), sysIssues ? RiskLevel.Moderado : RiskLevel.Baixo);
 
         // Lentidão futura: muitos programas na inicialização / pouco espaço / RAM cheia.
-        bool slowdown = ctx.Report.Problems.Any(p =>
-            p.Description.Contains("inicialização") || p.Description.Contains("livres") || p.Description.Contains("RAM"));
+        bool slowdown = ctx.Report.Problems.Any(p => p.Kind == ProblemKind.Slowdown);
         ctx.Risk(Loc.S("Health_Risk_FutureSlowdown"), slowdown ? RiskLevel.Moderado : RiskLevel.Baixo);
     }
 
