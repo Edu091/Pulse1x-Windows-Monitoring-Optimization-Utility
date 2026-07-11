@@ -60,6 +60,8 @@ internal static partial class LocalizationStrings
         ["Settings_UpdateDownloadFailed"] = "Falha ao baixar a atualização. Tente novamente.",
         ["Settings_UpdateCheckButton"] = "Verificar atualizações",
         ["Settings_UpdateInstallButton"] = "Atualizar agora",
+        ["Update_PromptTitle"] = "Atualização disponível",
+        ["Update_PromptBody"] = "Uma nova versão do Pulse1x está disponível (v{0}). Deseja atualizar agora?\n\nO Pulse1x vai fechar e reabrir automaticamente.",
         ["Lang_Portuguese"] = "Português",
         ["Lang_English"] = "Inglês",
 
@@ -1062,6 +1064,8 @@ internal static partial class LocalizationStrings
         ["Settings_UpdateDownloadFailed"] = "Failed to download the update. Please try again.",
         ["Settings_UpdateCheckButton"] = "Check for updates",
         ["Settings_UpdateInstallButton"] = "Update now",
+        ["Update_PromptTitle"] = "Update available",
+        ["Update_PromptBody"] = "A new version of Pulse1x is available (v{0}). Update now?\n\nPulse1x will close and reopen automatically.",
         ["Lang_Portuguese"] = "Portuguese",
         ["Lang_English"] = "English",
 

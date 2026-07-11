@@ -97,9 +97,10 @@ public partial class App : Application
         var advancedOptimizationService = new AdvancedOptimizationService(new OptimizationChangeLog());
         var bloatwareDetectorService = new BloatwareDetectorService(advancedOptimizationService);
         var optimizationPage = new OptimizationPage(new OptimizationViewModel(memoryOptimizationService, systemMetricsService, diskCleanupService, specialCommandsService, advancedOptimizationService, bloatwareDetectorService));
+        var updateService = new GitHubUpdateService();
         var settingsPage = new SettingsPage(new SettingsViewModel(
             settingsService,
-            new GitHubUpdateService(),
+            updateService,
             onIntervalChanged: dashboardViewModel.UpdateInterval,
             onMinimizeToTrayChanged: _ => { }));
         var aboutPage = new AboutPage();
@@ -139,6 +140,12 @@ public partial class App : Application
         MainWindow = mainWindow;
         mainWindow.Show();
 
+        // Checagem de atualização em segundo plano ao abrir o app: nunca bloqueia a abertura
+        // (roda depois da janela já visível) e, se falhar (sem internet, GitHub fora do ar),
+        // não incomoda o usuário — apenas não pergunta nada. Só quando há mesmo uma versão
+        // mais nova é que aparece o diálogo perguntando se quer atualizar agora.
+        _ = PromptForUpdateOnStartupAsync(updateService, mainWindow);
+
         // Aguarda (em segundo plano) o sinal de outra instância recém-aberta para
         // trazer esta janela à frente em vez de criar um novo processo.
         _showWindowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowWindowSignalName);
@@ -153,6 +160,27 @@ public partial class App : Application
             state: null,
             millisecondsTimeOutInterval: Timeout.Infinite,
             executeOnlyOnce: false);
+    }
+
+    // Consulta a última Release do GitHub e, se houver uma versão mais nova que a instalada,
+    // pergunta ao usuário se quer atualizar agora. Ao confirmar, o instalador é baixado e
+    // executado silenciosamente — o Inno Setup fecha o Pulse1x, substitui os arquivos e o
+    // reabre sozinho (ver GitHubUpdateService).
+    private static async Task PromptForUpdateOnStartupAsync(GitHubUpdateService updateService, MainWindow owner)
+    {
+        var result = await updateService.CheckAsync();
+        if (result.Status != UpdateCheckStatus.UpdateAvailable ||
+            result.DownloadUrl is null || result.AssetName is null)
+            return;
+
+        var choice = MessageBox.Show(
+            owner,
+            Localization.Loc.F("Update_PromptBody", result.LatestVersion ?? "?"),
+            Localization.Loc.S("Update_PromptTitle"),
+            MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+        if (choice == MessageBoxResult.Yes)
+            await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
     }
 
     // Grava o erro em %LOCALAPPDATA%\Pulse1x\crash.log e avisa o usuário. Nunca lança (um erro
