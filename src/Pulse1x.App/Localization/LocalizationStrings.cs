@@ -670,6 +670,40 @@ internal static partial class LocalizationStrings
         ["Lat_DoneApplyAll"] = "Otimizações aplicadas com sucesso.",
         ["Lat_DoneRestoreAll"] = "Alterações desfeitas e padrões restaurados.",
 
+        // ---- Status dos Servidores ----
+        ["Srv_Title"] = "Status dos Servidores",
+        ["Srv_Subtitle"] = "Descubra em segundos se uma falha é do serviço ou da sua conexão. Consulta o status em tempo real das principais plataformas.",
+        ["Srv_Refresh"] = "Atualizar",
+        ["Srv_SearchPlaceholder"] = "Pesquisar empresa ou serviço…",
+        ["Srv_LastUpdate"] = "Última atualização:",
+        ["Srv_CompaniesWord"] = "empresas",
+        ["Srv_ServicesWord"] = "serviços",
+        ["Srv_ServicesLabel"] = "serviços",
+        // Estados
+        ["Srv_StateOperational"] = "Operacional",
+        ["Srv_StateDegraded"] = "Degradação de desempenho",
+        ["Srv_StateMaintenance"] = "Manutenção programada",
+        ["Srv_StatePartial"] = "Interrupção parcial",
+        ["Srv_StateUnavailable"] = "Indisponível",
+        ["Srv_StateUnknown"] = "Status indisponível",
+        // Categorias
+        ["Srv_CatGames"] = "Jogos",
+        ["Srv_CatComm"] = "Comunicação",
+        ["Srv_CatStreaming"] = "Streaming",
+        ["Srv_CatAi"] = "Inteligência Artificial",
+        ["Srv_CatInfra"] = "Infraestrutura",
+        ["Srv_CatCloud"] = "Armazenamento em Nuvem",
+        // Janela de detalhes
+        ["Srv_DetailStatus"] = "Status atual",
+        ["Srv_DetailAffected"] = "Serviços afetados",
+        ["Srv_DetailRegions"] = "Regiões afetadas",
+        ["Srv_DetailStarted"] = "Início do incidente",
+        ["Srv_DetailUpdated"] = "Última atualização informada",
+        ["Srv_DetailOpenPage"] = "Abrir página de status",
+        ["Srv_DetailClose"] = "Fechar",
+        ["Srv_DetailNoIncident"] = "Nenhum incidente ativo informado no momento.",
+        ["Srv_DetailUnknownNote"] = "O status em tempo real desta empresa não está disponível para consulta automática. Abra a página oficial para ver o estado atual dos serviços.",
+
         // ---- Comandos Especiais ----
         ["Special_ManualRestorePointName"] = "Ponto manual - Pulse1x",
         ["Special_Run"] = "Executar",
@@ -1674,6 +1708,40 @@ internal static partial class LocalizationStrings
         ["Lat_DoneStability"] = "Stability profile applied.",
         ["Lat_DoneApplyAll"] = "Optimizations applied successfully.",
         ["Lat_DoneRestoreAll"] = "Changes undone and defaults restored.",
+
+        // ---- Server Status ----
+        ["Srv_Title"] = "Server Status",
+        ["Srv_Subtitle"] = "Find out in seconds whether an outage is the service or your own connection. Checks the real-time status of major platforms.",
+        ["Srv_Refresh"] = "Refresh",
+        ["Srv_SearchPlaceholder"] = "Search company or service…",
+        ["Srv_LastUpdate"] = "Last update:",
+        ["Srv_CompaniesWord"] = "companies",
+        ["Srv_ServicesWord"] = "services",
+        ["Srv_ServicesLabel"] = "services",
+        // States
+        ["Srv_StateOperational"] = "Operational",
+        ["Srv_StateDegraded"] = "Degraded performance",
+        ["Srv_StateMaintenance"] = "Scheduled maintenance",
+        ["Srv_StatePartial"] = "Partial outage",
+        ["Srv_StateUnavailable"] = "Unavailable",
+        ["Srv_StateUnknown"] = "Status unavailable",
+        // Categories
+        ["Srv_CatGames"] = "Games",
+        ["Srv_CatComm"] = "Communication",
+        ["Srv_CatStreaming"] = "Streaming",
+        ["Srv_CatAi"] = "Artificial Intelligence",
+        ["Srv_CatInfra"] = "Infrastructure",
+        ["Srv_CatCloud"] = "Cloud Storage",
+        // Detail window
+        ["Srv_DetailStatus"] = "Current status",
+        ["Srv_DetailAffected"] = "Affected services",
+        ["Srv_DetailRegions"] = "Affected regions",
+        ["Srv_DetailStarted"] = "Incident start",
+        ["Srv_DetailUpdated"] = "Last reported update",
+        ["Srv_DetailOpenPage"] = "Open status page",
+        ["Srv_DetailClose"] = "Close",
+        ["Srv_DetailNoIncident"] = "No active incidents reported right now.",
+        ["Srv_DetailUnknownNote"] = "Real-time status for this company isn't available for automatic lookup. Open the official page to see the current service status.",
 
         // ---- Special Commands ----
         ["Special_ManualRestorePointName"] = "Manual point - Pulse1x",

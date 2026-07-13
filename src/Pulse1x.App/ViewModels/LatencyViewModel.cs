@@ -51,6 +51,18 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     private readonly NetworkOptimizationService _opt;
     private readonly ISystemMetricsService _metrics;
     private readonly DispatcherTimer _timer;
+
+    /// <summary>Central "Status dos Servidores" — subseção desta categoria com seu próprio ciclo
+    /// de atualização (ligado/desligado junto com a visibilidade da página).</summary>
+    public ServerStatusViewModel ServerStatus { get; }
+
+    // Seções recolhíveis: permitem esconder as áreas que ocupam mais espaço para reduzir a poluição
+    // visual. O painel em tempo real começa aberto; as demais, fechadas por padrão.
+    [ObservableProperty] private bool livePanelExpanded = true;
+    [ObservableProperty] private bool diagnosticExpanded;
+    [ObservableProperty] private bool driverExpanded;
+    [ObservableProperty] private bool testServersExpanded;
+    [ObservableProperty] private bool toolsExpanded;
     private DateTime _lastSample = DateTime.Now;
     private bool _refreshing;
 
@@ -116,11 +128,12 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string driverLatencyColor = "#808080";
     public ObservableCollection<DiagnosticLineViewModel> DriverLatencyLines { get; } = new();
 
-    public LatencyViewModel(NetworkLatencyService net, NetworkOptimizationService opt, ISystemMetricsService metrics)
+    public LatencyViewModel(NetworkLatencyService net, NetworkOptimizationService opt, ISystemMetricsService metrics, ServerStatusService serverStatus)
     {
         _net = net;
         _opt = opt;
         _metrics = metrics;
+        ServerStatus = new ServerStatusViewModel(serverStatus);
 
         BuildTools();
         foreach (var (name, host) in NetworkLatencyService.TestServers)
@@ -140,6 +153,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     /// Chamado pelo code-behind da <c>LatencyPage</c> no evento de visibilidade.</summary>
     public void SetActive(bool active)
     {
+        ServerStatus.SetActive(active);
         if (active)
         {
             _timer.Start();
@@ -495,6 +509,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        ServerStatus.Dispose();
         Loc.Instance.LanguageChanged -= OnLanguageChanged;
     }
 }

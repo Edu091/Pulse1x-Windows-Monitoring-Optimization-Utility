@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -15,6 +16,17 @@ public partial class App : Application
     private const string SingleInstanceMutexName = "Pulse1x_SingleInstance_Mutex";
     private const string ShowWindowSignalName = "Pulse1x_ShowWindow_Event";
 
+    // Identidade estável do app perante o Shell do Windows (Menu Iniciar/busca/barra de tarefas),
+    // independente do caminho ou do conteúdo binário do .exe. Sem isso, como o Pulse1x.App.exe é
+    // substituído NO MESMO CAMINHO a cada atualização (tanto pelo instalador Inno Setup quanto pelo
+    // SelfUpdateService), o Windows às vezes trata a identidade do app como "incerta" entre uma
+    // atualização e outra e demora para re-cachear o ícone nos resultados de busca. Precisa ser
+    // chamado bem no início, antes de qualquer janela ser criada.
+    private const string AppUserModelId = "Pulse1x.App";
+
+    [DllImport("shell32.dll", SetLastError = true)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+
     // Cor de marca do Pulse1x: vermelho, usado em todos os controles do Wpf.Ui
     // (botões, toggles, sliders, barra de progresso etc.) em vez do azul padrão.
     private static readonly Color BrandAccentColor = Color.FromRgb(0xDC, 0x26, 0x26);
@@ -29,6 +41,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
+        catch { /* best-effort — só melhora o cache de ícone do Shell, nunca deve impedir o app de abrir */ }
 
         // Rede de segurança: registra qualquer exceção não tratada num arquivo de log (e mostra
         // uma mensagem) em vez de o app "abrir e fechar" sem deixar pista. Para erros na thread de
@@ -120,7 +135,8 @@ public partial class App : Application
         // com log de reversão próprio (network-changes.json) para "Desfazer Todas as Alterações".
         var networkLatencyService = new NetworkLatencyService();
         var networkOptimizationService = new NetworkOptimizationService(new OptimizationChangeLog("network-changes.json"));
-        var latencyPage = new LatencyPage(new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService));
+        var serverStatusService = new ServerStatusService();
+        var latencyPage = new LatencyPage(new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService, serverStatusService));
 
         // Categoria Utilidade: Central Pós-Formatação — instala apps/componentes de fonte oficial
         // (winget) e aplica configurações recomendadas, com detecção inteligente do hardware.

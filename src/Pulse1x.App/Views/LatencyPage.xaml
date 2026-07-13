@@ -102,6 +102,78 @@
             </Border>
         </DataTemplate>
 
+        <!-- Linha de um serviço dentro do cartão da empresa (Status dos Servidores) -->
+        <DataTemplate x:Key="ServiceStatusRow" DataType="{x:Type vm:ServiceStatusViewModel}">
+            <ui:Button HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"
+                       Background="Transparent" BorderThickness="0" Padding="6,5" Margin="0,0,0,1"
+                       Command="{Binding ShowDetailCommand}" Cursor="Hand" anim:Anim.PopOnLoad="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Emoji}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Text="{Binding StatusText}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0"
+                               Foreground="{Binding Color, Converter={StaticResource StrToBrush}}" />
+                </Grid>
+            </ui:Button>
+        </DataTemplate>
+
+        <!-- Cartão expansível de uma empresa monitorada (Status dos Servidores) -->
+        <DataTemplate x:Key="CompanyStatusCard" DataType="{x:Type vm:CompanyStatusViewModel}">
+            <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="4" anim:Anim.PopOnLoad="True"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                <StackPanel>
+                    <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="22" VerticalAlignment="Center" Margin="2,0,12,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding OverallEmoji}" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                    <TextBlock Text="{Binding OverallLabel}" FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{Binding OverallColor, Converter={StaticResource StrToBrush}}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,10,0" HorizontalAlignment="Right">
+                                <TextBlock Text="{Binding ServiceCountText}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding [Srv_ServicesLabel], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.55" HorizontalAlignment="Right" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="3" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="3" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <!-- Incidente ativo (uma linha) — visível mesmo com o cartão recolhido -->
+                    <Border CornerRadius="6" Padding="8,5" Margin="8,2,8,2" Background="#33DC2626"
+                            Visibility="{Binding HasIncident, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding IncidentSummary}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Margin="4,2,4,4"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl ItemsSource="{Binding Services}" ItemTemplate="{StaticResource ServiceStatusRow}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <!-- Linha do diagnóstico -->
         <DataTemplate x:Key="DiagnosticRow" DataType="{x:Type vm:DiagnosticLineViewModel}">
             <Grid Margin="0,0,0,6" anim:Anim.PopOnLoad="True">
@@ -149,7 +221,17 @@
             </Border>
 
             <!-- ===================== Painel em tempo real ===================== -->
-            <TextBlock Text="{Binding [Lat_LivePanel], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="6,0,0,8" />
+            <ToggleButton IsChecked="{Binding LivePanelExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                          Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="6,2" Margin="0,0,0,6">
+                <Grid>
+                    <TextBlock Text="{Binding [Lat_LivePanel], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Text="⌄" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Visibility="{Binding LivePanelExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    <TextBlock Text="⌃" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Visibility="{Binding LivePanelExpanded, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </ToggleButton>
+            <StackPanel anim:Anim.AnimateVisibility="True" Visibility="{Binding LivePanelExpanded, Converter={StaticResource BoolToVis}}">
             <WrapPanel Margin="0,0,0,8">
                 <Border Style="{StaticResource MetricTile}">
                     <StackPanel>
@@ -249,26 +331,102 @@
                 <controls:LiveChart Width="330" Title="{Binding [Lat_ChartUpload], Source={x:Static loc:Loc.Instance}}" Values="{Binding UploadChart}" AccentColor="#F59E0B" />
                 <controls:LiveChart Width="330" Title="{Binding [Lat_ChartPing], Source={x:Static loc:Loc.Instance}}" Values="{Binding PingChart}" AccentColor="#DC2626" />
             </WrapPanel>
+            </StackPanel>
+
+            <!-- ===================== Status dos Servidores ===================== -->
+            <Border CornerRadius="12" Padding="16" Margin="6,4,6,16" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    DataContext="{Binding ServerStatus}">
+                <StackPanel>
+                    <!-- Cabeçalho recolhível: título + subtítulo + chevron -->
+                    <ToggleButton IsChecked="{Binding IsSectionExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding [Srv_Title], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding [Srv_Subtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
+                                Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}">
+
+                    <!-- Atualizar -->
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button Icon="{ui:SymbolIcon ArrowClockwise24}"
+                                   Content="{Binding [Srv_Refresh], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding RefreshCommand}" IsEnabled="{Binding IsRefreshing, Converter={StaticResource InvBool}}" />
+                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="10,0,0,0" VerticalAlignment="Center"
+                                         Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+
+                    <!-- Barra de status: contadores + última atualização -->
+                    <Grid Margin="0,10,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontSize="12" Opacity="0.7" VerticalAlignment="Center">
+                                <Run Text="{Binding MonitoredCompanyCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="{Binding [Srv_CompaniesWord], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" />
+                                <Run Text="·" Foreground="#808080" />
+                                <Run Text="{Binding MonitoredServiceCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="{Binding [Srv_ServicesWord], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding [Srv_LastUpdate], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.55" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding LastUpdateText}" FontSize="12" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Barra de pesquisa -->
+                    <ui:TextBox Icon="{ui:SymbolIcon Search24}" Margin="0,0,0,12"
+                                PlaceholderText="{Binding [Srv_SearchPlaceholder], Source={x:Static loc:Loc.Instance}}"
+                                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!-- Cartões das empresas -->
+                    <ItemsControl ItemsSource="{Binding Companies}" ItemTemplate="{StaticResource CompanyStatusCard}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
 
             <!-- ===================== Diagnóstico inteligente ===================== -->
             <Border CornerRadius="12" Padding="16" Margin="6,8,6,16" BorderThickness="1"
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     Background="{DynamicResource ControlFillColorDefaultBrush}">
                 <StackPanel>
-                    <Grid>
-                        <TextBlock Text="{Binding [Lat_DiagTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="0,0,10,0"
-                                             Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}" />
+                    <ToggleButton IsChecked="{Binding DiagnosticExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <TextBlock Text="{Binding [Lat_DiagTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="⌄" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding DiagnosticExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Text="⌃" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding DiagnosticExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+                    <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
+                                Visibility="{Binding DiagnosticExpanded, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
                             <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold"
                                        Content="{Binding [Lat_Analyze], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding AnalyzeCommand}" />
+                            <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="10,0,0,0" VerticalAlignment="Center"
+                                             Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
-                    </Grid>
-                    <TextBlock Text="{Binding DiagnosticHeadline}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,10"
-                               Visibility="{Binding HasDiagnostic, Converter={StaticResource BoolToVis}}" />
-                    <ItemsControl ItemsSource="{Binding DiagnosticLines}" ItemTemplate="{StaticResource DiagnosticRow}"
-                                  Visibility="{Binding HasDiagnostic, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Text="{Binding DiagnosticHeadline}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,10"
+                                   Visibility="{Binding HasDiagnostic, Converter={StaticResource BoolToVis}}" />
+                        <ItemsControl ItemsSource="{Binding DiagnosticLines}" ItemTemplate="{StaticResource DiagnosticRow}"
+                                      Visibility="{Binding HasDiagnostic, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -277,49 +435,86 @@
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     Background="{DynamicResource ControlFillColorDefaultBrush}">
                 <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                            <TextBlock Text="{Binding [Lat_DrvTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding [Lat_DrvSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                            <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="0,0,10,0"
-                                             Visibility="{Binding IsCheckingDriverLatency, Converter={StaticResource BoolToVis}}" />
+                    <ToggleButton IsChecked="{Binding DriverExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding [Lat_DrvTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding [Lat_DrvSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding DriverExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding DriverExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+                    <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
+                                Visibility="{Binding DriverExpanded, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
                             <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold"
                                        Content="{Binding [Lat_DrvCheck], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding CheckDriverLatencyCommand}"
                                        IsEnabled="{Binding IsCheckingDriverLatency, Converter={StaticResource InvBool}}" />
+                            <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="10,0,0,0" VerticalAlignment="Center"
+                                             Visibility="{Binding IsCheckingDriverLatency, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
-                    </Grid>
-                    <TextBlock Text="{Binding DriverLatencyHeadline}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,10"
-                               Foreground="{Binding DriverLatencyColor, Converter={StaticResource StrToBrush}}"
-                               Visibility="{Binding HasDriverLatencyResult, Converter={StaticResource BoolToVis}}" />
-                    <ItemsControl ItemsSource="{Binding DriverLatencyLines}" ItemTemplate="{StaticResource DiagnosticRow}"
-                                  Visibility="{Binding HasDriverLatencyResult, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Text="{Binding DriverLatencyHeadline}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,10"
+                                   Foreground="{Binding DriverLatencyColor, Converter={StaticResource StrToBrush}}"
+                                   Visibility="{Binding HasDriverLatencyResult, Converter={StaticResource BoolToVis}}" />
+                        <ItemsControl ItemsSource="{Binding DriverLatencyLines}" ItemTemplate="{StaticResource DiagnosticRow}"
+                                      Visibility="{Binding HasDriverLatencyResult, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
             <!-- ===================== Servidores de teste ===================== -->
-            <Grid Margin="6,0,6,8">
-                <TextBlock Text="{Binding [Lat_TestServers], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0"
-                                     Visibility="{Binding IsTestingServers, Converter={StaticResource BoolToVis}}" />
-                    <ui:Button Content="{Binding [Lat_TestNow], Source={x:Static loc:Loc.Instance}}" Command="{Binding TestServersCommand}" />
+            <Border CornerRadius="12" Padding="16" Margin="6,0,6,16" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                <StackPanel>
+                    <ToggleButton IsChecked="{Binding TestServersExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <TextBlock Text="{Binding [Lat_TestServers], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="⌄" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding TestServersExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Text="⌃" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding TestServersExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+                    <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
+                                Visibility="{Binding TestServersExpanded, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <ui:Button Content="{Binding [Lat_TestNow], Source={x:Static loc:Loc.Instance}}" Command="{Binding TestServersCommand}" />
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="10,0,0,0" VerticalAlignment="Center"
+                                             Visibility="{Binding IsTestingServers, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding TestServers}" ItemTemplate="{StaticResource TestServerRow}" />
+                    </StackPanel>
                 </StackPanel>
-            </Grid>
-            <ItemsControl ItemsSource="{Binding TestServers}" ItemTemplate="{StaticResource TestServerRow}" Margin="6,0,6,16" />
+            </Border>
 
             <!-- ===================== Otimizações e ferramentas ===================== -->
             <Border CornerRadius="12" Padding="16" Margin="6,0,6,16" BorderThickness="1"
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     Background="{DynamicResource ControlFillColorDefaultBrush}">
                 <StackPanel>
-                    <TextBlock Text="{Binding [Lat_ToolsTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" />
+                    <ToggleButton IsChecked="{Binding ToolsExpanded, Mode=TwoWay}" Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <TextBlock Text="{Binding [Lat_ToolsTitle], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="⌄" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding ToolsExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Text="⌃" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Visibility="{Binding ToolsExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+                    <StackPanel anim:Anim.AnimateVisibility="True"
+                                Visibility="{Binding ToolsExpanded, Converter={StaticResource BoolToVis}}">
 
                     <Grid Margin="0,12,0,8">
                         <StackPanel Orientation="Horizontal">
@@ -368,6 +563,7 @@
                     <ItemsControl ItemsSource="{Binding Profiles}" ItemTemplate="{StaticResource ToolCard}" />
 
                     <TextBlock Text="{Binding [Lat_ReversibleNote], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.5" TextWrapping="Wrap" Margin="0,10,0,0" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>

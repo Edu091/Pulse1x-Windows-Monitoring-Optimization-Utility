@@ -10,8 +10,13 @@
     <ApplicationIcon>Resources\pulse1x.ico</ApplicationIcon>
     <!-- Baseline local; a Release do GitHub Actions sobrescreve via -p:Version=X.Y.Z (mesmo
          número da tag), para o GitHubUpdateService comparar a versão em execução com a mais
-         recente publicada. -->
-    <Version>1.0.0</Version>
+         recente publicada. IMPORTANTE: manter esta baseline igual (ou maior) à última tag
+         publicada — builds locais (staging/atualizar_pulse1x.bat) nunca passam -p:Version, então
+         se ficar desatualizada, a cópia sincronizada pelo SelfUpdateService no atalho de uso
+         diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
+         atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
+         estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

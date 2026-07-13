@@ -51,9 +51,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#SourceExeDir}\Pulse1x.App.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"
+; AppUserModelID igual ao definido em App.xaml.cs (SetCurrentProcessExplicitAppUserModelID) — mantém
+; a identidade do app estável perante o Shell (Menu Iniciar/busca/barra de tarefas) entre atualizações,
+; já que o .exe é substituído no mesmo caminho a cada nova versão instalada.
+Name: "{group}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"; AppUserModelID: "Pulse1x.App"
 Name: "{group}\{cm:UninstallProgram,Pulse1x}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"; Tasks: desktopicon
+Name: "{autodesktop}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"; Tasks: desktopicon; AppUserModelID: "Pulse1x.App"
 
 [Run]
 Filename: "{app}\Pulse1x.App.exe"; Description: "{cm:LaunchProgram,Pulse1x}"; Flags: nowait postinstall skipifsilent
