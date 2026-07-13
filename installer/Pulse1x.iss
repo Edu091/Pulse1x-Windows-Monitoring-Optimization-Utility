@@ -59,4 +59,8 @@ Name: "{group}\{cm:UninstallProgram,Pulse1x}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"; Tasks: desktopicon; AppUserModelID: "Pulse1x.App"
 
 [Run]
-Filename: "{app}\Pulse1x.App.exe"; Description: "{cm:LaunchProgram,Pulse1x}"; Flags: nowait postinstall skipifsilent
+; shellexec é essencial aqui: por padrão o Inno Setup lança entradas [Run] via CreateProcess, que NÃO
+; consegue elevar um processo (só ShellExecute/UAC conseguem). Como Pulse1x.App.exe exige elevação
+; (requireAdministrator no app.manifest), sem essa flag o lançamento pós-instalação falha com
+; "CreateProcess falhou; código 740: a operação solicitada requer elevação" (bug corrigido em 2026-07-13).
+Filename: "{app}\Pulse1x.App.exe"; Description: "{cm:LaunchProgram,Pulse1x}"; Flags: nowait postinstall skipifsilent shellexec
