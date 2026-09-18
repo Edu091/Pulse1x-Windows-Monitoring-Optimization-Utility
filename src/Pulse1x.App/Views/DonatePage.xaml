@@ -16,7 +16,7 @@
                        LineHeight="22" Margin="0,18,0,8" />
             <TextBlock Text="{Binding [Donate_Thanks], Source={x:Static loc:Loc.Instance}}"
                        FontStyle="Italic" FontWeight="SemiBold" TextAlignment="Center"
-                       Foreground="#DC2626" Margin="0,0,0,22" />
+                       Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,0,22" />
 
             <!-- Doação: link/chave Pix voluntária. Sem processamento de pagamento dentro do app —
                  só copia a chave; o usuário paga pelo próprio app do banco. -->
@@ -37,7 +37,7 @@
                                        HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         </Border>
                         <ui:Button Grid.Column="1" Click="CopyPixKey_Click"
-                                   Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                    Content="{Binding [Donate_CopyKey], Source={x:Static loc:Loc.Instance}}" />
                     </Grid>
                     <TextBlock x:Name="CopiedFeedback" Text="{Binding [Donate_Copied], Source={x:Static loc:Loc.Instance}}"

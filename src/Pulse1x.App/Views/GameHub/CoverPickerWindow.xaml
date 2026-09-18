@@ -1,0 +1,131 @@
+<ui:FluentWindow
+    x:Class="Pulse1x.App.Views.GameHub.CoverPickerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels.GameHub"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    d:DataContext="{d:DesignInstance Type=vm:CoverPickerViewModel}"
+    mc:Ignorable="d"
+    Title="Pulse1x"
+    Height="620"
+    Width="760"
+    MinHeight="480"
+    MinWidth="620"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="None"
+    Background="#0A0A0C"
+    WindowStartupLocation="CenterOwner">
+
+    <ui:FluentWindow.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="InvBool" />
+
+        <!-- Uma sugestão de capa: a própria imagem é o botão de escolha. -->
+        <Style x:Key="CoverItem" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,0,14,14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" CornerRadius="8" BorderThickness="3" BorderBrush="Transparent"
+                                Padding="2">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Title="Pulse1x" Grid.Row="0" />
+
+        <StackPanel Grid.Row="1" Margin="24,4,24,14">
+            <TextBlock Text="{Binding [GH_CoverPickerTitle], Source={x:Static loc:Loc.Instance}}"
+                       FontSize="20" FontWeight="Bold" />
+            <TextBlock Text="{Binding GameName}" FontSize="12.5" Opacity="0.65" Margin="0,2,0,14" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox Grid.Column="0" Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
+                            PlaceholderText="{Binding [GH_CoverSearchHint], Source={x:Static loc:Loc.Instance}}" />
+                <ui:Button Grid.Column="1" Margin="8,0,0,0"
+                           Content="{Binding [GH_SearchAgain], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding SearchCommand}"
+                           IsEnabled="{Binding IsSearching, Converter={StaticResource InvBool}}" />
+            </Grid>
+        </StackPanel>
+
+        <Grid Grid.Row="2" Margin="24,0">
+            <ListBox ItemsSource="{Binding Candidates}" SelectedItem="{Binding SelectedCandidate}"
+                     ItemContainerStyle="{StaticResource CoverItem}"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Width="140">
+                            <Grid Height="210" Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                <ui:ProgressRing IsIndeterminate="True" Width="22" Height="22"
+                                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                                <Image Source="{Binding Preview}" Stretch="UniformToFill" />
+                            </Grid>
+                            <TextBlock Text="{Binding Title}" FontSize="11.5" Margin="0,6,0,0"
+                                       TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" TextAlignment="Center"
+                       MaxWidth="420" Opacity="0.7" FontSize="13"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+
+        <Border Grid.Row="3" Padding="24,14" BorderThickness="0,1,0,0" Margin="0,14,0,0"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <ui:Button Content="{Binding [GH_UseLocalImage], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding UseLocalFileCommand}" Padding="16,7" Margin="0,0,8,0" />
+                    <ui:Button Content="{Binding [GH_ResetArt], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding ResetArtCommand}" Padding="16,7" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="{Binding [GH_Cancel], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding CancelCommand}" Margin="0,0,8,0" Padding="20,7" />
+                    <ui:Button Content="{Binding [GH_ApplyCover], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding ApplyCommand}" Padding="22,7"
+                               Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

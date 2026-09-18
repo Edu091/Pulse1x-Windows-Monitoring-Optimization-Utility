@@ -432,6 +432,9 @@ public class NetworkOptimizationService
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                // A saída vem na página de código do console (CP850 em português), não em UTF-8.
+                StandardOutputEncoding = ConsoleEncoding.Oem,
+                StandardErrorEncoding = ConsoleEncoding.Oem,
             };
             using var proc = Process.Start(psi)!;
             string output = await proc.StandardOutput.ReadToEndAsync();

@@ -104,6 +104,24 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         _timer.Interval = TimeSpan.FromMilliseconds(milliseconds);
     }
 
+    /// <summary>
+    /// Liga/desliga a leitura contínua de hardware. Usado pelo Modo Gaming do GameHub: enquanto um
+    /// jogo estiver aberto, não faz sentido o Pulse1x continuar consultando sensores a cada segundo
+    /// para atualizar uma janela que ninguém está olhando.
+    /// </summary>
+    public void SetActive(bool active)
+    {
+        if (active)
+        {
+            _timer.Start();
+            Refresh();
+        }
+        else
+        {
+            _timer.Stop();
+        }
+    }
+
     private void InitializeSections()
     {
         var defaults = new[] { SystemInfoSection, MetricsSection, ChartsSection };

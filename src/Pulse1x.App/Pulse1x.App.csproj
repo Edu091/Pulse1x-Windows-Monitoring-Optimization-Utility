@@ -16,7 +16,7 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.1.1</Version>
+    <Version>1.4.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +25,10 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="LiveChartsCore" Version="2.0.4" />
     <PackageReference Include="System.Management" Version="10.0.9" />
+    <!-- Páginas de código legadas (CP850/CP437 etc.): o powercfg e o netsh escrevem a saída na
+         página do console, não em UTF-8. Sem isto, nomes com acento ("Desempenho Máximo") chegam
+         corrompidos e as comparações de texto falham. -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 

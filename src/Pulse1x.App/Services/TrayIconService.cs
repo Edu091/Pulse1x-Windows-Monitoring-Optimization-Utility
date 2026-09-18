@@ -40,7 +40,7 @@ public class TrayIconService : IDisposable
     {
         try
         {
-            var uri = new Uri("pack://application:,,,/Resources/pulse1x_tray.ico");
+            var uri = new Uri("pack://application:,,,/Pulse1x.App;component/Resources/pulse1x_tray.ico");
             var info = Application.GetResourceStream(uri);
             if (info?.Stream is { } stream)
             {

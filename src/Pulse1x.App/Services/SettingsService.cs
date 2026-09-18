@@ -22,6 +22,17 @@ public class AppSettings
     // dashboard, definidas pelo usuário ao personalizar o layout.
     public List<string> DashboardSectionOrder { get; set; } = new();
     public Dictionary<string, bool> DashboardSectionVisibility { get; set; } = new();
+
+    // Personalização visual de todo o app (cores, transparência, blur, animações, plano de fundo).
+    // Fica aqui para viajar junto com o resto das preferências no mesmo settings.json.
+    public AppearanceSettings Appearance { get; set; } = new();
+
+    // Preferências próprias do GameHub (início direto, sons, tamanho das capas, capas online).
+    public Models.GameHub.GameHubSettings GameHub { get; set; } = new();
+
+    // Comandos do software do fabricante por modo, para máquinas sem integração nativa
+    // (MSI Center, Alienware Command Center e afins). Ver OemCommandAdapter.
+    public Profiles.OemCustomCommands OemCommands { get; set; } = new();
 }
 
 public class SettingsService

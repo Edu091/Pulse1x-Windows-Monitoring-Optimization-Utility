@@ -11,6 +11,24 @@ namespace Pulse1x.App.Services;
 public static class AnimationSettings
 {
     public static bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Intensidade das animações (0 a 1), definida na personalização visual. Multiplica a duração e
+    /// o deslocamento de cada animação: 1 é o comportamento original, 0,5 deixa tudo mais discreto e
+    /// rápido, e 0 equivale a desligar. Lido em tempo real, como <see cref="Enabled"/>.
+    /// </summary>
+    public static double Intensity { get; set; } = 1.0;
+
+    /// <summary>Escala uma duração pela intensidade, com um mínimo para nunca virar um salto seco.</summary>
+    public static Duration Scale(Duration duration)
+    {
+        if (!duration.HasTimeSpan) return duration;
+        double factor = Math.Clamp(Intensity, 0.2, 1.5);
+        return new Duration(TimeSpan.FromMilliseconds(duration.TimeSpan.TotalMilliseconds * factor));
+    }
+
+    /// <summary>Escala um deslocamento (em pixels) pela intensidade.</summary>
+    public static double ScaleOffset(double offset) => offset * Math.Clamp(Intensity, 0, 1.5);
 }
 
 /// <summary>
@@ -39,7 +57,8 @@ public static class Animations
             return;
         }
 
-        var dur = duration ?? Normal;
+        var dur = AnimationSettings.Scale(duration ?? Normal);
+        fromOffsetY = AnimationSettings.ScaleOffset(fromOffsetY);
         var tt = new TranslateTransform(0, fromOffsetY);
         element.RenderTransform = tt;
         element.RenderTransformOrigin = new Point(0.5, 0.5);
@@ -63,7 +82,7 @@ public static class Animations
             return;
         }
 
-        var dur = new Duration(TimeSpan.FromMilliseconds(340));
+        var dur = AnimationSettings.Scale(new Duration(TimeSpan.FromMilliseconds(340)));
         var st = new ScaleTransform(0.985, 0.985);
         root.RenderTransform = st;
         root.RenderTransformOrigin = new Point(0.5, 0.5);
@@ -113,6 +132,6 @@ public static class Animations
         // Anima a partir do valor atual até o alvo (não fixa um valor base antes, para não
         // anular a transição).
         element.BeginAnimation(UIElement.OpacityProperty,
-            new DoubleAnimation(to, duration ?? Fast) { EasingFunction = EaseOut });
+            new DoubleAnimation(to, AnimationSettings.Scale(duration ?? Fast)) { EasingFunction = EaseOut });
     }
 }

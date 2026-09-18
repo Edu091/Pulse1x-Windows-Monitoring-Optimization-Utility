@@ -329,7 +329,7 @@
             <WrapPanel Margin="0,0,0,8">
                 <controls:LiveChart Width="330" Title="{Binding [Lat_ChartDownload], Source={x:Static loc:Loc.Instance}}" Values="{Binding DownloadChart}" AccentColor="#22C55E" />
                 <controls:LiveChart Width="330" Title="{Binding [Lat_ChartUpload], Source={x:Static loc:Loc.Instance}}" Values="{Binding UploadChart}" AccentColor="#F59E0B" />
-                <controls:LiveChart Width="330" Title="{Binding [Lat_ChartPing], Source={x:Static loc:Loc.Instance}}" Values="{Binding PingChart}" AccentColor="#DC2626" />
+                <controls:LiveChart Width="330" Title="{Binding [Lat_ChartPing], Source={x:Static loc:Loc.Instance}}" Values="{Binding PingChart}" AccentColor="{DynamicResource BrandAccentColor}" />
             </WrapPanel>
             </StackPanel>
 
@@ -416,7 +416,7 @@
                     <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
                                 Visibility="{Binding DiagnosticExpanded, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                        Content="{Binding [Lat_Analyze], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding AnalyzeCommand}" />
                             <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="10,0,0,0" VerticalAlignment="Center"
@@ -455,7 +455,7 @@
                     <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
                                 Visibility="{Binding DriverExpanded, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                        Content="{Binding [Lat_DrvCheck], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding CheckDriverLatencyCommand}"
                                        IsEnabled="{Binding IsCheckingDriverLatency, Converter={StaticResource InvBool}}" />
@@ -518,7 +518,7 @@
 
                     <Grid Margin="0,12,0,8">
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                        Content="{Binding [Lat_ApplyAll], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding ApplyAllCommand}" IsEnabled="{Binding IsApplyingAll, Converter={StaticResource InvBool}}" />
                             <ui:Button Content="{Binding [Lat_RestoreAll], Source={x:Static loc:Loc.Instance}}"

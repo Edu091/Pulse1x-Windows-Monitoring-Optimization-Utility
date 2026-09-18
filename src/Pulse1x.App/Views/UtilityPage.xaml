@@ -34,7 +34,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <Border Margin="8,0,0,0" CornerRadius="4" Padding="6,1" VerticalAlignment="Center"
-                                    Background="#DC2626"
+                                    Background="{DynamicResource BrandAccentBrush}"
                                     Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{Binding [Pf_Recommended], Source={x:Static loc:Loc.Instance}}"
                                            Foreground="White" FontSize="10" FontWeight="SemiBold" />
@@ -122,7 +122,7 @@
                         <TextBlock Text="{Binding [Pf_WingetMissingDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.7" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
                     </StackPanel>
                     <ui:Button Grid.Column="1" VerticalAlignment="Center"
-                               Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                               Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                Content="{Binding [Pf_WingetInstall], Source={x:Static loc:Loc.Instance}}"
                                Command="{Binding OpenWingetPageCommand}" />
                 </Grid>
@@ -146,7 +146,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <TextBlock Text="{Binding SelectedCountText}" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="0,0,10,0" />
-                    <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold" Padding="16,8"
+                    <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" Padding="16,8"
                                Content="{Binding [Pf_InstallSelected], Source={x:Static loc:Loc.Instance}}"
                                Command="{Binding InstallSelectedCommand}" Icon="{ui:SymbolIcon ArrowDownload24}" />
                 </StackPanel>
@@ -162,7 +162,7 @@
             </StackPanel>
 
             <!-- Progresso da instalação -->
-            <Border CornerRadius="12" Padding="16" Margin="6,0,6,12" BorderThickness="1" BorderBrush="#DC2626"
+            <Border CornerRadius="12" Padding="16" Margin="6,0,6,12" BorderThickness="1" BorderBrush="{DynamicResource BrandAccentBrush}"
                     Background="{DynamicResource ControlFillColorDefaultBrush}"
                     anim:Anim.AnimateVisibility="True"
                     Visibility="{Binding IsInstalling, Converter={StaticResource BoolToVis}}">
@@ -171,7 +171,7 @@
                         <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0" />
                         <TextBlock Text="{Binding [Pf_Installing], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding CurrentAppText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0"
-                                   Foreground="#DC2626" />
+                                   Foreground="{DynamicResource BrandAccentBrush}" />
                     </StackPanel>
                     <ProgressBar Minimum="0" Maximum="100" Value="{Binding InstallProgress}" Height="6" Margin="0,0,0,6" />
                     <TextBlock Text="{Binding CurrentStatusText}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
@@ -251,7 +251,7 @@
                                              Visibility="{Binding IsApplyingSettings, Converter={StaticResource BoolToVis}}" />
                             <ui:Button Content="{Binding [Pf_SelectRecommended], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding SelectRecommendedSettingsCommand}" />
-                            <ui:Button Background="#DC2626" Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0"
+                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0"
                                        Content="{Binding [Pf_ApplySettings], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding ApplySettingsCommand}"
                                        IsEnabled="{Binding IsApplyingSettings, Converter={StaticResource InvBool}}" />

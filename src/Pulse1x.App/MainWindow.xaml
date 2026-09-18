@@ -5,7 +5,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     Title="Pulse1x"
-    Icon="pack://application:,,,/Resources/pulse1x_taskbar.png"
+    Icon="pack://application:,,,/Pulse1x.App;component/Resources/pulse1x_taskbar.png"
     Height="780"
     Width="1180"
     MinHeight="600"
@@ -17,73 +17,94 @@
     StateChanged="FluentWindow_StateChanged">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition x:Name="TitleRow" Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Title="Pulse1x" Grid.Row="0" />
+        <!--
+            Camadas do plano de fundo do aplicativo inteiro (personalização visual). Ficam atrás de
+            tudo e são montadas em código a partir das Configurações: cor sólida, gradiente, imagem
+            do usuário ou o background do jogo em destaque no GameHub. No modo padrão todas ficam
+            invisíveis e o Mica do Windows aparece, exatamente como antes.
+        -->
+        <Rectangle x:Name="BackgroundFill" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" />
+        <Image x:Name="BackgroundImage" Grid.Row="0" Grid.RowSpan="2" Stretch="UniformToFill" Visibility="Collapsed">
+            <Image.Effect>
+                <BlurEffect x:Name="BackgroundBlur" Radius="0" />
+            </Image.Effect>
+        </Image>
+        <Rectangle x:Name="BackgroundDarken" Grid.Row="0" Grid.RowSpan="2" Fill="Black" Opacity="0" Visibility="Collapsed" />
+
+        <ui:TitleBar x:Name="AppTitleBar" Title="Pulse1x" Grid.Row="0" />
 
         <Grid x:Name="ContentRoot" Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition x:Name="NavColumn" Width="220" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Margin="8">
+            <StackPanel x:Name="NavPanel" Grid.Column="0" Margin="8">
                 <ui:Button x:Name="DashboardButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="DashboardButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="DashboardIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Home24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="DashboardIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Home24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Dashboard], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="OptimizationButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="OptimizationButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="OptimizationIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Rocket24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="OptimizationIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Rocket24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Optimization], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="HealthButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="HealthButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="HealthIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Heart24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="HealthIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Heart24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Health], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="LatencyButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="LatencyButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="LatencyIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Globe24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="LatencyIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Globe24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Latency], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="GameHubButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="GameHubButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="GameHubIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Games24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding [Nav_GameHub], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="UtilityButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="UtilityButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="UtilityIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Toolbox24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="UtilityIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Toolbox24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Utility], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,8" />
                 <ui:Button x:Name="SettingsButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="SettingsButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="SettingsIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Settings24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="SettingsIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Settings24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Settings], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="AboutButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="AboutButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="AboutIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Info24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="AboutIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Info24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_About], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
                 <ui:Button x:Name="DonateButton" HorizontalContentAlignment="Left" Click="DonateButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="DonateIndicator" Width="3" Height="16" CornerRadius="2" Background="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="DrinkCoffee24" Foreground="#DC2626" Margin="0,0,8,0" />
+                        <Border x:Name="DonateIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="DrinkCoffee24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding [Nav_Donate], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>

@@ -154,7 +154,7 @@
 
             <!-- Título da categoria -->
             <StackPanel Orientation="Horizontal" Margin="6,0,0,2">
-                <ui:SymbolIcon Symbol="Heart24" Foreground="#DC2626" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ui:SymbolIcon Symbol="Heart24" Foreground="{DynamicResource BrandAccentBrush}" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <TextBlock Text="{Binding [Health_Title], Source={x:Static loc:Loc.Instance}}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="{Binding [Health_Subtitle], Source={x:Static loc:Loc.Instance}}"
@@ -181,7 +181,7 @@
                         <TextBlock TextWrapping="Wrap" Opacity="0.8" LineHeight="20" Margin="0,0,0,12"
                                    Text="{Binding [Health_Intro], Source={x:Static loc:Loc.Instance}}" />
                         <ui:Button Content="{Binding [Health_StartDiagnostic], Source={x:Static loc:Loc.Instance}}" Command="{Binding RunDiagnosticCommand}"
-                                   Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                    HorizontalAlignment="Left" Padding="18,8" />
                     </StackPanel>
 
@@ -331,7 +331,7 @@
                     <StackPanel>
                         <WrapPanel>
                             <ui:Button Content="{Binding [Health_Reanalyze], Source={x:Static loc:Loc.Instance}}" Command="{Binding RunDiagnosticCommand}"
-                                       Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                       Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                        Margin="0,0,8,8" Padding="14,7" />
                             <ui:Button Content="{Binding [Health_FixAuto], Source={x:Static loc:Loc.Instance}}" Command="{Binding FixAutomaticallyCommand}"
                                        Margin="0,0,8,8" Padding="14,7" />

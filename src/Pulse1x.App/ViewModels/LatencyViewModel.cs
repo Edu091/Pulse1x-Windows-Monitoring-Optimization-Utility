@@ -153,6 +153,27 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     /// Chamado pelo code-behind da <c>LatencyPage</c> no evento de visibilidade.</summary>
     public void SetActive(bool active)
     {
+        _pageActive = active;
+        ApplyActiveState();
+    }
+
+    /// <summary>Página visível agora? Guardado para o Modo Gaming conseguir devolver o estado certo.</summary>
+    private bool _pageActive;
+    private bool _gamingMode;
+
+    /// <summary>
+    /// Suspende o monitoramento durante uma partida (Modo Gaming do GameHub) e o retoma depois —
+    /// respeitando se a página estava mesmo visível antes.
+    /// </summary>
+    public void SetGamingMode(bool active)
+    {
+        _gamingMode = active;
+        ApplyActiveState();
+    }
+
+    private void ApplyActiveState()
+    {
+        bool active = _pageActive && !_gamingMode;
         ServerStatus.SetActive(active);
         if (active)
         {

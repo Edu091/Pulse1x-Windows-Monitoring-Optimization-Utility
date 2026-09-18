@@ -150,7 +150,7 @@
                             Content="{Binding [Opt_MemOptimize], Source={x:Static loc:Loc.Instance}}"
                             Command="{Binding OptimizeMemoryCommand}"
                             Visibility="{Binding IsOptimizing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                            Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                            Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                             HorizontalAlignment="Left"
                             Padding="18,8" />
 
@@ -364,7 +364,7 @@
                                    ToolTip="{Binding [Opt_SmartCleanTooltip], Source={x:Static loc:Loc.Instance}}"
                                    Padding="16,8" Margin="0,0,8,8" />
                         <ui:Button Content="{Binding [Opt_FreeSpace], Source={x:Static loc:Loc.Instance}}" Command="{Binding CleanCommand}"
-                                   Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                    Padding="16,8" Margin="0,0,8,8" />
                         <ui:Button Content="{Binding [Opt_Recuar], Source={x:Static loc:Loc.Instance}}" Command="{Binding CollapseCommand}"
                                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
@@ -721,7 +721,7 @@
                                     <ui:Button Grid.Column="1" Content="{Binding [Opt_Execute], Source={x:Static loc:Loc.Instance}}"
                                                Command="{Binding RunQuickMaintenanceCommand}"
                                                IsEnabled="{Binding IsMaintenanceRunning, Converter={StaticResource InvBool}}"
-                                               Background="White" Foreground="#DC2626" FontWeight="Bold"
+                                               Background="White" Foreground="{DynamicResource BrandAccentBrush}" FontWeight="Bold"
                                                Padding="18,8" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
 
@@ -1037,7 +1037,7 @@
 
                                     <!-- Botão de varredura -->
                                     <ui:Button Content="{Binding [Opt_BloatScan], Source={x:Static loc:Loc.Instance}}" Command="{Binding ScanCommand}"
-                                               Background="#DC2626" Foreground="White" FontWeight="SemiBold"
+                                               Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
                                                Padding="16,8" HorizontalAlignment="Left"
                                                Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
 

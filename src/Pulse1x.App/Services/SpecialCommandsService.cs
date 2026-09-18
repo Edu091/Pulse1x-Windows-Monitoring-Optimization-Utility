@@ -47,6 +47,9 @@ public class SpecialCommandsService
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            // A saída vem na página de código do console (CP850 em português), não em UTF-8.
+            StandardOutputEncoding = ConsoleEncoding.Oem,
+            StandardErrorEncoding = ConsoleEncoding.Oem,
         };
 
         using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };

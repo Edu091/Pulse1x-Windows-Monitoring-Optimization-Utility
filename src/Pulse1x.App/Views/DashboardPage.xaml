@@ -158,7 +158,7 @@
                             Width="220"
                             Title="{Binding CpuName}"
                             Badge="CPU"
-                            AccentColor="#DC2626"
+                            AccentColor="{DynamicResource BrandAccentColor}"
                             PrimaryValue="{Binding CpuUsagePercent, StringFormat='{}{0:0.#}%'}"
                             SecondaryValue="{Binding CpuDetailsText}"
                             Percent="{Binding CpuUsagePercent}"
@@ -274,7 +274,7 @@
                     </TextBlock>
 
                     <WrapPanel Orientation="Horizontal" Visibility="{Binding ChartsSection.IsVisible, Converter={StaticResource BoolToVis}}">
-                        <controls:LiveChart Width="560" Title="{Binding [Dashboard_ChartCpu], Source={x:Static loc:Loc.Instance}}" Values="{Binding CpuChartValues}" AccentColor="#DC2626" />
+                        <controls:LiveChart Width="560" Title="{Binding [Dashboard_ChartCpu], Source={x:Static loc:Loc.Instance}}" Values="{Binding CpuChartValues}" AccentColor="{DynamicResource BrandAccentColor}" />
 
                         <ItemsControl ItemsSource="{Binding GpuMetrics}">
                             <ItemsControl.ItemsPanel>

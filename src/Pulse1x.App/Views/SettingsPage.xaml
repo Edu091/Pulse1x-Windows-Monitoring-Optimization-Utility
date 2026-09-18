@@ -5,6 +5,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
     Title="Configurações"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -12,12 +13,334 @@
     <Page.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanConverter x:Key="InverseBool" />
+        <converters:EnumToBooleanConverter x:Key="EnumToBool" />
+        <converters:HexToBrushConverter x:Key="HexToBrush" />
+
+        <Style x:Key="SettingsSliderRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
     </Page.Resources>
-    <StackPanel Margin="16" MaxWidth="480">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16" MaxWidth="520">
         <TextBlock Text="{Binding [Settings_Appearance], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_DarkTheme], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsDarkTheme}" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_Animations], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding AnimationsEnabled}" Margin="0,0,0,2" />
         <TextBlock Text="{Binding [Settings_AnimationsHint], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+        <!-- ============================ PERSONALIZAÇÃO VISUAL ============================ -->
+        <TextBlock Text="{Binding [Settings_Personalization], Source={x:Static loc:Loc.Instance}}"
+                   FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <!-- Cores -->
+        <!--
+            Cores: cada uma abre um seletor visual (matiz + saturação/brilho + amostras). O código
+            hexadecimal continua acessível dentro do seletor, para quem quiser colar um valor exato.
+        -->
+        <Expander Margin="0,0,0,6" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding PrimaryColor, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_PrimaryColor], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding PrimaryColor, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <Expander Margin="0,0,0,6" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding SecondaryColor, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_SecondaryColor], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding SecondaryColor, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <Expander Margin="0,0,0,12" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding AccentColor, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_AccentColor], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding AccentColor, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <!-- Intensidades -->
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_Transparency], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Transparency}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Transparency, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BlurIntensity], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding BlurIntensity}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding BlurIntensity, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <Grid Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_AnimationIntensity], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding AnimationIntensity}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding AnimationIntensity, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <!-- Plano de fundo -->
+        <TextBlock Text="{Binding [Settings_Background], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <StackPanel Margin="0,0,0,10">
+            <RadioButton GroupName="Bg" Margin="0,0,0,4"
+                         Content="{Binding [Settings_BgDefault], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding BackgroundMode, Converter={StaticResource EnumToBool}, ConverterParameter=Default}" />
+            <RadioButton GroupName="Bg" Margin="0,0,0,4"
+                         Content="{Binding [Settings_BgSolid], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding BackgroundMode, Converter={StaticResource EnumToBool}, ConverterParameter=SolidColor}" />
+            <RadioButton GroupName="Bg" Margin="0,0,0,4"
+                         Content="{Binding [Settings_BgGradient], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding BackgroundMode, Converter={StaticResource EnumToBool}, ConverterParameter=Gradient}" />
+            <RadioButton GroupName="Bg" Margin="0,0,0,4"
+                         Content="{Binding [Settings_BgImage], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding BackgroundMode, Converter={StaticResource EnumToBool}, ConverterParameter=Image}" />
+            <RadioButton GroupName="Bg"
+                         Content="{Binding [Settings_BgGame], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding BackgroundMode, Converter={StaticResource EnumToBool}, ConverterParameter=GameBased}" />
+        </StackPanel>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BgImagePath], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <ui:TextBox Grid.Column="1" Text="{Binding BackgroundImagePath, UpdateSourceTrigger=LostFocus}" />
+            <ui:Button Grid.Column="2" Margin="8,0,0,0"
+                       Content="{Binding [GH_Browse], Source={x:Static loc:Loc.Instance}}"
+                       Command="{Binding PickBackgroundImageCommand}" />
+        </Grid>
+
+        <Expander Margin="0,0,0,6" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding BackgroundColor, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_BgColor], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding BackgroundColor, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <Expander Margin="0,0,0,6" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding GradientStart, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_GradientStart], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding GradientStart, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <Expander Margin="0,0,0,10" IsExpanded="False">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0"
+                            Background="{Binding GradientEnd, Converter={StaticResource HexToBrush}}"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <TextBlock Text="{Binding [Settings_GradientEnd], Source={x:Static loc:Loc.Instance}}"
+                               VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
+            </Expander.Header>
+            <controls:ColorPicker SelectedHex="{Binding GradientEnd, Mode=TwoWay}" Margin="0,8,0,0" />
+        </Expander>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BgOpacity], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding BackgroundOpacity}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding BackgroundOpacity, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BgBlur], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="60" Value="{Binding BackgroundBlur}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding BackgroundBlur, StringFormat={}{0:0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BgDarken], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding BackgroundDarken}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding BackgroundDarken, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <Grid Style="{StaticResource SettingsSliderRow}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_BgSaturation], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="2" Value="{Binding BackgroundSaturation}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding BackgroundSaturation, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="{Binding [Settings_BgFit], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" Width="150" />
+            <ComboBox Width="180" SelectedValue="{Binding BackgroundFit}" SelectedValuePath="Tag">
+                <ComboBoxItem Tag="Fill" Content="{Binding [Settings_BgFitFill], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Fit" Content="{Binding [Settings_BgFitFit], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Stretch" Content="{Binding [Settings_BgFitStretch], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Center" Content="{Binding [Settings_BgFitCenter], Source={x:Static loc:Loc.Instance}}" />
+            </ComboBox>
+        </StackPanel>
+
+        <ui:ToggleSwitch Content="{Binding [Settings_AdaptToGame], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding AdaptColorsToGame}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_AdaptToGameHint], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+        <ui:Button Content="{Binding [Settings_ResetAppearance], Source={x:Static loc:Loc.Instance}}"
+                   Command="{Binding ResetAppearanceCommand}" HorizontalAlignment="Left" Margin="0,0,0,18" />
+
+        <!-- ============================ GAMEHUB ============================ -->
+        <TextBlock Text="{Binding [Settings_GameHubSection], Source={x:Static loc:Loc.Instance}}"
+                   FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <ui:ToggleSwitch Content="{Binding [Settings_StartInGameHub], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding StartInGameHub}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_StartInGameHubHint], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+        <ui:ToggleSwitch Content="{Binding [Settings_MaximizeGameHub], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding MaximizeGameHub}" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_ImmersiveGameHub], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding ImmersiveGameHub}" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_ShowTitles], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding ShowTitlesOnCards}" Margin="0,0,0,8" />
+        <ui:ToggleSwitch Content="{Binding [Settings_ScanOnOpen], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding ScanOnOpen}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_AutoScanFoldersHint], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+        <!-- Launchers abertos junto com o GameHub -->
+        <TextBlock Text="{Binding [Settings_AutoStartLaunchers], Source={x:Static loc:Loc.Instance}}"
+                   FontSize="13" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_AutoStartLaunchersHint], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6" />
+        <ItemsControl ItemsSource="{Binding AutoStartLaunchers}" Margin="0,0,0,14">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Margin="0,0,0,4" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ui:ToggleSwitch Content="{Binding [GH_StatsEnabled], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding MetricsEnabled}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [GH_StatsFpsEstimated], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="{Binding [Settings_CardSize], Source={x:Static loc:Loc.Instance}}"
+                       VerticalAlignment="Center" FontSize="13" Width="150" />
+            <ComboBox Width="180" SelectedValue="{Binding CardSize}" SelectedValuePath="Tag">
+                <ComboBoxItem Tag="Small" Content="{Binding [Settings_CardSmall], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Medium" Content="{Binding [Settings_CardMedium], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Large" Content="{Binding [Settings_CardLarge], Source={x:Static loc:Loc.Instance}}" />
+            </ComboBox>
+        </StackPanel>
+
+        <ui:ToggleSwitch Content="{Binding [Settings_OnlineArt], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding OnlineArtEnabled}" Margin="0,0,0,2" />
+        <TextBlock Text="{Binding [Settings_OnlineArtHint], Source={x:Static loc:Loc.Instance}}"
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+        <!-- Sons -->
+        <ui:ToggleSwitch Content="{Binding [Settings_SoundEnabled], Source={x:Static loc:Loc.Instance}}"
+                         IsChecked="{Binding SoundEnabled}" Margin="0,0,0,8" />
+
+        <Grid Style="{StaticResource SettingsSliderRow}" IsEnabled="{Binding SoundEnabled}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding [Settings_SoundVolume], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="13" />
+            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding SoundVolume}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding SoundVolume, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" FontSize="12" />
+        </Grid>
+
+        <StackPanel IsEnabled="{Binding SoundEnabled}" Margin="0,0,0,12">
+            <Grid Margin="0,0,0,5">
+                <TextBlock Text="{Binding [Settings_SoundNavigate], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="12.5" />
+                <ui:Button HorizontalAlignment="Right" Padding="12,4" FontSize="12"
+                           Content="{Binding [Settings_SoundCustom], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding PickSoundCommand}" CommandParameter="Navigate" />
+            </Grid>
+            <Grid Margin="0,0,0,5">
+                <TextBlock Text="{Binding [Settings_SoundConfirm], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="12.5" />
+                <ui:Button HorizontalAlignment="Right" Padding="12,4" FontSize="12"
+                           Content="{Binding [Settings_SoundCustom], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding PickSoundCommand}" CommandParameter="Confirm" />
+            </Grid>
+            <Grid Margin="0,0,0,5">
+                <TextBlock Text="{Binding [Settings_SoundBack], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="12.5" />
+                <ui:Button HorizontalAlignment="Right" Padding="12,4" FontSize="12"
+                           Content="{Binding [Settings_SoundCustom], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding PickSoundCommand}" CommandParameter="Back" />
+            </Grid>
+            <Grid Margin="0,0,0,8">
+                <TextBlock Text="{Binding [Settings_SoundLaunch], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" FontSize="12.5" />
+                <ui:Button HorizontalAlignment="Right" Padding="12,4" FontSize="12"
+                           Content="{Binding [Settings_SoundCustom], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding PickSoundCommand}" CommandParameter="Launch" />
+            </Grid>
+            <ui:Button Content="{Binding [Settings_SoundReset], Source={x:Static loc:Loc.Instance}}"
+                       Command="{Binding ResetSoundsCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+
+        <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,4,0,16" />
 
         <TextBlock Text="{Binding [Settings_Language], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
@@ -47,7 +370,8 @@
             <ui:Button Content="{Binding [Settings_UpdateInstallButton], Source={x:Static loc:Loc.Instance}}"
                        Command="{Binding InstallUpdateCommand}"
                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
-                       Background="#DC2626" Foreground="White" FontWeight="SemiBold" />
+                       Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
         </StackPanel>
     </StackPanel>
+    </ScrollViewer>
 </Page>

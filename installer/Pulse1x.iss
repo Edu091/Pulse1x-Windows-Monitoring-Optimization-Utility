@@ -40,6 +40,24 @@ SetupIconFile=..\src\Pulse1x.App\Resources\pulse1x.ico
 DisableProgramGroupPage=yes
 WizardStyle=modern
 
+; ---- Atualização por cima, sem desinstalar ----
+; O AppId acima é a identidade da instalação: com ele igual, rodar um Setup mais novo ATUALIZA a
+; instalação existente em vez de criar uma segunda. As diretivas abaixo tornam isso explícito e
+; tiram os atritos que apareciam ao atualizar com o app aberto:
+;   • CloseApplications   — o instalador fecha o Pulse1x em execução (achado pelo AppMutex) em vez
+;                           de falhar com "arquivo em uso";
+;   • RestartApplications — e o reabre ao terminar, para a atualização ser transparente;
+;   • UsePreviousAppDir   — reinstala na mesma pasta escolhida da primeira vez;
+;   • UsePreviousTasks    — mantém a escolha de atalho na Área de Trabalho.
+CloseApplications=yes
+RestartApplications=yes
+CloseApplicationsFilter=Pulse1x.App.exe
+UsePreviousAppDir=yes
+UsePreviousTasks=yes
+; A versão aparece corretamente em "Aplicativos instalados" e permite ao Windows comparar builds.
+VersionInfoVersion={#AppVersion}
+UninstallDisplayName=Pulse1x
+
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"

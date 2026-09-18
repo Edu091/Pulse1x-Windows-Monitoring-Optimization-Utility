@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using Pulse1x.App.Services;
+using Pulse1x.App.Services.GameHub;
 using Pulse1x.App.Views;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -16,6 +17,7 @@ public partial class MainWindow : FluentWindow
     private readonly OptimizationPage _optimizationPage;
     private readonly HealthPage _healthPage;
     private readonly LatencyPage _latencyPage;
+    private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
     private readonly SettingsPage _settingsPage;
     private readonly AboutPage _aboutPage;
@@ -29,12 +31,16 @@ public partial class MainWindow : FluentWindow
 
     private bool _allowClose;
 
+    private readonly ThemeService _themeService;
+
     public MainWindow(
         SettingsService settingsService,
+        ThemeService themeService,
         DashboardPage dashboardPage,
         OptimizationPage optimizationPage,
         HealthPage healthPage,
         LatencyPage latencyPage,
+        Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
         SettingsPage settingsPage,
         AboutPage aboutPage,
@@ -43,10 +49,12 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
 
         _settingsService = settingsService;
+        _themeService = themeService;
         _dashboardPage = dashboardPage;
         _optimizationPage = optimizationPage;
         _healthPage = healthPage;
         _latencyPage = latencyPage;
+        _gameHubPage = gameHubPage;
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
         _aboutPage = aboutPage;
@@ -54,13 +62,13 @@ public partial class MainWindow : FluentWindow
 
         _navButtons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, GameHubButton,
             UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
         // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
         _navIndicators = new UIElement[]
         {
-            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator,
+            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, GameHubIndicator,
             UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
         };
 
@@ -88,6 +96,152 @@ public partial class MainWindow : FluentWindow
             // Animação de abertura: fade + leve zoom do conteúdo principal.
             Animations.OpenWindow(ContentRoot);
         };
+
+        // Plano de fundo personalizado: aplicado agora e a cada mudança nas Configurações ou de
+        // jogo selecionado no GameHub (modo "baseado no jogo").
+        _themeService.AppearanceChanged += ApplyAppearance;
+        ApplyAppearance();
+    }
+
+    // =====================================================================================
+    //  Controle em todo o aplicativo
+    // =====================================================================================
+
+    private GamepadService? _gamepad;
+
+    /// <summary>
+    /// Liga a navegação por controle em TODO o Pulse1x, não só no GameHub. Fora do hub, o
+    /// direcional move o foco pela interface e A aciona o que estiver em foco — assim as
+    /// Configurações, as Otimizações e as demais categorias também funcionam sem mouse.
+    ///
+    /// Dentro do GameHub, a própria página assume a entrada (a grade tem navegação própria), então
+    /// aqui simplesmente não interferimos.
+    /// </summary>
+    public void AttachGamepad(GamepadService gamepad)
+    {
+        _gamepad = gamepad;
+        gamepad.Navigate += OnGlobalGamepadNavigate;
+        gamepad.Action += OnGlobalGamepadAction;
+
+        // Fora do hub o controle também deve funcionar, então a leitura fica sempre ativa enquanto
+        // a janela existe; o GameHub apenas passa a tratar os eventos por conta própria.
+        gamepad.SetActive(true);
+    }
+
+    private void OnGlobalGamepadNavigate(GamepadDirection direction)
+    {
+        if (_inGameHub) return;   // a página do hub trata a entrada
+
+        // Vale também para os diálogos: o foco é global, então a navegação segue a janela ativa.
+        GamepadFocusService.EnsureFocusInActiveWindow();
+        GamepadFocusService.Move(direction);
+    }
+
+    private void OnGlobalGamepadAction(GamepadAction action)
+    {
+        if (_inGameHub) return;
+
+        // Com um diálogo aberto, A aciona o que está em foco e B fecha a janela.
+        if (GamepadFocusService.IsDialogActive())
+        {
+            if (action == GamepadAction.Accept) GamepadFocusService.Accept();
+            else if (action == GamepadAction.Back) GamepadFocusService.ActiveWindow()?.Close();
+            return;
+        }
+
+        switch (action)
+        {
+            case GamepadAction.Accept:
+                GamepadFocusService.Accept();
+                break;
+
+            // Sem o hub aberto, os ombros percorrem as categorias do app.
+            case GamepadAction.NextTab:
+                CycleCategory(1);
+                break;
+            case GamepadAction.PreviousTab:
+                CycleCategory(-1);
+                break;
+
+            // View abre o GameHub de qualquer tela — é o atalho para a experiência de sofá.
+            case GamepadAction.Menu:
+                EnterGameHub();
+                break;
+        }
+    }
+
+    /// <summary>Percorre as categorias da navegação lateral com os ombros do controle.</summary>
+    private void CycleCategory(int delta)
+    {
+        var pages = new System.Windows.Controls.Page[]
+        {
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _utilityPage, _settingsPage,
+        };
+        var buttons = new Control[]
+        {
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, UtilityButton, SettingsButton,
+        };
+
+        int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
+        if (current < 0) current = 0;
+
+        int next = (current + delta + pages.Length) % pages.Length;
+        NavigateTo(pages[next], buttons[next]);
+    }
+
+    /// <summary>
+    /// Monta as camadas de fundo do aplicativo conforme a personalização escolhida. A ordem é
+    /// sempre a mesma — preenchimento, imagem, escurecimento — e o conteúdo do app fica por cima.
+    /// No modo padrão nada é desenhado e o Mica do Windows continua aparecendo.
+    /// </summary>
+    private void ApplyAppearance()
+    {
+        var appearance = _themeService.Appearance;
+
+        // O Mica precisa sair de cena quando há um fundo próprio: os dois juntos deixariam a
+        // imagem lavada e sem contraste.
+        bool custom = appearance.Background != BackgroundMode.Default;
+        WindowBackdropType = custom
+            ? Wpf.Ui.Controls.WindowBackdropType.None
+            : Wpf.Ui.Controls.WindowBackdropType.Mica;
+
+        var fill = _themeService.BuildBackgroundBrush();
+        BackgroundFill.Fill = fill;
+        BackgroundFill.Visibility = fill is null ? Visibility.Collapsed : Visibility.Visible;
+
+        string? imagePath = _themeService.CurrentBackgroundImage;
+        if (string.IsNullOrEmpty(imagePath))
+        {
+            BackgroundImage.Source = null;
+            BackgroundImage.Visibility = Visibility.Collapsed;
+            BackgroundDarken.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var bitmap = Services.GameHub.GameArtService.LoadBitmap(imagePath, 1920);
+        if (bitmap is null)
+        {
+            BackgroundImage.Visibility = Visibility.Collapsed;
+            BackgroundDarken.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        BackgroundImage.Source = ImageEffects.ApplySaturation(bitmap, appearance.BackgroundSaturation);
+        BackgroundImage.Opacity = appearance.BackgroundOpacity;
+        BackgroundImage.Stretch = appearance.BackgroundFit switch
+        {
+            BackgroundFit.Fit => System.Windows.Media.Stretch.Uniform,
+            BackgroundFit.Stretch => System.Windows.Media.Stretch.Fill,
+            BackgroundFit.Center or BackgroundFit.Tile => System.Windows.Media.Stretch.None,
+            _ => System.Windows.Media.Stretch.UniformToFill,
+        };
+        BackgroundImage.Visibility = Visibility.Visible;
+
+        // O raio passa pela intensidade global de blur, para um único ajuste governar todo o app.
+        BackgroundBlur.Radius = _themeService.EffectiveBlur(appearance.BackgroundBlur);
+
+        BackgroundDarken.Opacity = appearance.BackgroundDarken;
+        BackgroundDarken.Visibility = appearance.BackgroundDarken > 0.01 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // Navega para a página e marca a aba correspondente como ativa.
@@ -157,10 +311,80 @@ public partial class MainWindow : FluentWindow
 
     private void LatencyButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_latencyPage, LatencyButton);
 
+    private void GameHubButton_Click(object sender, RoutedEventArgs e) => EnterGameHub();
+
+    // =====================================================================================
+    //  Modo GameHub
+    // =====================================================================================
+
+    /// <summary>Estado da janela antes de entrar no GameHub, para devolvê-lo ao sair.</summary>
+    private WindowState _stateBeforeHub = WindowState.Normal;
+    private bool _inGameHub;
+
+    /// <summary>
+    /// Entra no GameHub. Quando o modo imersivo está ligado (padrão), a navegação lateral do
+    /// Pulse1x some e o hub ocupa a janela inteira — é o que dá a ele a identidade de interface de
+    /// console em vez de "mais uma aba do app". O botão discreto de sair, dentro do próprio hub,
+    /// devolve o Pulse1x normal.
+    /// </summary>
+    public void EnterGameHub()
+    {
+        var hub = _settingsService.Current.GameHub;
+
+        // Dentro do hub, a entrada do controle pertence à página: ela conhece as zonas (grade,
+        // cromo, destaque, menu, teclado) e evita que dois handlers briguem pelo mesmo toque.
+        if (_gamepad is not null) _gameHubPage.AttachGamepad(_gamepad);
+
+        if (hub.MaximizeOnOpen && !_inGameHub)
+        {
+            _stateBeforeHub = WindowState;
+            WindowState = WindowState.Maximized;
+        }
+
+        if (hub.Immersive)
+        {
+            NavColumn.Width = new GridLength(0);
+            NavPanel.Visibility = Visibility.Collapsed;
+            // A barra de título sai de cena: o hub desenha o próprio cromo, e a janela continua
+            // arrastável pela área superior dele.
+            AppTitleBar.Visibility = Visibility.Collapsed;
+            TitleRow.Height = new GridLength(0);
+        }
+
+        _inGameHub = true;
+        NavigateTo(_gameHubPage, GameHubButton);
+    }
+
+    /// <summary>Sai do GameHub e devolve a janela ao Pulse1x normal.</summary>
+    public void ExitGameHub()
+    {
+        if (!_inGameHub) return;
+        _inGameHub = false;
+
+        _gameHubPage.DetachGamepad();
+
+        NavColumn.Width = new GridLength(220);
+        NavPanel.Visibility = Visibility.Visible;
+        AppTitleBar.Visibility = Visibility.Visible;
+        TitleRow.Height = GridLength.Auto;
+
+        if (_settingsService.Current.GameHub.MaximizeOnOpen)
+            WindowState = _stateBeforeHub;
+
+        NavigateTo(_dashboardPage, DashboardButton);
+    }
+
     private void UtilityButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_utilityPage, UtilityButton);
 
     /// <summary>Permite que outras páginas (ex.: Saúde) abram a categoria Otimização.</summary>
     public void NavigateToOptimization() => NavigateTo(_optimizationPage, OptimizationButton);
+
+    /// <summary>Abre as Configurações (usado pelo menu lateral do GameHub).</summary>
+    public void NavigateToSettings()
+    {
+        if (_inGameHub) ExitGameHub();
+        NavigateTo(_settingsPage, SettingsButton);
+    }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_settingsPage, SettingsButton);
 

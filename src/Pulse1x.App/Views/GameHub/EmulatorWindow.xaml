@@ -1,0 +1,127 @@
+<ui:FluentWindow
+    x:Class="Pulse1x.App.Views.GameHub.EmulatorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels.GameHub"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    d:DataContext="{d:DesignInstance Type=vm:EmulatorEditorViewModel}"
+    mc:Ignorable="d"
+    Title="Pulse1x"
+    Height="620"
+    Width="780"
+    MinHeight="520"
+    MinWidth="680"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Title="Pulse1x" Grid.Row="0" />
+
+        <Grid Grid.Row="1" Margin="22,6,22,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Emuladores cadastrados -->
+            <DockPanel Grid.Column="0" Margin="0,0,16,0">
+                <TextBlock DockPanel.Dock="Top" Text="{Binding [GH_EmulatorsTitle], Source={x:Static loc:Loc.Instance}}"
+                           FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
+                <ui:Button DockPanel.Dock="Bottom" Margin="0,8,0,0" HorizontalAlignment="Stretch"
+                           Content="{Binding [GH_NewEmulator], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding NewEmulatorCommand}" />
+                <ListBox ItemsSource="{Binding Emulators}" SelectedItem="{Binding Selected}"
+                         DisplayMemberPath="Name" BorderThickness="1"
+                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            </DockPanel>
+
+            <!-- Detalhes -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="{Binding [GH_EmulatorName], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <ui:TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,12" />
+
+                    <TextBlock Text="{Binding [GH_EmulatorExe], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <Grid Margin="0,3,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" Text="{Binding Executable, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Grid.Column="1" Margin="8,0,0,0"
+                                   Content="{Binding [GH_Browse], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding BrowseExecutableCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding [GH_EmulatorDir], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <Grid Margin="0,3,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" Text="{Binding Directory, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Grid.Column="1" Margin="8,0,0,0"
+                                   Content="{Binding [GH_Browse], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding BrowseDirectoryCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding [GH_RomsFolder], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <Grid Margin="0,3,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" Text="{Binding RomsFolder, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Grid.Column="1" Margin="8,0,0,0"
+                                   Content="{Binding [GH_Browse], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding BrowseRomsCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding [GH_Extensions], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <ui:TextBox Text="{Binding Extensions, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,12" />
+
+                    <TextBlock Text="{Binding [GH_ArgumentsTemplate], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <ui:TextBox Text="{Binding ArgumentsTemplate, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,12" />
+
+                    <TextBlock Text="{Binding [GH_EmulatorPlatform], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <ui:TextBox Text="{Binding Platform, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,12" />
+
+                    <TextBlock Text="{Binding [GH_EmulatorDefaultProfile], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" />
+                    <ComboBox ItemsSource="{Binding Profiles}" DisplayMemberPath="Name"
+                              SelectedItem="{Binding DefaultProfile}" Margin="0,3,0,14" />
+
+                    <ui:ToggleSwitch Content="{Binding [GH_EmulatorScan], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding ScanEnabled}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource BrandAccentBrush}"
+                               FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Row="2" Padding="22,12" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <Grid>
+                <ui:Button HorizontalAlignment="Left"
+                           Content="{Binding [GH_Delete], Source={x:Static loc:Loc.Instance}}"
+                           Command="{Binding DeleteCommand}" Padding="18,7" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding CloseCommand}" Margin="0,0,8,0" Padding="20,7" />
+                    <ui:Button Content="{Binding [GH_Save], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding SaveCommand}" Padding="20,7"
+                               Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

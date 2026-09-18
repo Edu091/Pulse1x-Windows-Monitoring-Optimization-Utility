@@ -1,0 +1,358 @@
+using System.Collections.ObjectModel;
+using System.IO;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Pulse1x.App.Localization;
+using Pulse1x.App.Models.GameHub;
+using Pulse1x.App.Services.GameHub;
+
+namespace Pulse1x.App.ViewModels.GameHub;
+
+/// <summary>Cada caminho possível para trazer jogos para a biblioteca.</summary>
+public enum AddGameMethod
+{
+    /// <summary>Procurar nas lojas instaladas (Steam, Epic, GOG, EA, Ubisoft).</summary>
+    Stores,
+    /// <summary>Varrer uma pasta do disco atrás de executáveis.</summary>
+    Folder,
+    /// <summary>Apontar um executável, atalho ou comando específico.</summary>
+    File,
+    /// <summary>Cadastrar um emulador e a pasta de ROMs.</summary>
+    Emulator,
+    /// <summary>Trazer os atalhos do Menu Iniciar e da Área de Trabalho.</summary>
+    Shortcuts,
+}
+
+/// <summary>Uma opção do assistente, como aparece na lista da esquerda.</summary>
+public partial class AddMethodOption : ObservableObject
+{
+    public AddGameMethod Method { get; }
+    public string Icon { get; }
+    public string Title { get; }
+    public string Description { get; }
+
+    public AddMethodOption(AddGameMethod method, string icon, string titleKey, string descriptionKey)
+    {
+        Method = method;
+        Icon = icon;
+        Title = Loc.S(titleKey);
+        Description = Loc.S(descriptionKey);
+    }
+}
+
+/// <summary>
+/// Assistente de "Adicionar jogos". Reúne num lugar só todas as formas de popular a biblioteca, em
+/// vez de espalhar botões pela barra de ferramentas: escolher o método à esquerda, ajustar o que
+/// for preciso à direita e confirmar.
+///
+/// Cada método devolve o mesmo tipo de resultado (quantos itens entraram), então a tela sempre
+/// termina mostrando o que aconteceu — inclusive quando não encontra nada, que é a hora em que o
+/// usuário mais precisa saber o motivo.
+/// </summary>
+public partial class AddGamesViewModel : ObservableObject
+{
+    private readonly GameLibraryService _library;
+    private readonly ProfileStoreService _profiles;
+    private readonly GameArtService _art;
+
+    /// <summary>Fecha a janela. true = algo foi adicionado (a biblioteca deve recarregar).</summary>
+    public event Action<bool>? CloseRequested;
+
+    /// <summary>Seletores de arquivo/pasta, atendidos pela janela.</summary>
+    public event Func<string, string, string?>? PickFileRequested;
+    public event Func<string?>? PickFolderRequested;
+
+    public ObservableCollection<AddMethodOption> Methods { get; } = new();
+
+    [ObservableProperty] private AddMethodOption? selectedMethod;
+    [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private string statusMessage = "";
+    [ObservableProperty] private string resultMessage = "";
+    [ObservableProperty] private bool hasResult;
+
+    private bool _addedAnything;
+
+    // ---- Método "arquivo" ----
+    [ObservableProperty] private string fileName = "";
+    [ObservableProperty] private string filePath = "";
+    [ObservableProperty] private string fileArguments = "";
+    [ObservableProperty] private string fileWorkingDirectory = "";
+    [ObservableProperty] private bool fileIsApplication;
+
+    // ---- Método "pasta" ----
+    [ObservableProperty] private string folderPath = "";
+    [ObservableProperty] private bool rememberFolder = true;
+
+    // ---- Método "emulador" ----
+    [ObservableProperty] private string emulatorName = "";
+    [ObservableProperty] private string emulatorExecutable = "";
+    [ObservableProperty] private string emulatorRoms = "";
+    [ObservableProperty] private string emulatorExtensions = "";
+    [ObservableProperty] private string emulatorArguments = "\"{rom}\"";
+    [ObservableProperty] private string emulatorPlatform = "";
+
+    public ObservableCollection<EmulatorEntry> ExistingEmulators { get; } = new();
+    [ObservableProperty] private EmulatorEntry? selectedExistingEmulator;
+
+    public AddGamesViewModel(GameLibraryService library, ProfileStoreService profiles, GameArtService art)
+    {
+        _library = library;
+        _profiles = profiles;
+        _art = art;
+
+        Methods.Add(new AddMethodOption(AddGameMethod.Stores, "", "GH_AddStores", "GH_AddStoresHint"));
+        Methods.Add(new AddMethodOption(AddGameMethod.Folder, "", "GH_AddFolder", "GH_AddFolderHint"));
+        Methods.Add(new AddMethodOption(AddGameMethod.File, "", "GH_AddFile", "GH_AddFileHint"));
+        Methods.Add(new AddMethodOption(AddGameMethod.Emulator, "", "GH_AddEmulator", "GH_AddEmulatorHint"));
+        Methods.Add(new AddMethodOption(AddGameMethod.Shortcuts, "", "GH_AddShortcuts", "GH_AddShortcutsHint"));
+
+        selectedMethod = Methods[0];
+
+        foreach (var emulator in library.Emulators) ExistingEmulators.Add(emulator);
+    }
+
+    /// <summary>Qual painel aparece à direita (usado pelos gatilhos de visibilidade do XAML).</summary>
+    public AddGameMethod CurrentMethod => SelectedMethod?.Method ?? AddGameMethod.Stores;
+
+    partial void OnSelectedMethodChanged(AddMethodOption? value)
+    {
+        HasResult = false;
+        StatusMessage = "";
+        OnPropertyChanged(nameof(CurrentMethod));
+    }
+
+    partial void OnSelectedExistingEmulatorChanged(EmulatorEntry? value)
+    {
+        if (value is null) return;
+        EmulatorName = value.Name;
+        EmulatorExecutable = value.Executable;
+        EmulatorRoms = value.RomsFolder;
+        EmulatorExtensions = string.Join(", ", value.Extensions);
+        EmulatorArguments = value.ArgumentsTemplate;
+        EmulatorPlatform = value.Platform;
+    }
+
+    // =====================================================================================
+    //  Execução
+    // =====================================================================================
+
+    [RelayCommand]
+    private async Task RunAsync()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        HasResult = false;
+
+        try
+        {
+            switch (CurrentMethod)
+            {
+                case AddGameMethod.Stores: await RunStoresAsync(); break;
+                case AddGameMethod.Folder: await RunFolderAsync(); break;
+                case AddGameMethod.File: RunFile(); break;
+                case AddGameMethod.Emulator: await RunEmulatorAsync(); break;
+                case AddGameMethod.Shortcuts: await RunShortcutsAsync(); break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ResultMessage = Loc.F("GH_ScanFailed", ex.Message);
+            HasResult = true;
+        }
+        finally
+        {
+            IsBusy = false;
+            StatusMessage = "";
+        }
+    }
+
+    private async Task RunStoresAsync()
+    {
+        var progress = new Progress<string>(source => StatusMessage = Loc.F("GH_ScanningSource", source));
+        var result = await _library.ScanStoresAsync(progress);
+        ReportScan(result);
+    }
+
+    private async Task RunFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(FolderPath) || !Directory.Exists(FolderPath))
+        {
+            ResultMessage = Loc.S("GH_FolderRequired");
+            HasResult = true;
+            return;
+        }
+
+        StatusMessage = Loc.F("GH_ScanningSource", Path.GetFileName(FolderPath));
+        var result = await _library.ScanFolderAsync(FolderPath, RememberFolder);
+        ReportScan(result);
+    }
+
+    private void RunFile()
+    {
+        if (string.IsNullOrWhiteSpace(FilePath))
+        {
+            ResultMessage = Loc.S("GH_NameAndExeRequired");
+            HasResult = true;
+            return;
+        }
+
+        string name = string.IsNullOrWhiteSpace(FileName)
+            ? Path.GetFileNameWithoutExtension(FilePath)
+            : FileName.Trim();
+
+        var entry = new GameEntry
+        {
+            Name = name,
+            Executable = FilePath.Trim(),
+            Arguments = FileArguments.Trim(),
+            WorkingDirectory = string.IsNullOrWhiteSpace(FileWorkingDirectory)
+                ? Path.GetDirectoryName(FilePath) ?? ""
+                : FileWorkingDirectory.Trim(),
+            Launcher = FileIsApplication ? LauncherKind.Application : LauncherKind.Manual,
+            AutoDetected = false,
+        };
+
+        if (!entry.Executable.Contains("://"))
+            entry.KnownProcessName = Path.GetFileNameWithoutExtension(entry.Executable);
+
+        _library.AddGame(entry);
+        _ = _art.EnsureArtAsync(entry).ContinueWith(_ => _library.Save());
+
+        _addedAnything = true;
+        ResultMessage = Loc.F("GH_AddedOne", entry.Name);
+        HasResult = true;
+
+        // Limpa para permitir adicionar outro em seguida, sem fechar e reabrir.
+        FileName = FilePath = FileArguments = FileWorkingDirectory = "";
+    }
+
+    private async Task RunEmulatorAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EmulatorName) || string.IsNullOrWhiteSpace(EmulatorExecutable))
+        {
+            ResultMessage = Loc.S("GH_NameAndExeRequired");
+            HasResult = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(EmulatorRoms) || !Directory.Exists(EmulatorRoms))
+        {
+            ResultMessage = Loc.S("GH_RomsRequired");
+            HasResult = true;
+            return;
+        }
+
+        var emulator = SelectedExistingEmulator ?? new EmulatorEntry();
+        emulator.Name = EmulatorName.Trim();
+        emulator.Executable = EmulatorExecutable.Trim();
+        emulator.Directory = Path.GetDirectoryName(EmulatorExecutable) ?? "";
+        emulator.RomsFolder = EmulatorRoms.Trim();
+        emulator.Extensions = EmulatorExtensions
+            .Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(e => e.Trim().TrimStart('.').ToLowerInvariant())
+            .Where(e => e.Length > 0)
+            .Distinct()
+            .ToList();
+        emulator.ArgumentsTemplate = string.IsNullOrWhiteSpace(EmulatorArguments) ? "\"{rom}\"" : EmulatorArguments.Trim();
+        emulator.Platform = EmulatorPlatform.Trim();
+
+        if (emulator.Extensions.Count == 0)
+        {
+            ResultMessage = Loc.S("GH_ExtensionsRequired");
+            HasResult = true;
+            return;
+        }
+
+        _library.AddOrUpdateEmulator(emulator);
+
+        StatusMessage = Loc.F("GH_ScanningSource", emulator.Name);
+        var result = await _library.ScanEmulatorAsync(emulator);
+        ReportScan(result);
+
+        if (!ExistingEmulators.Contains(emulator)) ExistingEmulators.Add(emulator);
+    }
+
+    private async Task RunShortcutsAsync()
+    {
+        StatusMessage = Loc.S("GH_Scanning");
+        var result = await _library.ScanShortcutsAsync();
+        ReportScan(result);
+    }
+
+    private void ReportScan(ScanResult result)
+    {
+        if (result.Added > 0) _addedAnything = true;
+
+        ResultMessage = result.Added == 0 && result.Updated == 0
+            ? Loc.S("GH_ScanNothing")
+            : Loc.F("GH_ScanResult", result.Added, result.Updated, result.Removed);
+        HasResult = true;
+    }
+
+    // =====================================================================================
+    //  Seletores
+    // =====================================================================================
+
+    [RelayCommand]
+    private void BrowseFile()
+    {
+        string? file = PickFileRequested?.Invoke(
+            Loc.S("GH_PickExecutable"),
+            "Executáveis e atalhos (*.exe;*.lnk;*.url;*.bat;*.cmd)|*.exe;*.lnk;*.url;*.bat;*.cmd|Todos os arquivos (*.*)|*.*");
+        if (file is null) return;
+
+        // Um atalho é resolvido para o programa real, para a detecção do processo e a arte
+        // funcionarem — senão apontaríamos para o .lnk.
+        if (file.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+        {
+            var (target, args, workDir) = ShortcutScanner.ResolveShortcut(file);
+            if (target is not null)
+            {
+                FilePath = target;
+                if (!string.IsNullOrWhiteSpace(args)) FileArguments = args;
+                FileWorkingDirectory = workDir ?? Path.GetDirectoryName(target) ?? "";
+                if (string.IsNullOrWhiteSpace(FileName)) FileName = Path.GetFileNameWithoutExtension(file);
+                return;
+            }
+        }
+
+        FilePath = file;
+        if (string.IsNullOrWhiteSpace(FileName)) FileName = Path.GetFileNameWithoutExtension(file);
+        if (string.IsNullOrWhiteSpace(FileWorkingDirectory))
+            FileWorkingDirectory = Path.GetDirectoryName(file) ?? "";
+    }
+
+    [RelayCommand]
+    private void BrowseFolder()
+    {
+        string? folder = PickFolderRequested?.Invoke();
+        if (folder is not null) FolderPath = folder;
+    }
+
+    [RelayCommand]
+    private void BrowseWorkingDirectory()
+    {
+        string? folder = PickFolderRequested?.Invoke();
+        if (folder is not null) FileWorkingDirectory = folder;
+    }
+
+    [RelayCommand]
+    private void BrowseEmulator()
+    {
+        string? file = PickFileRequested?.Invoke(Loc.S("GH_PickEmulator"),
+            "Executáveis (*.exe)|*.exe|Todos os arquivos (*.*)|*.*");
+        if (file is null) return;
+        EmulatorExecutable = file;
+        if (string.IsNullOrWhiteSpace(EmulatorName)) EmulatorName = Path.GetFileNameWithoutExtension(file);
+    }
+
+    [RelayCommand]
+    private void BrowseRoms()
+    {
+        string? folder = PickFolderRequested?.Invoke();
+        if (folder is not null) EmulatorRoms = folder;
+    }
+
+    [RelayCommand]
+    private void Close() => CloseRequested?.Invoke(_addedAnything);
+}

@@ -13,7 +13,49 @@
             <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que
                  barras de progresso e quaisquer elementos personalizados usem exatamente o mesmo
                  tom dos botões/acento do app, sem depender de chaves internas do Wpf.Ui. -->
+            <!--
+                Indicador de foco de TODA a interface. O WPF só desenha o "focus visual" quando a
+                navegação veio do teclado, e o padrão dele é um tracejado fino que some sobre fundos
+                escuros. Com um controle na mão, saber onde está o seletor é essencial — então aqui
+                ele vira um anel na cor de marca, aplicado a todos os controles do app (inclusive
+                nas janelas de Adicionar jogos, Perfil e Estatísticas).
+            -->
+            <Style x:Key="GamepadFocusVisual">
+                <Setter Property="Control.Template">
+                    <Setter.Value>
+                        <ControlTemplate>
+                            <Rectangle Margin="-3" RadiusX="7" RadiusY="7"
+                                       Stroke="{DynamicResource BrandAccentBrush}" StrokeThickness="2.5"
+                                       SnapsToDevicePixels="True" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Aplica o indicador a todos os tipos de controle interativos. -->
+            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+            <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+            <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            </Style>
+
+            <Color x:Key="BrandAccentColor">#DC2626</Color>
             <SolidColorBrush x:Key="BrandAccentBrush" Color="#DC2626" />
+            <SolidColorBrush x:Key="BrandSecondaryBrush" Color="#B91C1C" />
+            <SolidColorBrush x:Key="BrandHighlightBrush" Color="#F87171" />
 
             <!-- Os botões "Appearance=Primary" do Wpf.Ui (e outros controles em destaque) não
                  seguem o SystemAccentColor trocado em App.xaml.cs — eles leem estas chaves
@@ -75,8 +117,8 @@
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#DC2626" />
-                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#DC2626" />
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandAccentBrush}" />
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
                                     <Setter Property="Foreground" Value="White" />
                                 </Trigger>
                                 <MultiTrigger>
@@ -84,7 +126,7 @@
                                         <Condition Property="IsChecked" Value="True" />
                                         <Condition Property="IsMouseOver" Value="True" />
                                     </MultiTrigger.Conditions>
-                                    <Setter TargetName="Bd" Property="Background" Value="#B91C1C" />
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandSecondaryBrush}" />
                                 </MultiTrigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5" />
@@ -134,7 +176,7 @@
 
             <Style TargetType="ProgressBar">
                 <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
-                <Setter Property="Foreground" Value="{StaticResource BrandAccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource BrandAccentBrush}" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Template">
                     <Setter.Value>

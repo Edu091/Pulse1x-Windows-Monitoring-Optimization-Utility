@@ -5,7 +5,10 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Pulse1x.App.Services;
+using Pulse1x.App.Services.GameHub;
+using Pulse1x.App.Services.Profiles;
 using Pulse1x.App.ViewModels;
+using Pulse1x.App.ViewModels.GameHub;
 using Pulse1x.App.Views;
 using Wpf.Ui.Appearance;
 
@@ -98,6 +101,11 @@ public partial class App : Application
         ApplicationThemeManager.Apply(appTheme);
         ApplicationAccentColorManager.Apply(BrandAccentColor, appTheme);
 
+        // Personalização visual: espalha as cores, a intensidade das animações e o plano de fundo
+        // escolhidos pelo usuário por todo o app, antes de qualquer tela ser criada.
+        var themeService = new ThemeService(settingsService);
+        themeService.Apply();
+
         _hardwareMonitorService = new HardwareMonitorService();
         var systemMetricsService = new SystemMetricsService();
         var systemInfoService = new SystemInfoService();
@@ -113,11 +121,13 @@ public partial class App : Application
         var bloatwareDetectorService = new BloatwareDetectorService(advancedOptimizationService);
         var optimizationPage = new OptimizationPage(new OptimizationViewModel(memoryOptimizationService, systemMetricsService, diskCleanupService, specialCommandsService, advancedOptimizationService, bloatwareDetectorService));
         var updateService = new GitHubUpdateService();
-        var settingsPage = new SettingsPage(new SettingsViewModel(
+        var settingsViewModel = new SettingsViewModel(
             settingsService,
+            themeService,
             updateService,
             onIntervalChanged: dashboardViewModel.UpdateInterval,
-            onMinimizeToTrayChanged: _ => { }));
+            onMinimizeToTrayChanged: _ => { });
+        var settingsPage = new SettingsPage(settingsViewModel);
         var aboutPage = new AboutPage();
         var donatePage = new DonatePage();
 
@@ -136,7 +146,8 @@ public partial class App : Application
         var networkLatencyService = new NetworkLatencyService();
         var networkOptimizationService = new NetworkOptimizationService(new OptimizationChangeLog("network-changes.json"));
         var serverStatusService = new ServerStatusService();
-        var latencyPage = new LatencyPage(new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService, serverStatusService));
+        var latencyViewModel = new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService, serverStatusService);
+        var latencyPage = new LatencyPage(latencyViewModel);
 
         // Categoria Utilidade: Central Pós-Formatação — instala apps/componentes de fonte oficial
         // (winget) e aplica configurações recomendadas, com detecção inteligente do hardware.
@@ -144,7 +155,80 @@ public partial class App : Application
         var postFormatTweaksService = new PostFormatTweaksService(specialCommandsService);
         var utilityPage = new UtilityPage(new PostFormatViewModel(appInstallService, postFormatTweaksService));
 
-        mainWindow = new MainWindow(settingsService, dashboardPage, optimizationPage, healthPage, latencyPage, utilityPage, settingsPage, aboutPage, donatePage);
+        // ---------------------------------------------------------------------------------
+        //  GameHub — biblioteca unificada de jogos/apps + perfis individuais de sistema.
+        //  Os módulos que o Pulse1x já tinha são reaproveitados como estão: a otimização de RAM
+        //  (MemoryOptimizationService) e os perfis/ferramentas de rede e latência
+        //  (NetworkOptimizationService, com o mesmo log de reversão da categoria Latência).
+        // ---------------------------------------------------------------------------------
+        var libraryService = new GameLibraryService();
+        var profileStore = new ProfileStoreService();
+        var artService = new GameArtService();
+        var snapshotService = new SnapshotService();
+        var gamingModeService = new GamingModeService();
+
+        var powerPlanService = new PowerPlanService();
+        var oemVendorService = new OemVendorService(settingsService.Current.OemCommands);
+        var audioService = new AudioService();
+        var displayService = new DisplayService();
+        var timerResolutionService = new TimerResolutionService();
+        var processControlService = new ProcessControlService();
+
+        var profileEngine = new GameProfileEngine(
+            powerPlanService, oemVendorService, audioService, displayService, timerResolutionService,
+            processControlService, memoryOptimizationService, networkOptimizationService, snapshotService);
+
+        var gamepadService = new GamepadService();
+        var hubStatusService = new HubStatusService(_hardwareMonitorService);
+        var playMetricsService = new PlayMetricsService();
+        var fpsMonitorService = new FpsMonitorService();
+
+        var sessionManager = new GameSessionManager(
+            profileEngine, libraryService, profileStore, snapshotService, gamingModeService,
+            playMetricsService, fpsMonitorService);
+
+        // Limpeza única: o mesmo jogo detectado por duas lojas (por exemplo, um título comprado na
+        // Steam que também registra entrada da EA) aparecia duplicado na biblioteca.
+        libraryService.RemoveDuplicates();
+
+        // Sons de navegação do hub: tons curtos sintetizados pelo próprio Pulse1x, com volume e
+        // arquivos personalizáveis nas Configurações.
+        var hubSettings = settingsService.Current.GameHub;
+        var soundService = new GameHubSoundService
+        {
+            Enabled = hubSettings.SoundEnabled,
+            Volume = hubSettings.SoundVolume,
+            CustomSounds = hubSettings.CustomSounds,
+        };
+
+        // Busca de capas na internet pelo nome do jogo (catálogo público da Steam).
+        artService.Online = new OnlineArtService();
+        artService.OnlineEnabled = hubSettings.OnlineArtEnabled;
+
+        // As Configurações mexem no som ao vivo (volume, arquivos, restaurar padrão).
+        settingsViewModel.Sounds = soundService;
+        settingsViewModel.Metrics = playMetricsService;
+
+        playMetricsService.Enabled = settingsService.Current.GameHub.MetricsEnabled;
+
+        var gameHubViewModel = new GameHubViewModel(
+            libraryService, profileStore, artService, sessionManager, gamingModeService,
+            themeService, gamepadService, soundService, hubStatusService);
+
+        var gameHubPage = new Views.GameHub.GameHubPage(
+            gameHubViewModel, libraryService, profileStore, artService,
+            powerPlanService, oemVendorService, audioService, displayService, settingsService, playMetricsService);
+
+        // Modo Gaming: enquanto um jogo estiver aberto, os painéis em tempo real do Pulse1x param
+        // de atualizar. É um único sinal, consumido por quem gasta recursos.
+        gamingModeService.StateChanged += active =>
+        {
+            dashboardViewModel.SetActive(!active);
+            latencyViewModel.SetGamingMode(active);
+        };
+
+        mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
+            latencyPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {
@@ -153,14 +237,30 @@ public partial class App : Application
         _trayIconService.Initialize();
         mainWindow.TrayIconService = _trayIconService;
 
+        // "Sair do GameHub": o botão discreto dentro do hub devolve o Pulse1x normal.
+        gameHubPage.ExitRequested += () => mainWindow.ExitGameHub();
+        gameHubPage.SettingsRequested += () => mainWindow.NavigateToSettings();
+
+        // Navegação por controle em todo o app (fora do hub, o direcional move o foco).
+        mainWindow.AttachGamepad(gamepadService);
+
         MainWindow = mainWindow;
         mainWindow.Show();
+
+        // Abrir direto no GameHub, quando o usuário preferir (Configurações ▸ GameHub).
+        if (settingsService.Current.GameHub.StartInGameHub)
+            mainWindow.EnterGameHub();
 
         // Checagem de atualização em segundo plano ao abrir o app: nunca bloqueia a abertura
         // (roda depois da janela já visível) e, se falhar (sem internet, GitHub fora do ar),
         // não incomoda o usuário — apenas não pergunta nada. Só quando há mesmo uma versão
         // mais nova é que aparece o diálogo perguntando se quer atualizar agora.
         _ = PromptForUpdateOnStartupAsync(updateService, mainWindow);
+
+        // Recuperação do GameHub: se uma sessão de jogo não foi encerrada normalmente (o jogo
+        // travou, o Pulse1x foi fechado, a máquina desligou), o snapshot ficou em disco. Desfaz o
+        // que tinha sido alterado e avisa o usuário do que foi restaurado.
+        _ = RecoverPendingSessionAsync(sessionManager, mainWindow);
 
         // Aguarda (em segundo plano) o sinal de outra instância recém-aberta para
         // trazer esta janela à frente em vez de criar um novo processo.
@@ -206,6 +306,24 @@ public partial class App : Application
                 Localization.Loc.S("Update_PromptTitle"),
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+    }
+
+    // Desfaz, na abertura, as alterações de uma sessão de jogo que não chegou ao fim. Roda em
+    // segundo plano para não atrasar a janela e nunca incomoda quando não há nada pendente.
+    private static async Task RecoverPendingSessionAsync(GameSessionManager sessions, MainWindow owner)
+    {
+        try
+        {
+            string? gameName = await sessions.RecoverPendingAsync();
+            if (gameName is null) return;
+
+            MessageBox.Show(
+                owner,
+                Localization.Loc.F("GH_RecoveredBody", gameName),
+                Localization.Loc.S("GH_RecoveredTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch { /* a recuperação é melhor esforço: nunca pode impedir o app de abrir */ }
     }
 
     // Grava o erro em %LOCALAPPDATA%\Pulse1x\crash.log e avisa o usuário. Nunca lança (um erro
