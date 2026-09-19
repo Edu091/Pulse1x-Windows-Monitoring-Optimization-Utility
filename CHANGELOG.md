@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.5.0 — 18/09/2026
+
+- Corrigido o texto ilegível nas seções desativadas do editor de perfis. As seções em "Não alterar" ficam esmaecidas de propósito, mas o tom usado tinha contraste de cerca de 2:1 sobre o fundo escuro, o que fazia os campos parecerem vazios quando na verdade o conteúdo estava lá.
+- Corrigida a travadinha do GameHub ao percorrer a biblioteca. As imagens de capa e de destaque eram decodificadas no mesmo fio da interface: parar num jogo custava cerca de 36 ms, o equivalente a dois quadros perdidos. Agora a decodificação acontece em segundo plano.
+
 ## 1.4.9 — 18/09/2026
 
 - Corrigidos os campos brancos com texto invisível na página de Configurações e nas demais telas do aplicativo. A janela principal dependia do efeito Mica do Windows para ter um fundo escuro; quando o sistema não o aplicava (efeitos de transparência desligados, sessão remota, certos drivers de vídeo), ela caía em um fundo claro e as caixas de seleção e de texto, que são translúcidas, viravam blocos brancos.

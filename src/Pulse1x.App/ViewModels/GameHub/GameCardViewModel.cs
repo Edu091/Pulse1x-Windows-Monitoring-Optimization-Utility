@@ -58,11 +58,25 @@ public partial class GameCardViewModel : ObservableObject
     /// memória numa biblioteca grande — uma capa de 600x900 guardada em tamanho cheio custa ~2 MB,
     /// e na tela ela nunca passa de 200 px de largura.
     /// </summary>
-    public void RequestCover(int decodeWidth = 220)
+    public async void RequestCover(int decodeWidth = 220)
     {
         if (_coverRequested) return;
         _coverRequested = true;
-        Cover = GameArtService.LoadBitmap(Entry.CoverPath ?? Entry.IconPath, decodeWidth);
+
+        string? path = Entry.CoverPath ?? Entry.IconPath;
+        if (path is null) return;
+
+        // Fora do fio da interface: com dezenas de jogos, decodificar tudo ali provocava
+        // engasgos ao abrir a biblioteca e ao rolar. O bitmap vem congelado de LoadBitmap,
+        // então pode ser criado noutro fio e atribuído aqui sem problema.
+        var bitmap = await System.Threading.Tasks.Task.Run(
+            () => GameArtService.LoadBitmap(path, decodeWidth));
+
+        // O Modo Gaming pode ter liberado a capa enquanto ela era decodificada; nesse caso o
+        // resultado atrasado não deve trazê-la de volta.
+        if (!_coverRequested) return;
+
+        Cover = bitmap;
     }
 
     /// <summary>Libera o bitmap (usado pelo Modo Gaming ao liberar memória).</summary>

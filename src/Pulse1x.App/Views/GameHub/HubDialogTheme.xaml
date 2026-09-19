@@ -32,10 +32,28 @@
     <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#1C1D21" />
     <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#24262B" />
     <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Color="#2A2C31" />
-    <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#1C1D21" />
     <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#F2F3F5" />
     <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#C5C8D0" />
-    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#6B7079" />
+
+    <!--
+        Texto DESATIVADO. As seções em "Não alterar" ficam desabilitadas de propósito, mas o tom do
+        Wpf.Ui para esse estado é um branco a 36% (#5DFFFFFF) que, sobre o fundo escuro dos campos,
+        dava um contraste de cerca de 2:1 — abaixo de qualquer limiar de leitura. O resultado era o
+        de um campo "em branco", quando na verdade o conteúdo estava lá, apenas ilegível.
+        Estes tons mantêm a distinção visual de desativado, com contraste suficiente para ler.
+    -->
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#8E939C" />
+    <SolidColorBrush x:Key="TextControlForegroundDisabled" Color="#8E939C" />
+    <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#8E939C" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="#8E939C" />
+    <SolidColorBrush x:Key="ToggleSwitchContentForegroundDisabled" Color="#8E939C" />
+    <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled" Color="#8E939C" />
+    <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="#8E939C" />
+
+    <!-- O campo desabilitado também precisa se distinguir do fundo da janela. -->
+    <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#212227" />
+    <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#212227" />
+    <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#212227" />
     <SolidColorBrush x:Key="AcrylicBackgroundFillColorDefaultBrush" Color="#16171A" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#16171A" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#1C1D21" />

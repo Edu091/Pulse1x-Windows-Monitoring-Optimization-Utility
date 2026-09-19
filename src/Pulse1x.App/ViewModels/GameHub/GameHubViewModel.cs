@@ -412,10 +412,40 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         RaiseHeroTexts();
     }
 
-    private void LoadHeroNow(GameCardViewModel? card)
+    /// <summary>
+    /// Qual carregamento é o atual. Como a decodificação acontece fora da interface, uma seleção
+    /// mais nova pode terminar antes de uma mais antiga; este contador faz o resultado atrasado ser
+    /// descartado em vez de sobrescrever o destaque correto.
+    /// </summary>
+    private int _heroGeneration;
+
+    private async void LoadHeroNow(GameCardViewModel? card)
     {
-        HeroImage = GameArtService.LoadBitmap(card?.Entry.HeroPath ?? card?.Entry.CoverPath, 1280);
-        HeroCover = GameArtService.LoadBitmap(card?.Entry.CoverPath ?? card?.Entry.IconPath, 400);
+        int generation = ++_heroGeneration;
+
+        string? heroPath = card?.Entry.HeroPath ?? card?.Entry.CoverPath;
+        string? coverPath = card?.Entry.CoverPath ?? card?.Entry.IconPath;
+
+        if (heroPath is null && coverPath is null)
+        {
+            HeroImage = null;
+            HeroCover = null;
+            _theme.SetSelectedGameArt(null, null);
+            return;
+        }
+
+        // A decodificação sai da interface. Um hero de 1280px custa dezenas de milissegundos, e
+        // fazer isso no fio da interface era o que provocava a travadinha ao parar num jogo.
+        // O Freeze() dentro de LoadBitmap é o que permite usar a imagem noutro fio com segurança.
+        var (hero, cover) = await Task.Run(() => (
+            GameArtService.LoadBitmap(heroPath, 1280),
+            GameArtService.LoadBitmap(coverPath, 400)));
+
+        // Chegou tarde: o usuário já está em outro jogo.
+        if (generation != _heroGeneration) return;
+
+        HeroImage = hero;
+        HeroCover = cover;
 
         // Alimenta o tema: o fundo "baseado no jogo" e a adaptação de cores vêm daqui.
         _theme.SetSelectedGameArt(card?.Entry.HeroPath, card?.Entry.CoverPath);
