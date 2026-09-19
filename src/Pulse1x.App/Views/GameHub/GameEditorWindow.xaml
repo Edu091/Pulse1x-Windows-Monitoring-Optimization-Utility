@@ -84,9 +84,9 @@
         <Border Grid.Row="2" Padding="22,12" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <ui:Button Content="{Binding [GH_Cancel], Source={x:Static loc:Loc.Instance}}"
+                <ui:Button Content="{Binding [GH_Cancel], Source={x:Static loc:Loc.Instance}}" IsCancel="True"
                            Command="{Binding CancelCommand}" Margin="0,0,8,0" Padding="20,7" />
-                <ui:Button Content="{Binding [GH_Save], Source={x:Static loc:Loc.Instance}}"
+                <ui:Button Content="{Binding [GH_Save], Source={x:Static loc:Loc.Instance}}" IsDefault="True"
                            Command="{Binding SaveCommand}" Padding="20,7"
                            Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
             </StackPanel>

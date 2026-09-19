@@ -115,9 +115,9 @@
                            Content="{Binding [GH_Delete], Source={x:Static loc:Loc.Instance}}"
                            Command="{Binding DeleteCommand}" Padding="18,7" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}" IsCancel="True"
                                Command="{Binding CloseCommand}" Margin="0,0,8,0" Padding="20,7" />
-                    <ui:Button Content="{Binding [GH_Save], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_Save], Source={x:Static loc:Loc.Instance}}" IsDefault="True"
                                Command="{Binding SaveCommand}" Padding="20,7"
                                Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
                 </StackPanel>

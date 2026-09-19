@@ -145,8 +145,18 @@ public partial class MainWindow : FluentWindow
         // Com um diálogo aberto, A aciona o que está em foco e B fecha a janela.
         if (GamepadFocusService.IsDialogActive())
         {
-            if (action == GamepadAction.Accept) GamepadFocusService.Accept();
-            else if (action == GamepadAction.Back) GamepadFocusService.ActiveWindow()?.Close();
+            if (action == GamepadAction.Accept)
+            {
+                GamepadFocusService.Accept();
+            }
+            else if (action == GamepadAction.Back)
+            {
+                // B leva o seletor para os botões de ação (Salvar/Cancelar) antes de fechar —
+                // fechar de primeira descartaria em silêncio o que foi ajustado.
+                var dialog = GamepadFocusService.ActiveWindow();
+                if (dialog is not null && !GamepadFocusService.FocusDialogActions(dialog))
+                    dialog.Close();
+            }
             return;
         }
 
@@ -154,6 +164,12 @@ public partial class MainWindow : FluentWindow
         {
             case GamepadAction.Accept:
                 GamepadFocusService.Accept();
+                break;
+
+            // B sai da página e volta para a navegação lateral. As páginas do app aplicam as
+            // mudanças na hora (não têm botão Salvar), então "voltar" aqui é subir um nível.
+            case GamepadAction.Back:
+                FocusCurrentNavButton();
                 break;
 
             // Sem o hub aberto, os ombros percorrem as categorias do app.
@@ -169,6 +185,29 @@ public partial class MainWindow : FluentWindow
                 EnterGameHub();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Devolve o foco ao item da navegação lateral correspondente à página aberta — o "voltar" das
+    /// telas do app, que não têm barra de ações própria.
+    /// </summary>
+    private void FocusCurrentNavButton()
+    {
+        if (NavPanel.Visibility != Visibility.Visible) return;
+
+        var pages = new System.Windows.Controls.Page[]
+        {
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage,
+            _utilityPage, _settingsPage, _aboutPage, _donatePage,
+        };
+        var buttons = new Control[]
+        {
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton,
+            UtilityButton, SettingsButton, AboutButton, DonateButton,
+        };
+
+        int index = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
+        buttons[index < 0 ? 0 : index].Focus();
     }
 
     /// <summary>Percorre as categorias da navegação lateral com os ombros do controle.</summary>

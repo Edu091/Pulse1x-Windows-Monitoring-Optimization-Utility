@@ -244,6 +244,18 @@ public partial class GameHubPage : Page
         return items[next].Focus();
     }
 
+    /// <summary>
+    /// Comportamento do B num diálogo: primeiro leva o seletor para a barra de ações
+    /// (Salvar / Cancelar) e só fecha a janela se já estivermos lá. Evita descartar em silêncio o
+    /// que o usuário ajustou numa tela de configuração.
+    /// </summary>
+    private static void CloseOrFocusActions(Window? window)
+    {
+        if (window is null) return;
+        if (GamepadFocusService.FocusDialogActions(window)) return;
+        window.Close();
+    }
+
     private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
     {
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
@@ -271,7 +283,7 @@ public partial class GameHubPage : Page
                     break;
                 case GamepadAction.Back:
                     _viewModel.PlaySound(HubSound.Back);
-                    GamepadFocusService.ActiveWindow()?.Close();
+                    CloseOrFocusActions(GamepadFocusService.ActiveWindow());
                     break;
             }
             return;

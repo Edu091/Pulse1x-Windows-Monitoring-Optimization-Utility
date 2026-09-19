@@ -119,9 +119,9 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="{Binding [GH_Cancel], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_Cancel], Source={x:Static loc:Loc.Instance}}" IsCancel="True"
                                Command="{Binding CancelCommand}" Margin="0,0,8,0" Padding="20,7" />
-                    <ui:Button Content="{Binding [GH_ApplyCover], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_ApplyCover], Source={x:Static loc:Loc.Instance}}" IsDefault="True"
                                Command="{Binding ApplyCommand}" Padding="22,7"
                                Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
                 </StackPanel>

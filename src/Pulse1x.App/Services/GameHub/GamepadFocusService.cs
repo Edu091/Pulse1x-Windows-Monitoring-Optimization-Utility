@@ -93,6 +93,52 @@ public static class GamepadFocusService
         if (window is not null) FocusFirst(window);
     }
 
+    /// <summary>
+    /// Leva o seletor para os botões de ação de um diálogo (Salvar / Cancelar / Fechar).
+    ///
+    /// É o que o botão B faz numa tela de configuração: em vez de fechar a janela na hora — e com
+    /// isso descartar em silêncio o que a pessoa acabou de ajustar — o foco pula para a barra de
+    /// ações, onde ela vê e escolhe. Apertar B de novo, já estando lá, aí sim fecha.
+    ///
+    /// Os botões são reconhecidos pelas propriedades padrão do WPF: <c>IsDefault</c> marca o botão
+    /// primário (Salvar/Aplicar) e <c>IsCancel</c> o secundário (Cancelar/Fechar). Usar o que o
+    /// framework já tem evita uma convenção própria e, de brinde, faz Enter e Esc funcionarem.
+    ///
+    /// Devolve:
+    ///   • <c>true</c>  — o foco foi movido para a barra de ações;
+    ///   • <c>false</c> — já estava lá (ou a janela não tem barra de ações), então quem chamou
+    ///                    deve seguir com o fechamento.
+    /// </summary>
+    public static bool FocusDialogActions(Window window)
+    {
+        var actions = FindDescendants<Button>(window)
+            .Where(b => (b.IsDefault || b.IsCancel) && b.IsVisible && b.IsEnabled)
+            .ToList();
+
+        if (actions.Count == 0) return false;
+
+        // Já está na barra de ações? Então B significa "sair" de verdade.
+        if (actions.Any(b => b.IsKeyboardFocused)) return false;
+
+        // Preferimos o primário: numa tela de configuração, salvar é o desfecho esperado, e o
+        // usuário ainda pode andar para o lado até Cancelar.
+        var target = actions.FirstOrDefault(b => b.IsDefault) ?? actions[0];
+        return target.Focus();
+    }
+
+    private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+
+            foreach (var descendant in FindDescendants<T>(child))
+                yield return descendant;
+        }
+    }
+
     /// <summary>Aciona o elemento focado (equivale ao clique) — botão A.</summary>
     public static bool Accept()
     {

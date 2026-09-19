@@ -256,9 +256,9 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}" IsCancel="True"
                                Command="{Binding CloseCommand}" Margin="0,0,8,0" Padding="20,7" />
-                    <ui:Button Content="{Binding [GH_AddRun], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button Content="{Binding [GH_AddRun], Source={x:Static loc:Loc.Instance}}" IsDefault="True"
                                Command="{Binding RunCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
                                Padding="24,7" Background="{DynamicResource BrandAccentBrush}"
                                Foreground="White" FontWeight="SemiBold" />
