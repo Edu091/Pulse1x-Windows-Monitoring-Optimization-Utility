@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.6.2 — 19/09/2026
+
+- A seção **Personalização do Windows** foi adiada e agora exibe apenas um aviso de "em breve". A versão anterior alterava a barra de tarefas e as janelas do Explorer, mas Menu Iniciar, Configurações e as áreas internas do Explorer não são alcançáveis sem injetar código nesses processos — com risco de derrubar o Explorer a cada atualização do Windows. A seção volta quando houver uma base segura para isso.
+- Removido junto o subsistema que a sustentava (motor, temas, inicialização automática e o vigia do Explorer). O Pulse não altera mais nada no visual do Windows, e nenhuma configuração dele fica para trás.
+
 ## 1.6.1 — 19/09/2026
 
 - A Personalização do Windows passa a deixar escolher **em quais telas** a barra de tarefas recebe o efeito. Num notebook com monitor externo, personalizar as duas raramente é o desejado; desmarcar uma tela a devolve ao visual padrão do Windows. A escolha é guardada pelo nome do monitor, então sobrevive a reinícios do Explorer.
