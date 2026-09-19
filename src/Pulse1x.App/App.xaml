@@ -55,6 +55,22 @@
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
             </Style>
 
+            <!--
+                Deslizantes. A trilha do Wpf.Ui é branca a 55% (#8BFFFFFF) mesmo habilitada, o que
+                deixava barras claras atravessando as telas escuras (era o que aparecia na
+                configuração de perfis e também nas Configurações). O preenchimento segue a cor de
+                marca e o restante da trilha fica em cinza escuro.
+            -->
+            <SolidColorBrush x:Key="SliderTrackFill" Color="#3A3D44" />
+            <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#44474F" />
+            <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#2A2C31" />
+            <SolidColorBrush x:Key="SliderTrackValueFill" Color="#DC2626" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#EF4444" />
+            <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#4A2020" />
+            <SolidColorBrush x:Key="SliderTickBarFill" Color="#3A3D44" />
+            <SolidColorBrush x:Key="SliderThumbBackground" Color="#DC2626" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#55585F" />
+
             <Color x:Key="BrandAccentColor">#DC2626</Color>
             <SolidColorBrush x:Key="BrandAccentBrush" Color="#DC2626" />
             <SolidColorBrush x:Key="BrandSecondaryBrush" Color="#B91C1C" />

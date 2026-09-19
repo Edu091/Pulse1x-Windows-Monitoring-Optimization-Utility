@@ -50,10 +50,37 @@
     <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled" Color="#8E939C" />
     <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="#8E939C" />
 
-    <!-- O campo desabilitado também precisa se distinguir do fundo da janela. -->
+    <!--
+        Campos desabilitados.
+
+        As chaves do Wpf.Ui para esses estados são brancos translúcidos, e é ISSO que produzia as
+        "falhas brancas" nas seções em "Não alterar": medindo o pixel renderizado, a trilha do
+        slider saía em RGB(149,149,151) e o campo da caixa de seleção em RGB(142,147,156) — barras
+        e blocos claros no meio de uma janela escura. Definidos aqui como tons escuros opacos.
+    -->
     <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#212227" />
     <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#212227" />
     <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#212227" />
+    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#2E3036" />
+    <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#2E3036" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" Color="#3A3D44" />
+
+    <!--
+        A trilha do slider é branca a 55% (#8BFFFFFF) MESMO HABILITADA — era a barra branca mais
+        evidente da tela. O preenchimento passa a usar a cor de marca e o restante da trilha um
+        cinza escuro, como no resto do app.
+    -->
+    <SolidColorBrush x:Key="SliderTrackFill" Color="#3A3D44" />
+    <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#44474F" />
+    <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#2A2C31" />
+    <SolidColorBrush x:Key="SliderTrackValueFill" Color="#DC2626" />
+    <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#EF4444" />
+    <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#4A2020" />
+    <SolidColorBrush x:Key="SliderTickBarFill" Color="#3A3D44" />
+    <SolidColorBrush x:Key="SliderThumbBackground" Color="#DC2626" />
+    <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#55585F" />
+    <SolidColorBrush x:Key="SliderOuterThumbBackground" Color="#2A2C31" />
+    <SolidColorBrush x:Key="SliderOuterThumbBackgroundDisabled" Color="#2A2C31" />
     <SolidColorBrush x:Key="AcrylicBackgroundFillColorDefaultBrush" Color="#16171A" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#16171A" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#1C1D21" />

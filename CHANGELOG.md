@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.5.1 — 18/09/2026
+
+- Corrigidas as barras e faixas brancas na configuração de perfis dos jogos. A trilha dos deslizantes usava um branco a 55% de opacidade mesmo quando o controle estava ativo, o que deixava barras claras atravessando a janela escura. A trilha agora é cinza-escura e o preenchimento usa a cor de marca. O mesmo valia para as Configurações do aplicativo.
+
 ## 1.5.0 — 18/09/2026
 
 - Corrigido o texto ilegível nas seções desativadas do editor de perfis. As seções em "Não alterar" ficam esmaecidas de propósito, mas o tom usado tinha contraste de cerca de 2:1 sobre o fundo escuro, o que fazia os campos parecerem vazios quando na verdade o conteúdo estava lá.
