@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.6.1 — 19/09/2026
+
+- A Personalização do Windows passa a deixar escolher **em quais telas** a barra de tarefas recebe o efeito. Num notebook com monitor externo, personalizar as duas raramente é o desejado; desmarcar uma tela a devolve ao visual padrão do Windows. A escolha é guardada pelo nome do monitor, então sobrevive a reinícios do Explorer.
+- Corrigido o principal motivo de "apliquei o tema e não mudou nada": com a **ocultação automática** da barra de tarefas ligada, o Windows mantém a barra fora da área da tela — o efeito é aplicado, mas fica invisível. A seção agora detecta isso, explica e oferece um botão que desliga a ocultação.
+- A reaplicação periódica não reescreve mais um efeito que a janela já tem. Cada escrita fazia o gerenciador de janelas recompor a superfície, o que aparecia como piscada em adaptadores de vídeo USB (DisplayLink), drivers antigos e sessões remotas.
+- Corrigidos os rótulos cortados no painel de status ("Inicialização com Windows:", "Compatibilidade:") e nas legendas longas dos interruptores.
+- Corrigido: abrir a seção pela primeira vez já marcava a personalização como ativa e registrava o Pulse na inicialização do Windows, sem o usuário ter aplicado nada. Agora nada acontece até aplicar um tema.
+
 ## 1.6.0 — 19/09/2026
 
 - Nova seção **Personalização do Windows**: muda o visual da barra de tarefas, do Explorador de Arquivos, do Menu Iniciar e das Configurações, com temas completos, preview e reversão total.
