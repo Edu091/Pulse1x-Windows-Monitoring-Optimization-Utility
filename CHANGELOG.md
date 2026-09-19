@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.5.2 — 18/09/2026
+
+- Corrigidas as caixas de seleção brancas com o texto invisível na configuração de perfis de jogo. Todas as caixas apareciam como blocos cinza-claros (RGB 240,240,240) e a lista suspensa, branca. A causa: o estilo implícito de caixa de seleção do aplicativo herdava de um recurso resolvido enquanto o dicionário ainda estava sendo montado, e acabava caindo no tema claro padrão do Windows em vez do tema escuro. As janelas do GameHub agora desenham as próprias caixas de seleção, com cores fixas, sem depender dessa ordem de carregamento.
+
 ## 1.5.1 — 18/09/2026
 
 - Corrigidas as barras e faixas brancas na configuração de perfis dos jogos. A trilha dos deslizantes usava um branco a 55% de opacidade mesmo quando o controle estava ativo, o que deixava barras claras atravessando a janela escura. A trilha agora é cinza-escura e o preenchimento usa a cor de marca. O mesmo valia para as Configurações do aplicativo.
