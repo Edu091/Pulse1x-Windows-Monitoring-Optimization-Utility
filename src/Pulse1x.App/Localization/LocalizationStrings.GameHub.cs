@@ -1,7 +1,7 @@
 namespace Pulse1x.App.Localization;
 
 /// <summary>
-/// Textos do GameHub e da personalização visual. Ficam num arquivo próprio para não inchar ainda
+/// Textos do GameHub. Ficam num arquivo próprio para não inchar ainda
 /// mais a tabela principal — o dicionário é o mesmo, preenchido no construtor estático (que roda
 /// depois dos inicializadores de campo das duas tabelas).
 /// </summary>
@@ -15,8 +15,6 @@ internal static partial class LocalizationStrings
         AddGameHub2English();
         AddGameHub3Portuguese();
         AddGameHub3English();
-        AddWinCustomPortuguese();
-        AddWinCustomEnglish();
     }
 
     private static void AddGameHubPortuguese()

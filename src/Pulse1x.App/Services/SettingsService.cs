@@ -30,11 +30,6 @@ public class AppSettings
     // Preferências próprias do GameHub (início direto, sons, tamanho das capas, capas online).
     public Models.GameHub.GameHubSettings GameHub { get; set; } = new();
 
-    // Personalização do Windows (barra de tarefas, Menu Iniciar, Explorer, Configurações).
-    // Só as preferências do subsistema ficam aqui; os temas propriamente ditos moram em
-    // arquivos próprios (AppData\Pulse1x\win-themes), um por tema.
-    public Models.WinCustom.WinCustomSettings WinCustom { get; set; } = new();
-
     // Comandos do software do fabricante por modo, para máquinas sem integração nativa
     // (MSI Center, Alienware Command Center e afins). Ver OemCommandAdapter.
     public Profiles.OemCustomCommands OemCommands { get; set; } = new();

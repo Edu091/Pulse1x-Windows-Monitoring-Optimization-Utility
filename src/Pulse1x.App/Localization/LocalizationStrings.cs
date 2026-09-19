@@ -1,4 +1,4 @@
-namespace Pulse1x.App.Localization;
+﻿namespace Pulse1x.App.Localization;
 
 /// <summary>
 /// Tabelas de tradução da interface (Português e Inglês). Cada chave identifica um texto
@@ -16,9 +16,18 @@ internal static partial class LocalizationStrings
         ["Nav_Health"] = "Saúde",
         ["Nav_Latency"] = "Latência",
         ["Nav_Utility"] = "Utilidade",
+        ["Nav_WinCustom"] = "Personalização",
         ["Nav_Settings"] = "Configurações",
         ["Nav_About"] = "Sobre",
         ["Nav_Donate"] = "Buy me a coffee",
+
+        // ---- Personalização do Windows (em breve) ----
+        ["WinCustom_Title"] = "Personalização do Windows",
+        ["WinCustom_ComingSoon"] = "EM BREVE",
+        ["WinCustom_ComingSoonBody"] =
+            "Mudar o visual da barra de tarefas, do Menu Iniciar, do Explorer e das Configurações — " +
+            "com transparência, blur, cores e temas completos.\n\n" +
+            "Esta seção está em desenvolvimento e chega em uma atualização futura.",
 
         // ---- Doação (Buy me a coffee) ----
         ["Donate_Title"] = "Buy me a coffee ☕",
@@ -1057,9 +1066,18 @@ internal static partial class LocalizationStrings
         ["Nav_Health"] = "Health",
         ["Nav_Latency"] = "Latency",
         ["Nav_Utility"] = "Utility",
+        ["Nav_WinCustom"] = "Personalization",
         ["Nav_Settings"] = "Settings",
         ["Nav_About"] = "About",
         ["Nav_Donate"] = "Buy me a coffee",
+
+        // ---- Windows Personalization (coming soon) ----
+        ["WinCustom_Title"] = "Windows Personalization",
+        ["WinCustom_ComingSoon"] = "COMING SOON",
+        ["WinCustom_ComingSoonBody"] =
+            "Change how the taskbar, Start menu, File Explorer and Settings look — with " +
+            "transparency, blur, colors and full themes.\n\n" +
+            "This section is in development and arrives in a future update.",
 
         // ---- Donation (Buy me a coffee) ----
         ["Donate_Title"] = "Buy me a coffee ☕",

@@ -19,7 +19,7 @@ public partial class MainWindow : FluentWindow
     private readonly LatencyPage _latencyPage;
     private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
-    private readonly Views.WinCustom.WinCustomPage _winCustomPage;
+    private readonly WinCustomPage _winCustomPage;
     private readonly SettingsPage _settingsPage;
     private readonly AboutPage _aboutPage;
     private readonly DonatePage _donatePage;
@@ -43,7 +43,7 @@ public partial class MainWindow : FluentWindow
         LatencyPage latencyPage,
         Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
-        Views.WinCustom.WinCustomPage winCustomPage,
+        WinCustomPage winCustomPage,
         SettingsPage settingsPage,
         AboutPage aboutPage,
         DonatePage donatePage)

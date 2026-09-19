@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
@@ -7,7 +7,6 @@ using System.Windows.Threading;
 using Pulse1x.App.Services;
 using Pulse1x.App.Services.GameHub;
 using Pulse1x.App.Services.Profiles;
-using Pulse1x.App.Services.WinCustom;
 using Pulse1x.App.ViewModels;
 using Pulse1x.App.ViewModels.GameHub;
 using Pulse1x.App.Views;
@@ -75,26 +74,6 @@ public partial class App : Application
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             LogCrash("AppDomain.UnhandledException", args.ExceptionObject as Exception);
-
-        // Modos sem interface da Personalização do Windows. Vêm ANTES da trava de instância
-        // única porque são processos auxiliares, que podem coexistir com o Pulse1x aberto:
-        //
-        //   --wincustom-restore  remove toda a personalização e sai (recuperação);
-        //   --wincustom-host     aplica o tema salvo e permanece em segundo plano, sem janela,
-        //                        que é o que mantém a personalização sem o Pulse1x principal.
-        var args = e.Args;
-        if (args.Contains(CustomizationHostService.RestoreArgument))
-        {
-            RunEmergencyRestore();
-            Shutdown();
-            return;
-        }
-
-        if (args.Contains(CustomizationHostService.HostArgument))
-        {
-            RunCustomizationHost();
-            return;   // sem janela: o host fica vivo pelo próprio Dispatcher
-        }
 
         // Trava de instância única: se o Pulse1x já estiver rodando (inclusive
         // minimizado na bandeja), sinaliza a instância existente para aparecer e
@@ -269,28 +248,8 @@ public partial class App : Application
             latencyViewModel.SetGamingMode(active);
         };
 
-        // ---------------------------------------------------------------------------------
-        //  Personalização do Windows — barra de tarefas, Menu Iniciar, Explorer e Configurações.
-        //  O motor aplica efeitos de composição por HWND (sem injeção), e a matriz de capacidades
-        //  decide, por alvo e por build do Windows, o que realmente pode ser aplicado aqui.
-        // ---------------------------------------------------------------------------------
-        var winThemeStore = new WinThemeStore();
-        var winCapabilities = new CapabilityMatrix();
-        var winWatchdog = new CustomizationWatchdog();
-        var winHost = new CustomizationHostService();
-        var winEngine = new WinCustomizationEngine(
-            winThemeStore, winCapabilities, winWatchdog,
-            () => settingsService.Current.WinCustom,
-            () => settingsService.Save());
-        var winCustomPage = new Views.WinCustom.WinCustomPage(
-            new ViewModels.WinCustom.WinCustomViewModel(winEngine, winHost, settingsService));
-
-        // O atalho de recuperação fica sempre atualizado em disco, para existir MESMO QUE o app
-        // deixe de abrir depois — é a rede de segurança independente do Pulse.
-        winHost.WriteEmergencyScript();
-
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, gameHubPage, utilityPage, winCustomPage, settingsPage, aboutPage, donatePage);
+            latencyPage, gameHubPage, utilityPage, new Views.WinCustomPage(), settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {
@@ -313,28 +272,6 @@ public partial class App : Application
         if (settingsService.Current.GameHub.StartInGameHub)
             mainWindow.EnterGameHub();
 
-        // Personalização do Windows: reaplica o último tema e mantém o registro de inicialização
-        // em dia. O caminho do executável muda a cada atualização, então reescrevemos a chave Run
-        // sempre que a opção estiver ligada — do contrário ela apontaria para um .exe antigo.
-        var winPrefs = settingsService.Current.WinCustom;
-        if (winPrefs.StartWithWindows) winHost.SetRegistered(true);
-
-        if (winPrefs.Enabled && winPrefs.RestoreLastTheme && !string.IsNullOrEmpty(winPrefs.ActiveThemeId))
-        {
-            // Depois da janela aparecer, para não atrasar a abertura.
-            var winDelay = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-            winDelay.Tick += (_, _) =>
-            {
-                winDelay.Stop();
-                try
-                {
-                    winEngine.ApplyActiveTheme();
-                    winEngine.StartExplorerWatch();
-                }
-                catch { /* a personalização nunca pode impedir o app de funcionar */ }
-            };
-            winDelay.Start();
-        }
 
         // Checagem de atualização em segundo plano ao abrir o app: nunca bloqueia a abertura
         // (roda depois da janela já visível) e, se falhar (sem internet, GitHub fora do ar),
@@ -361,86 +298,6 @@ public partial class App : Application
             state: null,
             millisecondsTimeOutInterval: Timeout.Infinite,
             executeOnlyOnce: false);
-    }
-
-    // =====================================================================================
-    //  Personalização do Windows — modos sem interface
-    // =====================================================================================
-
-    /// <summary>
-    /// Mantido vivo enquanto o processo roda em modo host, para o vigia do Explorer continuar
-    /// funcionando (sem referência, o coletor de lixo poderia levá-lo junto).
-    /// </summary>
-    private WinCustomizationEngine? _hostEngine;
-
-    /// <summary>
-    /// Modo host: aplica o tema salvo e fica em segundo plano, sem janela, reaplicando quando o
-    /// Explorer reinicia. É o que faz a personalização sobreviver ao fechamento do Pulse1x, ao
-    /// logoff e ao desligamento — o requisito de não depender do app principal estar aberto.
-    /// </summary>
-    private void RunCustomizationHost()
-    {
-        try
-        {
-            var settings = new SettingsService();
-            var prefs = settings.Current.WinCustom;
-
-            // Sem tema ou com a personalização desligada, não há nada a manter: o host sai em vez
-            // de ficar consumindo memória à toa.
-            if (!prefs.Enabled || !prefs.RestoreLastTheme || string.IsNullOrEmpty(prefs.ActiveThemeId))
-            {
-                Shutdown();
-                return;
-            }
-
-            var engine = new WinCustomizationEngine(
-                new WinThemeStore(), new CapabilityMatrix(), new CustomizationWatchdog(),
-                () => settings.Current.WinCustom,
-                () => settings.Save());
-
-            _hostEngine = engine;
-
-            // O Shell pode ainda não ter montado a barra de tarefas quando o host abre junto com
-            // o logon; um atraso curto evita uma primeira tentativa inútil (que a proteção
-            // contaria como falha).
-            var delay = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
-            delay.Tick += (_, _) =>
-            {
-                delay.Stop();
-                engine.ApplyActiveTheme();
-                engine.StartExplorerWatch();
-            };
-            delay.Start();
-        }
-        catch (Exception ex)
-        {
-            // O host nunca pode virar um processo-zumbi com erro na tela: registra e sai.
-            LogCrash("WinCustomHost", ex);
-            Shutdown();
-        }
-    }
-
-    /// <summary>
-    /// Recuperação: remove toda a personalização e sai. Chamado pelo argumento
-    /// <c>--wincustom-restore</c>, que é o caminho de socorro quando a interface não abre.
-    /// </summary>
-    private static void RunEmergencyRestore()
-    {
-        try
-        {
-            var settings = new SettingsService();
-            var engine = new WinCustomizationEngine(
-                new WinThemeStore(), new CapabilityMatrix(), new CustomizationWatchdog(),
-                () => settings.Current.WinCustom,
-                () => settings.Save());
-
-            engine.RestoreAll();
-            new CustomizationHostService().SetRegistered(false);
-        }
-        catch (Exception ex)
-        {
-            LogCrash("WinCustomRestore", ex);
-        }
     }
 
     // Consulta a última Release do GitHub e, se houver uma versão mais nova que a instalada,
