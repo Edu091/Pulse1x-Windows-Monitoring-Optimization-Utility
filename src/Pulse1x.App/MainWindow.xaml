@@ -13,6 +13,7 @@
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica"
     WindowStartupLocation="CenterScreen"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Closing="FluentWindow_Closing"
     StateChanged="FluentWindow_StateChanged">
     <Grid>

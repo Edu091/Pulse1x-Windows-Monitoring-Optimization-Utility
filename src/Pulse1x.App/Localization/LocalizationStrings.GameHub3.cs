@@ -20,6 +20,7 @@ internal static partial class LocalizationStrings
         t["GH_MenuRestart"] = "Reiniciar o computador";
         t["GH_MenuShutdown"] = "Desligar o computador";
         t["GH_MenuConfirm"] = "Confirmar: {0}?";
+        t["GH_GameActions"] = "Ações do jogo";
 
         // ---- Teclado virtual ----
         t["GH_KeyboardHint"] = "Direcional move · A digita · B conclui";
@@ -63,6 +64,7 @@ internal static partial class LocalizationStrings
         t["GH_MenuRestart"] = "Restart";
         t["GH_MenuShutdown"] = "Shut down";
         t["GH_MenuConfirm"] = "Confirm: {0}?";
+        t["GH_GameActions"] = "Game actions";
 
         t["GH_KeyboardHint"] = "D-pad moves · A types · B finishes";
         t["GH_KeySpace"] = "Space";

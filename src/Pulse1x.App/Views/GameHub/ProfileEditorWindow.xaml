@@ -16,25 +16,39 @@
     MinHeight="560"
     MinWidth="720"
     ExtendsContentIntoTitleBar="True"
-    WindowBackdropType="Mica"
+    WindowBackdropType="None"
+    Background="#0A0A0C"
+    Foreground="#F2F3F5"
     WindowStartupLocation="CenterOwner">
 
+    <!--
+        Tema próprio do GameHub, como nas demais janelas do hub. Antes esta janela era a única que
+        ainda dependia do Mica e dos pincéis de tema do app: quando a transparência da personalização
+        reduzia o alfa desses pincéis, os controles apareciam com fundo claro e texto escuro. Fixar a
+        paleta aqui elimina essa dependência.
+    -->
     <ui:FluentWindow.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanConverter x:Key="InvBool" />
         <converters:ModeIsCustomConverter x:Key="ModeIsCustom" />
         <converters:LocKeyConverter x:Key="LocKey" />
 
+        <SolidColorBrush x:Key="HubText" Color="#F2F3F5" />
+        <SolidColorBrush x:Key="HubTextDim" Color="#9BA0A9" />
+        <SolidColorBrush x:Key="HubSurface" Color="#16171A" />
+        <SolidColorBrush x:Key="HubStroke" Color="#2A2C31" />
+
         <!-- Cabeçalho de seção: título grande + o seletor de modo à direita. -->
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
         </Style>
 
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Opacity" Value="0.72" />
+            <Setter Property="Foreground" Value="{StaticResource HubTextDim}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,10,0" />
         </Style>
@@ -42,9 +56,30 @@
         <Style x:Key="SectionCard" TargetType="Border">
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+            <Setter Property="Background" Value="{StaticResource HubSurface}" />
             <Setter Property="Padding" Value="16,13" />
             <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <!--
+            Os controles desta janela recebem a paleta escura explicitamente. Sem isto eles herdam
+            os pincéis do tema do app, que a personalização visual pode ter deixado translúcidos.
+        -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        </Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+            <Setter Property="Background" Value="#1C1D21" />
+            <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+        </Style>
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
         </Style>
     </ui:FluentWindow.Resources>
 

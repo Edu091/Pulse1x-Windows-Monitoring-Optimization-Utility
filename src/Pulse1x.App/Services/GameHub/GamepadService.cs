@@ -31,6 +31,8 @@ public enum GamepadAction
     Menu,
     /// <summary>Perfil/detalhes do item em destaque (Menu/Start).</summary>
     Details,
+    /// <summary>Abre as ações do jogo selecionado (L2).</summary>
+    GameActions,
 }
 
 /// <summary>
@@ -52,7 +54,10 @@ public record GamepadSnapshot(
     bool Up, bool Down, bool Left, bool Right,
     bool Accept, bool Back, bool Favorite, bool Details,
     bool LeftBumper, bool RightBumper, bool LeftTrigger, bool RightTrigger,
-    bool View, bool Start);
+    bool View, bool Start,
+    // Analógico separado do D-pad para que uma diagonal gere uma única direção de menu.
+    // Valores normalizados entre -1 e 1; provedores antigos podem omiti-los.
+    float LeftStickX = 0, float LeftStickY = 0);
 
 /// <summary>
 /// Navegação por controle no GameHub: converte a leitura contínua do controle em eventos discretos
@@ -126,10 +131,7 @@ public class GamepadService : IDisposable
             return;
         }
 
-        HandleDirection(GamepadDirection.Up, snapshot.Up);
-        HandleDirection(GamepadDirection.Down, snapshot.Down);
-        HandleDirection(GamepadDirection.Left, snapshot.Left);
-        HandleDirection(GamepadDirection.Right, snapshot.Right);
+        HandleDirections(snapshot);
 
         // Botões não repetem: valem só na transição de solto para pressionado.
         HandleButton(GamepadAction.Accept, snapshot.Accept, _previous?.Accept);
@@ -140,8 +142,43 @@ public class GamepadService : IDisposable
         HandleButton(GamepadAction.NextTab, snapshot.RightBumper, _previous?.RightBumper);
         HandleButton(GamepadAction.Menu, snapshot.View, _previous?.View);               // View/Select
         HandleButton(GamepadAction.Details, snapshot.Start, _previous?.Start);          // Menu/Start
+        HandleButton(GamepadAction.GameActions, snapshot.LeftTrigger, _previous?.LeftTrigger); // L2
 
         _previous = snapshot;
+    }
+
+    /// <summary>
+    /// Uma interface de console recebe um único passo por vez. O D-pad já é digital; para o
+    /// analógico escolhemos o eixo mais inclinado, evitando que uma diagonal navegue duas vezes
+    /// no mesmo quadro (a origem dos pulos e das aparentes inversões do seletor).
+    /// </summary>
+    private void HandleDirections(GamepadSnapshot snapshot)
+    {
+        GamepadDirection? direction = ResolveDirection(snapshot);
+
+        foreach (var candidate in Enum.GetValues<GamepadDirection>())
+            HandleDirection(candidate, candidate == direction);
+    }
+
+    private static GamepadDirection? ResolveDirection(GamepadSnapshot snapshot)
+    {
+        float horizontal = Math.Abs(snapshot.LeftStickX);
+        float vertical = Math.Abs(snapshot.LeftStickY);
+
+        if (horizontal > 0 || vertical > 0)
+        {
+            if (vertical >= horizontal)
+                return snapshot.LeftStickY > 0 ? GamepadDirection.Up : GamepadDirection.Down;
+
+            return snapshot.LeftStickX > 0 ? GamepadDirection.Right : GamepadDirection.Left;
+        }
+
+        // Provedores que só expõem botões também ficam protegidos contra duas direções opostas.
+        if (snapshot.Up) return GamepadDirection.Up;
+        if (snapshot.Down) return GamepadDirection.Down;
+        if (snapshot.Left) return GamepadDirection.Left;
+        if (snapshot.Right) return GamepadDirection.Right;
+        return null;
     }
 
     /// <summary>Uma direção dispara ao ser pressionada e volta a disparar se continuar segurada.</summary>
@@ -202,6 +239,45 @@ public class XInputProvider : IGamepadProvider
     private const short LeftThumbDeadzone = 7849;
 
     /// <summary>
+    /// Limiares com histerese para os eixos do analógico.
+    ///
+    /// Um analógico não volta ao centro em linha reta: ao soltar, a mola o faz ultrapassar o zero
+    /// e oscilar brevemente para o lado oposto. Com um limiar único, esse repique é lido como uma
+    /// navegação na direção contrária — era exatamente a "inversão" do seletor. Com dois limiares,
+    /// o eixo só ATIVA passando de 60% e só SOLTA abaixo de 35%, faixa em que o repique morre.
+    /// </summary>
+    private const float AxisEngage = 0.60f;
+    private const float AxisRelease = 0.35f;
+
+    /// <summary>Estado atual de cada eixo: -1 (negativo), 0 (centro) ou +1 (positivo).</summary>
+    private int _stickXHeld;
+    private int _stickYHeld;
+
+    /// <summary>
+    /// Converte a leitura bruta de um eixo em -1/0/+1 com histerese, devolvendo já normalizado
+    /// para quem só precisa do sinal e da intensidade.
+    /// </summary>
+    private static float ReadAxis(short raw, ref int held)
+    {
+        float value = raw / (float)short.MaxValue;
+        float magnitude = Math.Abs(value);
+
+        if (held != 0)
+        {
+            // Já ativo: só solta quando volta perto do centro — ou quando cruza para o outro lado
+            // com força de verdade (movimento intencional, não repique).
+            if (magnitude < AxisRelease || Math.Sign(value) != held && magnitude < AxisEngage)
+                held = 0;
+        }
+        else if (magnitude >= AxisEngage)
+        {
+            held = Math.Sign(value);
+        }
+
+        return held == 0 ? 0 : held * magnitude;
+    }
+
+    /// <summary>
     /// Gatilhos analógicos com histerese. O limiar de 30 (de 255) que a documentação do XInput
     /// sugere é pensado para ação em jogo; num menu ele dispara sozinho, porque gatilho analógico
     /// repousa em valores ligeiramente acima de zero e oscila. Com dois limiares, o gatilho só
@@ -245,11 +321,10 @@ public class XInputProvider : IGamepadProvider
 
         bool Button(ushort mask) => (buttons & mask) != 0;
 
-        // O analógico esquerdo navega igual ao D-Pad, com zona morta para não "andar sozinho".
-        bool stickUp = pad.sThumbLY > LeftThumbDeadzone;
-        bool stickDown = pad.sThumbLY < -LeftThumbDeadzone;
-        bool stickLeft = pad.sThumbLX < -LeftThumbDeadzone;
-        bool stickRight = pad.sThumbLX > LeftThumbDeadzone;
+        // O analógico esquerdo é enviado separado do D-pad: o serviço decide um só eixo para
+        // cada passo. Isso impede uma diagonal de disparar duas navegações de uma vez.
+        float stickX = ReadAxis(pad.sThumbLX, ref _stickXHeld);
+        float stickY = ReadAxis(pad.sThumbLY, ref _stickYHeld);
 
         _leftTriggerHeld = _leftTriggerHeld
             ? pad.bLeftTrigger > TriggerOff
@@ -259,10 +334,10 @@ public class XInputProvider : IGamepadProvider
             : pad.bRightTrigger > TriggerOn;
 
         return new GamepadSnapshot(
-            Up: Button(DPadUp) || stickUp,
-            Down: Button(DPadDown) || stickDown,
-            Left: Button(DPadLeft) || stickLeft,
-            Right: Button(DPadRight) || stickRight,
+            Up: Button(DPadUp),
+            Down: Button(DPadDown),
+            Left: Button(DPadLeft),
+            Right: Button(DPadRight),
             Accept: Button(ButtonA),
             Back: Button(ButtonB),
             Favorite: Button(ButtonX),
@@ -273,7 +348,9 @@ public class XInputProvider : IGamepadProvider
             RightTrigger: _rightTriggerHeld,
             // View/Select (BACK no XInput) abre o menu; Menu/Start é o botão de contexto.
             View: Button(ButtonBack),
-            Start: Button(ButtonStart));
+            Start: Button(ButtonStart),
+            LeftStickX: stickX,
+            LeftStickY: stickY);
     }
 
     private static bool TryGetState(int index, out XInputState state)

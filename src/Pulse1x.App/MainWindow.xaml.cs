@@ -92,6 +92,7 @@ public partial class MainWindow : FluentWindow
             // propaga as cores corretamente para todos os controles; reaplicar aqui
             // garante que o tema escuro funcione já na primeira abertura.
             ApplicationThemeManager.Apply(_settingsService.Current.DarkTheme ? ApplicationTheme.Dark : ApplicationTheme.Light);
+            _themeService.Apply();
 
             // Animação de abertura: fade + leve zoom do conteúdo principal.
             Animations.OpenWindow(ContentRoot);
@@ -320,6 +321,7 @@ public partial class MainWindow : FluentWindow
     /// <summary>Estado da janela antes de entrar no GameHub, para devolvê-lo ao sair.</summary>
     private WindowState _stateBeforeHub = WindowState.Normal;
     private bool _inGameHub;
+    private bool _gamepadSuspendedForMinimize;
 
     /// <summary>
     /// Entra no GameHub. Quando o modo imersivo está ligado (padrão), a navegação lateral do
@@ -394,9 +396,26 @@ public partial class MainWindow : FluentWindow
 
     private void FluentWindow_StateChanged(object? sender, EventArgs e)
     {
-        if (WindowState == WindowState.Minimized && _settingsService.Current.MinimizeToTray)
+        if (WindowState == WindowState.Minimized)
         {
-            TrayIconService?.MinimizeToTray();
+            // O DispatcherTimer do controle pode ser pausado pelo Windows ao minimizar. Paramos
+            // a leitura de propósito (limpando botões/analógico presos) e a religamos ao voltar.
+            _gamepad?.SetActive(false);
+            _gamepadSuspendedForMinimize = true;
+
+            if (_settingsService.Current.MinimizeToTray)
+                TrayIconService?.MinimizeToTray();
+            return;
+        }
+
+        if (_gamepadSuspendedForMinimize)
+        {
+            _gamepadSuspendedForMinimize = false;
+            _gamepad?.SetActive(true);
+
+            // Restaurar a janela também pode ter removido o foco visual. Devolvemos-o à zona
+            // atual do hub (grade, menu ou teclado) antes da próxima entrada do controle.
+            if (_inGameHub) _gameHubPage.RestoreGamepadFocus();
         }
     }
 

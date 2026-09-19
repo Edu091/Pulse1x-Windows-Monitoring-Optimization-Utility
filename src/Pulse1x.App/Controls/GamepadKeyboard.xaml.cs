@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Pulse1x.App.Localization;
+using Pulse1x.App.Services.GameHub;
 
 namespace Pulse1x.App.Controls;
 
@@ -101,7 +102,11 @@ public partial class GamepadKeyboard : UserControl
 
         Action("Shift", () => { _shift = !_shift; BuildKeys(); FocusFirstKey(); }, 92);
         Action(Loc.S("GH_KeySpace"), () => Text += " ", 210);
-        Action("", () => { if (Text.Length > 0) Text = Text[..^1]; }, 92);
+        // O caractere era exibido pela fonte padrão e virava um quadrado em alguns sistemas.
+        // E750 é o ícone Backspace de Segoe MDL2 Assets.
+        var backspace = Action("\uE750", () => { if (Text.Length > 0) Text = Text[..^1]; }, 92);
+        backspace.FontFamily = new FontFamily("Segoe MDL2 Assets");
+        backspace.FontSize = 16;
         Action(Loc.S("GH_KeyClear"), () => Text = "", 92);
 
         var done = Action(Loc.S("GH_KeyDone"), () => Closed?.Invoke(), 110);
@@ -164,6 +169,48 @@ public partial class GamepadKeyboard : UserControl
     /// <summary>O foco está dentro deste teclado?</summary>
     public bool HasFocusInside =>
         Keyboard.FocusedElement is DependencyObject focused && IsAncestorOf(focused);
+
+    /// <summary>
+    /// Move dentro da malha do teclado sem delegar para a navegação espacial global do WPF.
+    /// Assim, chegar à borda nunca transfere o seletor para a tela que está atrás do overlay.
+    /// </summary>
+    public bool Move(GamepadDirection direction)
+    {
+        var focused = Keyboard.FocusedElement as Button;
+        if (focused is null || !IsAncestorOf(focused))
+        {
+            FocusFirstKey();
+            return true;
+        }
+
+        int rowIndex = _rows.FindIndex(row => row.Contains(focused));
+        if (rowIndex < 0)
+        {
+            FocusFirstKey();
+            return true;
+        }
+
+        var row = _rows[rowIndex];
+        int columnIndex = row.IndexOf(focused);
+        Button? next = direction switch
+        {
+            GamepadDirection.Left when columnIndex > 0 => row[columnIndex - 1],
+            GamepadDirection.Right when columnIndex < row.Count - 1 => row[columnIndex + 1],
+            GamepadDirection.Up when rowIndex > 0 => FindClosestKey(_rows[rowIndex - 1], focused),
+            GamepadDirection.Down when rowIndex < _rows.Count - 1 => FindClosestKey(_rows[rowIndex + 1], focused),
+            _ => null,
+        };
+
+        // A borda é uma parada, não uma saída: o teclado continua sendo modal.
+        return next is not null && next.Focus();
+    }
+
+    private Button FindClosestKey(IReadOnlyList<Button> candidates, Button from)
+    {
+        double fromCenter = from.TranslatePoint(new Point(from.ActualWidth / 2, 0), this).X;
+        return candidates.MinBy(candidate => Math.Abs(
+            candidate.TranslatePoint(new Point(candidate.ActualWidth / 2, 0), this).X - fromCenter))!;
+    }
 
     private bool IsAncestorOf(DependencyObject node)
     {

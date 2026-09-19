@@ -293,6 +293,12 @@ public partial class ProfileEditorViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            // Core Audio e EnumDisplaySettings podem demorar quando há drivers/dispositivos
+            // desconectados. Iniciamos as leituras fora da UI para abrir o perfil pelo Start sem
+            // travar a navegação do GameHub.
+            var outputDevicesTask = Task.Run(() => _audio.ListDevices());
+            var inputDevicesTask = Task.Run(() => _audio.ListDevices(input: true));
+            var displaysTask = Task.Run(() => _display.ListDisplays());
             var plans = await _power.ListPlansAsync();
             PowerPlans.Clear();
             foreach (var plan in plans) PowerPlans.Add(plan);
@@ -316,12 +322,12 @@ public partial class ProfileEditorViewModel : ObservableObject
                 });
             });
 
-            foreach (var device in _audio.ListDevices()) OutputDevices.Add(device);
-            foreach (var device in _audio.ListDevices(input: true)) InputDevices.Add(device);
+            foreach (var device in await outputDevicesTask) OutputDevices.Add(device);
+            foreach (var device in await inputDevicesTask) InputDevices.Add(device);
             OutputDevice = OutputDevices.FirstOrDefault(d => d.Id == _profile.Audio.OutputDeviceId);
             InputDevice = InputDevices.FirstOrDefault(d => d.Id == _profile.Audio.InputDeviceId);
 
-            foreach (var screen in _display.ListDisplays()) Displays.Add(screen);
+            foreach (var screen in await displaysTask) Displays.Add(screen);
             SelectedDisplay = Displays.FirstOrDefault(d => d.DeviceName == _profile.Display.TargetDevice)
                               ?? Displays.FirstOrDefault(d => d.IsPrimary)
                               ?? Displays.FirstOrDefault();

@@ -6,7 +6,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemesDictionary Theme="Light" />
+                <!-- O modo padrão do Pulse1x é escuro. O ApplicationThemeManager ainda alterna
+                     para claro nas Configurações, mas iniciar pelo dicionário claro deixava os
+                     pincéis de texto pretos até a primeira troca de tema. -->
+                <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
 

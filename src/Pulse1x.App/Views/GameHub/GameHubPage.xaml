@@ -11,6 +11,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     d:DataContext="{d:DesignInstance Type=vm:GameHubViewModel}"
     mc:Ignorable="d"
+    PreviewKeyDown="GameHubPage_PreviewKeyDown"
     Title="GameHub">
 
     <!--
@@ -577,6 +578,13 @@
                     </Border>
                     <TextBlock Text="{Binding [GH_MenuTitle], Source={x:Static loc:Loc.Instance}}" FontSize="11.5"
                                Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
+
+                    <Border CornerRadius="4" Width="26" Height="18" Background="#3F4453" Margin="18,0,7,0">
+                        <TextBlock Text="L2" Foreground="White" FontSize="8" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{Binding [GH_GameActions], Source={x:Static loc:Loc.Instance}}" FontSize="11.5"
+                               Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -620,20 +628,35 @@
                     <ItemsControl x:Name="MenuList" Grid.Row="1" Margin="12,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Click="MenuItem_Click" Tag="{Binding}" Cursor="Hand" Margin="0,0,0,2">
+                                <!--
+                                    FocusVisualStyle nulo de propósito: o anel global do app ficava
+                                    POR CIMA do destaque próprio do item, desalinhado com a borda
+                                    arredondada e cortado pelo painel — dois indicadores brigando.
+                                    Aqui o foco é mostrado só pelo template: barra de acento à
+                                    esquerda + fundo levemente aceso.
+                                -->
+                                <Button Click="MenuItem_Click" Tag="{Binding}" Cursor="Hand" Margin="0,0,0,2"
+                                        FocusVisualStyle="{x:Null}">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bd" CornerRadius="8" Padding="14,12" Background="Transparent">
+                                            <Border x:Name="Bd" CornerRadius="8" Padding="0,12,14,12" Background="Transparent">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding Icon}"
+
+                                                    <!-- Barra de acento: aparece só no item em foco. -->
+                                                    <Border x:Name="FocusBar" Grid.Column="0" Width="3" Height="20"
+                                                            CornerRadius="2" Margin="5,0,6,0" Opacity="0"
+                                                            Background="{DynamicResource BrandAccentBrush}" />
+
+                                                    <TextBlock Grid.Column="1" Text="{Binding Icon}"
                                                                FontFamily="Segoe MDL2 Assets" FontSize="15"
                                                                Foreground="{DynamicResource BrandAccentBrush}"
                                                                VerticalAlignment="Center" Margin="0,0,14,0" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="14"
+                                                    <TextBlock Grid.Column="2" Text="{Binding Label}" FontSize="14"
                                                                Foreground="#F2F3F5" VerticalAlignment="Center" />
                                                 </Grid>
                                             </Border>
@@ -642,7 +665,8 @@
                                                     <Setter TargetName="Bd" Property="Background" Value="#1FFFFFFF" />
                                                 </Trigger>
                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="#38FFFFFF" />
+                                                    <Setter TargetName="FocusBar" Property="Opacity" Value="1" />
                                                 </Trigger>
                                                 <DataTrigger Binding="{Binding IsDestructive}" Value="True">
                                                     <Setter TargetName="Bd" Property="Opacity" Value="0.85" />

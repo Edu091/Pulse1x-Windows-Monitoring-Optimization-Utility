@@ -189,6 +189,14 @@ public class ThemeService
         SetBrush(resources, "AccentTextFillColorSecondaryBrush", secondary);
         SetBrush(resources, "AccentTextFillColorTertiaryBrush", Darken(primary, 0.30));
 
+        // O dicionário do Wpf.Ui pode ter sido carregado antes de a preferência de tema ser
+        // aplicada. Definimos os pincéis de texto explicitamente para que textos sem Foreground
+        // próprio nunca permaneçam pretos no modo escuro (em especial nas Configurações).
+        bool dark = _settings.Current.DarkTheme;
+        SetBrush(resources, "TextFillColorPrimaryBrush", dark ? Color.FromRgb(0xF2, 0xF3, 0xF5) : Color.FromRgb(0x1A, 0x1D, 0x21));
+        SetBrush(resources, "TextFillColorSecondaryBrush", dark ? Color.FromRgb(0xC5, 0xC8, 0xD0) : Color.FromRgb(0x52, 0x57, 0x61));
+        SetBrush(resources, "TextFillColorTertiaryBrush", dark ? Color.FromRgb(0x99, 0x9E, 0xA8) : Color.FromRgb(0x73, 0x78, 0x82));
+
         SetBrush(resources, "ScrollBarThumbFill", primary);
         SetBrush(resources, "ScrollBarTrackFillPointerOver", secondary);
 

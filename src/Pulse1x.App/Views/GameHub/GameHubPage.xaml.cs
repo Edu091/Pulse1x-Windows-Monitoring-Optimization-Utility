@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Pulse1x.App.Models.GameHub;
@@ -97,6 +98,12 @@ public partial class GameHubPage : Page
     /// </summary>
     public void AttachGamepad(GamepadService gamepad)
     {
+        // Em modo não imersivo o botão GameHub continua acessível. Clicá-lo novamente não pode
+        // inscrever os handlers outra vez: dois handlers para o mesmo toque fazem o seletor pular
+        // (ou aparentemente inverter, quando um movimento desfaz o outro).
+        if (ReferenceEquals(_gamepad, gamepad)) return;
+        DetachGamepad();
+
         _gamepad = gamepad;
         gamepad.Navigate += OnGamepadNavigate;
         gamepad.Action += OnGamepadAction;
@@ -152,7 +159,21 @@ public partial class GameHubPage : Page
             return;
         }
 
-        // Zonas modais (menu, teclado) e zonas de foco (cromo, destaque) usam o foco do WPF.
+        // O teclado e o menu são modais de verdade: nunca entregamos a navegação espacial do WPF
+        // para a página por baixo, pois ela pode encontrar um controle externo ao painel.
+        if (_router.Zone == HubZone.Keyboard)
+        {
+            if (VirtualKeyboard.Move(direction)) _viewModel.PlaySound(HubSound.Navigate);
+            return;
+        }
+
+        if (_router.Zone == HubZone.Menu)
+        {
+            if (MoveMenuSelection(direction)) _viewModel.PlaySound(HubSound.Navigate);
+            return;
+        }
+
+        // As zonas de foco (cromo e destaque) usam o foco espacial do WPF.
         if (_router.Zone != HubZone.Grid)
         {
             // Antes de mover o foco, vemos se o movimento deve trocar de zona.
@@ -188,6 +209,53 @@ public partial class GameHubPage : Page
             _viewModel.PlaySound(HubSound.Navigate);
     }
 
+    /// <summary>Restaura o foco da zona atual depois de a janela sair do estado minimizado.</summary>
+    public void RestoreGamepadFocus()
+    {
+        if (!IsVisible) return;
+        OnZoneChanged(_router.Zone);
+    }
+
+    /// <summary>
+    /// O menu lateral é uma lista vertical. Controlar o índice explicitamente impede que uma
+    /// diagonal do analógico faça o WPF saltar para o cromo ou para a biblioteca atrás do overlay.
+    /// </summary>
+    private bool MoveMenuSelection(GamepadDirection direction)
+    {
+        // Não há navegação horizontal no menu; ignorá-la também neutraliza a segunda componente
+        // de um analógico levemente diagonal.
+        if (direction is GamepadDirection.Left or GamepadDirection.Right) return false;
+
+        var items = FindDescendants<Button>(MenuList)
+            .Where(button => button.IsVisible && button.IsEnabled)
+            .ToList();
+        if (items.Count == 0) return false;
+
+        int current = items.FindIndex(button => button.IsKeyboardFocused);
+        if (current < 0)
+        {
+            items[0].Focus();
+            return true;
+        }
+
+        int next = current + (direction == GamepadDirection.Up ? -1 : 1);
+        if (next < 0 || next >= items.Count) return false;
+
+        return items[next].Focus();
+    }
+
+    private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+
+            foreach (var descendant in FindDescendants<T>(child))
+                yield return descendant;
+        }
+    }
+
     private void OnGamepadAction(GamepadAction action)
     {
         if (!IsVisible) return;
@@ -215,7 +283,10 @@ public partial class GameHubPage : Page
             switch (action)
             {
                 case GamepadAction.Accept:
-                    GamepadFocusService.Accept();
+                    // Se o layout ainda estiver terminando, A só recupera o foco da primeira
+                    // tecla; jamais aciona o botão que estava selecionado atrás do teclado.
+                    if (!VirtualKeyboard.HasFocusInside) VirtualKeyboard.FocusFirstKey();
+                    else GamepadFocusService.Accept();
                     break;
                 case GamepadAction.Back:
                     _viewModel.PlaySound(HubSound.Back);
@@ -231,8 +302,17 @@ public partial class GameHubPage : Page
             switch (action)
             {
                 case GamepadAction.Accept:
-                    _viewModel.PlaySound(HubSound.Confirm);
-                    GamepadFocusService.Accept();
+                    // Mesmo princípio do teclado: o overlay nunca pode confirmar uma ação do hub
+                    // que ficou com foco antes de o menu aparecer.
+                    if (!GamepadFocusService.IsFocusInside(MenuList))
+                    {
+                        GamepadFocusService.FocusFirst(MenuList);
+                    }
+                    else
+                    {
+                        _viewModel.PlaySound(HubSound.Confirm);
+                        GamepadFocusService.Accept();
+                    }
                     break;
                 case GamepadAction.Back:
                 case GamepadAction.Menu:
@@ -290,7 +370,21 @@ public partial class GameHubPage : Page
 
             case GamepadAction.Details:
                 _viewModel.PlaySound(HubSound.Confirm);
-                _viewModel.OpenSelectedProfile();
+                // O editor consulta dispositivos e planos de energia. Agendá-lo depois deste
+                // evento deixa o ciclo do controle terminar antes de abrir a janela modal, sem a
+                // pequena travada que acontecia ao apertar Start.
+                Dispatcher.BeginInvoke(new Action(_viewModel.OpenSelectedProfile),
+                    System.Windows.Threading.DispatcherPriority.Background);
+                break;
+
+            // L2 sobe o seletor para as ações do jogo. A partir de Jogar, direita permite chegar
+            // a Perfil, favorito, capa e editar jogo sem precisar sair da biblioteca.
+            case GamepadAction.GameActions:
+                if (_viewModel.SelectedGame is not null)
+                {
+                    _router.SetZone(HubZone.Hero);
+                    _viewModel.PlaySound(HubSound.Navigate);
+                }
                 break;
         }
     }
@@ -618,6 +712,21 @@ public partial class GameHubPage : Page
     }
 
     private void OnKeyboardTextChanged(string text) => _viewModel.SearchText = text;
+
+    /// <summary>
+    /// Esc é o atalho de teclado para o menu lateral. Nos overlays ele primeiro respeita o modal:
+    /// fecha teclado/menu aberto, sem deixar o foco escapar para a biblioteca de trás.
+    /// </summary>
+    private void GameHubPage_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+
+        if (KeyboardOverlay.Visibility == Visibility.Visible) CloseKeyboard();
+        else if (MenuOverlay.Visibility == Visibility.Visible) CloseMenu();
+        else OpenMenu();
+
+        e.Handled = true;
+    }
 
     public void CloseKeyboard()
     {

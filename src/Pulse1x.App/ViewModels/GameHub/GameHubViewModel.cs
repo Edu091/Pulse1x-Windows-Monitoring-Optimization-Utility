@@ -314,7 +314,9 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
 
         OnPropertyChanged(nameof(LibraryCountText));
 
-        EmptyMessage = _allCards.Count == 0 ? Loc.S("GH_EmptyLibrary") : Loc.S("GH_EmptyFilter");
+        // Sem resultado de busca/filtro, a grade fica limpa sem exibir uma mensagem no centro.
+        // A orientação continua aparecendo apenas quando a biblioteca realmente não tem jogos.
+        EmptyMessage = _allCards.Count == 0 ? Loc.S("GH_EmptyLibrary") : "";
 
         if (SelectedGame is not null && !Games.Contains(SelectedGame))
             SelectedGame = Games.FirstOrDefault();

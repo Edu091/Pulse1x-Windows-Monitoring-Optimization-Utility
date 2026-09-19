@@ -194,6 +194,7 @@ public partial class SettingsViewModel : ObservableObject
         _settingsService.Current.DarkTheme = value;
         _settingsService.Save();
         ApplicationThemeManager.Apply(value ? ApplicationTheme.Dark : ApplicationTheme.Light);
+        _themeService.Apply();
     }
 
     partial void OnUpdateIntervalMsChanged(int value)
