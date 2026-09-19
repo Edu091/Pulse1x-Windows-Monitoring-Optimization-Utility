@@ -11,6 +11,8 @@
                      pincéis de texto pretos até a primeira troca de tema. -->
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <!-- Desenho do Detector de Bloatware, compartilhado por Otimização e Pós-Formatação. -->
+                <ResourceDictionary Source="pack://application:,,,/Pulse1x.App;component/Views/BloatwareDetectorResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que

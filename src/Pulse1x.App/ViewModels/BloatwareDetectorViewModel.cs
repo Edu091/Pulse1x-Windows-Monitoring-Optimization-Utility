@@ -175,12 +175,50 @@ public partial class BloatwareItemViewModel : ObservableObject
         StatusMessage = "";
         try
         {
-            await _service.UninstallAsync(_item);
-            if (_item.IsUwp) { CurrentlyEnabled = false; StatusMessage = "✅ " + Loc.S("Bloat_AppRemoved"); }
-            else StatusMessage = "➡ " + Loc.S("Bloat_OfficialUninstallerOpened");
+            var result = await _service.UninstallAsync(_item);
+            switch (result.Outcome)
+            {
+                case UninstallOutcome.SilentSuccess:
+                    CurrentlyEnabled = false;
+                    StatusMessage = "✅ " + Loc.S("Bloat_AppRemoved");
+                    await OfferLeftoverCleanupAsync();
+                    break;
+                case UninstallOutcome.OpenedInteractive:
+                    // O desinstalador está aberto e quem conduz é o usuário; o estado do item só
+                    // muda de verdade na próxima varredura.
+                    StatusMessage = "➡ " + Loc.S("Bloat_OfficialUninstallerOpened");
+                    break;
+                default:
+                    StatusMessage = "❌ " + Loc.S("Bloat_FailedShort") + (result.Detail ?? "");
+                    break;
+            }
         }
         catch (Exception ex) { StatusMessage = "❌ " + Loc.S("Bloat_FailedShort") + ex.Message; }
         finally { IsBusy = false; _onChanged(); }
+    }
+
+    /// <summary>
+    /// Depois de uma desinstalação bem-sucedida, procura pastas que o programa deixou para trás e
+    /// pergunta se devem sair também. É opcional de propósito: apagar pasta é a única coisa aqui que
+    /// não tem volta, então nada acontece sem o usuário ver a lista e o espaço envolvido.
+    /// </summary>
+    private async Task OfferLeftoverCleanupAsync()
+    {
+        var leftovers = await _service.ScanLeftoversAsync(_item);
+        if (leftovers.Count == 0) return;
+
+        long total = leftovers.Sum(l => l.SizeBytes);
+        string list = string.Join("\n", leftovers.Take(10).Select(l => $"• {l.Path} ({FormatBytes(l.SizeBytes)})"));
+        if (leftovers.Count > 10) list += "\n" + Loc.F("Bloat_AndMoreFolders", (leftovers.Count - 10).ToString());
+
+        var wants = MessageBox.Show(
+            Loc.F("Bloat_LeftoversFound", leftovers.Count.ToString(), FormatBytes(total)) + "\n\n" + list +
+            "\n\n" + Loc.S("Bloat_LeftoversNotReversible") + "\n\n" + Loc.S("Bloat_WantToContinue"),
+            Loc.S("Bloat_LeftoversTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (wants != MessageBoxResult.Yes) return;
+
+        var (removed, freed) = await _service.RemoveLeftoversAsync(leftovers);
+        StatusMessage = "✅ " + Loc.F("Bloat_LeftoversRemoved", removed.ToString(), FormatBytes(freed));
     }
 
     [RelayCommand]

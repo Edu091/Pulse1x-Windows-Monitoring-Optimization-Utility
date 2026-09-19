@@ -174,7 +174,7 @@ public partial class App : Application
         // (winget) e aplica configurações recomendadas, com detecção inteligente do hardware.
         var appInstallService = new AppInstallService();
         var postFormatTweaksService = new PostFormatTweaksService(specialCommandsService);
-        var utilityPage = new UtilityPage(new PostFormatViewModel(appInstallService, postFormatTweaksService));
+        var utilityPage = new UtilityPage(new PostFormatViewModel(appInstallService, postFormatTweaksService, bloatwareDetectorService));
 
         // ---------------------------------------------------------------------------------
         //  GameHub — biblioteca unificada de jogos/apps + perfis individuais de sistema.

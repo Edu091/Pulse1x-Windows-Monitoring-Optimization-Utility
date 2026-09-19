@@ -58,6 +58,7 @@ public class AdvancedOptimization
 public class AdvancedOptimizationService
 {
     private readonly OptimizationChangeLog _log;
+    private readonly HardwareOptimizationService _hardware;
     public IReadOnlyList<AdvancedOptimization> Optimizations { get; private set; }
 
     /// <summary>Disparado quando o idioma muda e a lista de otimizações é reconstruída com os novos textos.</summary>
@@ -70,6 +71,7 @@ public class AdvancedOptimizationService
     public AdvancedOptimizationService(OptimizationChangeLog log)
     {
         _log = log;
+        _hardware = new HardwareOptimizationService(log);
         Optimizations = BuildOptimizations();
         Loc.Instance.LanguageChanged += () =>
         {
@@ -358,7 +360,105 @@ public class AdvancedOptimizationService
             },
         });
 
+        AddHardwareOptimizations(list);
+
         return list;
+    }
+
+    // ---------- HARDWARE (CPU, GPU e RAM) ----------
+
+    /// <summary>
+    /// A categoria Hardware ajusta como o Windows distribui trabalho à CPU e à GPU. Nenhuma delas
+    /// faz overclock, mexe em voltagem ou em limite térmico: o que muda é a política do sistema
+    /// operacional, e toda mudança volta atrás pelo mesmo log das demais otimizações.
+    /// </summary>
+    private void AddHardwareOptimizations(List<AdvancedOptimization> list)
+    {
+        list.Add(new AdvancedOptimization
+        {
+            Id = "hw-gpu-scheduling",
+            Icon = "🎬",
+            Title = Loc.S("AdvOpt_HagsTitle"),
+            Category = "Hardware",
+            Warning = Loc.S("AdvOpt_RequiresRestart"),
+            Description = Loc.S("AdvOpt_HagsDesc"),
+            IsAvailableAsync = () => Task.FromResult(_hardware.IsHagsAvailable()),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsHagsEnabled()),
+            ApplyAsync = () =>
+            {
+                _hardware.EnableHags();
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "core-parking",
+            Icon = "🧠",
+            Title = Loc.S("AdvOpt_CoreParkingTitle"),
+            Category = "Hardware",
+            Description = Loc.S("AdvOpt_CoreParkingDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(
+                Loc.F("AdvOpt_CoreParkingDetail", Environment.ProcessorCount.ToString())),
+            IsAppliedAsync = () => _hardware.IsCoreParkingDisabledAsync(),
+            ApplyAsync = async () =>
+            {
+                await _hardware.UnhideCoreParkingAsync();
+                await _hardware.DisableCoreParkingAsync();
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "power-throttling",
+            Icon = "⚡",
+            Title = Loc.S("AdvOpt_PowerThrottlingTitle"),
+            Category = "Hardware",
+            Warning = Loc.S("AdvOpt_PowerThrottlingWarning"),
+            Description = Loc.S("AdvOpt_PowerThrottlingDesc"),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsPowerThrottlingDisabled()),
+            ApplyAsync = () =>
+            {
+                _hardware.DisablePowerThrottling();
+                return Task.CompletedTask;
+            },
+        });
+
+        // O MSI depende do dispositivo: só aparece quando existe uma GPU física cujo driver já
+        // publica a chave de propriedades de interrupção.
+        var gpu = _hardware.FindPrimaryGpu();
+        list.Add(new AdvancedOptimization
+        {
+            Id = "gpu-msi",
+            Icon = "🖥️",
+            Title = Loc.S("AdvOpt_GpuMsiTitle"),
+            Category = "Hardware",
+            Warning = Loc.S("AdvOpt_RequiresRestart"),
+            Description = Loc.S("AdvOpt_GpuMsiDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(gpu is null ? null : Loc.F("AdvOpt_GpuDetected", gpu.Name)),
+            IsAvailableAsync = () => Task.FromResult(gpu is not null && _hardware.IsMsiAvailable(gpu)),
+            IsAppliedAsync = () => Task.FromResult(gpu is not null && _hardware.IsMsiEnabled(gpu)),
+            ApplyAsync = () =>
+            {
+                if (gpu is not null) _hardware.EnableMsi(gpu);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "game-priority",
+            Icon = "🎯",
+            Title = Loc.S("AdvOpt_GamePriorityTitle"),
+            Category = "Hardware",
+            Description = Loc.S("AdvOpt_GamePriorityDesc"),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsGamePriorityApplied()),
+            ApplyAsync = () =>
+            {
+                _hardware.ApplyGamePriority();
+                return Task.CompletedTask;
+            },
+        });
     }
 
     private static readonly string[] XboxServices = { "XblAuthManager", "XblGameSave", "XboxGipSvc", "XboxNetApiSvc" };
@@ -490,6 +590,13 @@ public class AdvancedOptimizationService
             case "hibernation":
                 await RunAsync("powercfg", "/hibernate on");
                 break;
+            case "hw-gpu-scheduling":
+            case "core-parking":
+            case "power-throttling":
+            case "gpu-msi":
+            case "game-priority":
+                await _hardware.RestoreDefaultAsync(id);
+                break;
         }
     }
 
@@ -527,6 +634,19 @@ public class AdvancedOptimizationService
                     await RunAsync("powercfg", "/hibernate on");
                 else if (change.ValueName == "PowerPlan" && !string.IsNullOrEmpty(change.OldValue))
                     await RunAsync("powercfg", $"/setactive {change.OldValue}");
+                else if (change.ValueName == "ValueIndex" && !string.IsNullOrEmpty(change.OldValue))
+                {
+                    // KeyPath guarda "SUBGRUPO CONFIGURAÇÃO"; OldValue, os índices originais de
+                    // tomada e bateria ("ac|dc"), que é como CaptureIndex os gravou.
+                    var guids = change.KeyPath.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var values = change.OldValue.Split('|');
+                    if (guids.Length == 2 && values.Length == 2)
+                    {
+                        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {guids[0]} {guids[1]} {values[0]}");
+                        await RunAsync("powercfg", $"/setdcvalueindex SCHEME_CURRENT {guids[0]} {guids[1]} {values[1]}");
+                        await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
+                    }
+                }
                 break;
         }
 

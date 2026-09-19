@@ -16,7 +16,8 @@
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Background="{DynamicResource ApplicationBackgroundBrush}"
     Closing="FluentWindow_Closing"
-    StateChanged="FluentWindow_StateChanged">
+    StateChanged="FluentWindow_StateChanged"
+    PreviewKeyDown="MainWindow_PreviewKeyDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TitleRow" Height="Auto" />

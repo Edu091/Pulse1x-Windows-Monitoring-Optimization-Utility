@@ -1,0 +1,234 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:anim="clr-namespace:Pulse1x.App.Services"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization">
+
+    <!--
+        A interface do Detector de Bloatware (o "Debloater") mora aqui porque duas paginas a
+        mostram: Otimizacao, onde ela nasceu, e a Central Pos-Formatacao, onde tirar o que veio de
+        fabrica e a outra metade do trabalho de preparar um PC recem-formatado. Cada pagina cria
+        seu proprio ViewModel sobre o mesmo servico; so o desenho e compartilhado.
+    -->
+    <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+    <converters:InverseBooleanConverter x:Key="InvBool" />
+
+    <DataTemplate x:Key="BloatwareDetectorTemplate" DataType="{x:Type vm:BloatwareDetectorViewModel}">
+            <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            >
+                <StackPanel>
+                    <ToggleButton IsChecked="{Binding IsSectionExpanded, Mode=TwoWay}"
+                                  Style="{DynamicResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="14,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding [Opt_BloatTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding [Opt_BloatSub], Source={x:Static loc:Loc.Instance}}"
+                                           Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="1" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <StackPanel Margin="14,0,14,14"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsSectionExpanded, Converter={StaticResource BoolToVis}}">
+
+                        <!-- Aviso de segurança -->
+                        <Border Padding="10" CornerRadius="8" Margin="0,0,0,10"
+                                Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Opacity="0.85"
+                                       Text="{Binding [Opt_BloatSafetyNotice], Source={x:Static loc:Loc.Instance}}" />
+                        </Border>
+
+                        <!-- Botão de varredura -->
+                        <ui:Button Content="{Binding [Opt_BloatScan], Source={x:Static loc:Loc.Instance}}" Command="{Binding ScanCommand}"
+                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                   Padding="16,8" HorizontalAlignment="Left"
+                                   Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                        <!-- Varredura em andamento -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
+                            <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" />
+                            <TextBlock Text="{Binding [Opt_BloatScanning], Source={x:Static loc:Loc.Instance}}"
+                                       VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.8" />
+                        </StackPanel>
+
+                        <!-- Relatório final -->
+                        <Border Margin="0,12,0,0" Padding="14" CornerRadius="10"
+                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding [Badge_Removal], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding RemoveCount}" FontSize="18" FontWeight="Bold"
+                                                   Foreground="{DynamicResource BrandAccentBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding [Badge_Optional], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding OptionalCount}" FontSize="18" FontWeight="Bold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="{Binding [Badge_Keep], Source={x:Static loc:Loc.Instance}}" FontSize="10" Opacity="0.5" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding KeepCount}" FontSize="18" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="{Binding ReportText}" FontSize="12" Opacity="0.8"
+                                           TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <CheckBox Content="{Binding [Opt_ShowIgnored], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding ShowIgnored, Mode=TwoWay}"
+                                          FontSize="12" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Nenhum item -->
+                        <TextBlock Text="{Binding [Opt_BloatEmpty], Source={x:Static loc:Loc.Instance}}"
+                                   Opacity="0.7" Margin="0,12,0,0"
+                                   Visibility="{Binding ShowEmpty, Converter={StaticResource BoolToVis}}" />
+
+                        <!-- Lista de itens detectados -->
+                        <ItemsControl ItemsSource="{Binding Items}" Margin="0,12,0,0" MaxHeight="520">
+                            <ItemsControl.Template>
+                                <ControlTemplate TargetType="ItemsControl">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </ControlTemplate>
+                            </ItemsControl.Template>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                        <StackPanel>
+                                            <!-- Cabeçalho do item -->
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="18"
+                                                           VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="6"
+                                                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                                Visibility="{Binding ShowStateBadge, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="{Binding StateText}" FontSize="10" Opacity="0.8" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock FontSize="11" Opacity="0.6" Margin="0,1,0,0">
+                                                        <Run Text="{Binding Vendor, Mode=OneWay}" /><Run Text="  •  " /><Run Text="{Binding CategoryLabel, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <ui:ProgressRing Grid.Column="2" IsIndeterminate="True" Width="16" Height="16"
+                                                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                                            </Grid>
+
+                                            <!-- Selos de análise -->
+                                            <WrapPanel Margin="28,6,0,0">
+                                                <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                        Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                    <TextBlock Text="{Binding RecommendationBadge}" FontSize="11" FontWeight="SemiBold" />
+                                                </Border>
+                                                <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                        Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                    <TextBlock Text="{Binding ImpactBadge}" FontSize="11" />
+                                                </Border>
+                                                <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                        Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                                    <TextBlock Text="{Binding RiskBadge}" FontSize="11" />
+                                                </Border>
+                                                <Border Padding="6,2" CornerRadius="6" Margin="0,0,6,4"
+                                                        Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                        Visibility="{Binding HasSize, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding SizeText}" FontSize="11" />
+                                                </Border>
+                                            </WrapPanel>
+
+                                            <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.75"
+                                                       TextWrapping="Wrap" Margin="28,6,0,0" />
+
+                                            <!-- Status da última ação -->
+                                            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="28,6,0,0"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+
+                                            <!-- Ações -->
+                                            <WrapPanel Margin="28,8,0,0">
+                                                <ui:Button Content="{Binding [Opt_Disable], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                           Command="{Binding DisableCommand}"
+                                                           IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                           Visibility="{Binding ShowDisable, Converter={StaticResource BoolToVis}}" />
+                                                <ui:Button Content="{Binding [Opt_Reactivate], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                           Command="{Binding EnableCommand}"
+                                                           IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                           Visibility="{Binding ShowEnable, Converter={StaticResource BoolToVis}}" />
+                                                <ui:Button Content="{Binding [Opt_Uninstall], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                           Command="{Binding UninstallCommand}"
+                                                           IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
+                                                           Visibility="{Binding ShowUninstall, Converter={StaticResource BoolToVis}}" />
+                                                <ui:Button Content="{Binding [Opt_Ignore], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                           Command="{Binding IgnoreCommand}" />
+                                                <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                              Style="{DynamicResource GhostToggle}" Background="Transparent" Padding="10,5" Margin="0,0,0,4">
+                                                    <TextBlock Text="{Binding [Opt_MoreInfo], Source={x:Static loc:Loc.Instance}}" FontSize="12" />
+                                                </ToggleButton>
+                                            </WrapPanel>
+
+                                            <!-- Painel "Mais Informações" -->
+                                            <Border Margin="28,8,0,0" Padding="12" CornerRadius="8"
+                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                    anim:Anim.AnimateVisibility="True" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding [Opt_InfoWhatIs], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding WhatItIs}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                    <TextBlock Text="{Binding [Opt_InfoWhoInstalled], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding WhoInstalled}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                    <TextBlock Text="{Binding [Opt_InfoWhenUsed], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding WhenUsed}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                    <TextBlock Text="{Binding BackgroundText}" FontSize="12" Opacity="0.7" Margin="0,0,0,2" />
+                                                    <TextBlock Text="{Binding StartupImpactText}" FontSize="12" Opacity="0.7" Margin="0,0,0,8" />
+                                                    <TextBlock Text="{Binding [Opt_InfoBenefitsKeep], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding BenefitsKeeping}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                    <TextBlock Text="{Binding [Opt_InfoBenefitsRemove], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding BenefitsRemoving}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,8" />
+                                                    <TextBlock Text="{Binding [Opt_InfoConsequences], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" />
+                                                    <TextBlock Text="{Binding Consequences}" FontSize="12" Opacity="0.8"
+                                                               TextWrapping="Wrap" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+    </DataTemplate>
+
+</ResourceDictionary>

@@ -182,6 +182,7 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
 
     public ObservableCollection<AdvancedOptimizationViewModel> PrivacyOptimizations { get; } = new();
     public ObservableCollection<AdvancedOptimizationViewModel> PerformanceOptimizations { get; } = new();
+    public ObservableCollection<AdvancedOptimizationViewModel> HardwareOptimizations { get; } = new();
     public ObservableCollection<VisualProfileViewModel> VisualProfiles { get; } = new();
     public ObservableCollection<OptimizationChange> History { get; } = new();
 
@@ -205,12 +206,17 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     {
         PrivacyOptimizations.Clear();
         PerformanceOptimizations.Clear();
+        HardwareOptimizations.Clear();
 
         foreach (var opt in _service.Optimizations)
         {
             var vm = new AdvancedOptimizationViewModel(opt, _service);
-            if (opt.Category == "Privacidade") PrivacyOptimizations.Add(vm);
-            else PerformanceOptimizations.Add(vm);
+            switch (opt.Category)
+            {
+                case "Privacidade": PrivacyOptimizations.Add(vm); break;
+                case "Hardware": HardwareOptimizations.Add(vm); break;
+                default: PerformanceOptimizations.Add(vm); break;
+            }
         }
     }
 
@@ -245,6 +251,7 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
         {
             foreach (var vm in PrivacyOptimizations) await vm.RefreshStateAsync();
             foreach (var vm in PerformanceOptimizations) await vm.RefreshStateAsync();
+            foreach (var vm in HardwareOptimizations) await vm.RefreshStateAsync();
             RefreshVisualProfiles();
             RefreshHistory();
         }

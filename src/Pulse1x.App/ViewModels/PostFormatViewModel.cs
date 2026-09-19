@@ -60,9 +60,17 @@ public partial class CategoryGroupViewModel : ObservableObject
         Category = category;
         Icon = icon;
         Items = new ObservableCollection<AppItemViewModel>(items);
+        // Drivers e fabricantes é a maior lista de todas e empurrava o resto da página para fora da
+        // tela; ela começa recolhida, e as demais categorias seguem abertas como antes.
+        isExpanded = category != InstallCategory.Drivers;
     }
 
     [ObservableProperty] private bool isVisible = true;
+
+    [ObservableProperty] private bool isExpanded;
+
+    /// <summary>Contagem exibida no cabeçalho quando o grupo está recolhido.</summary>
+    public string CountLabel => Items.Count.ToString();
 
     public string Header => Loc.S(HeaderKey);
     public void RefreshLanguage() => OnPropertyChanged(nameof(Header));
@@ -136,10 +144,20 @@ public partial class PostFormatViewModel : ObservableObject
     public ObservableCollection<string> InstallLog { get; } = new();
     public ObservableCollection<InstallSummaryLine> Summary { get; } = new();
 
-    public PostFormatViewModel(AppInstallService install, PostFormatTweaksService tweaks)
+    /// <summary>
+    /// Debloater: o Detector de Bloatware exposto aqui, ao lado da instalação. Depois de formatar,
+    /// tirar o que veio de fábrica é a outra metade do trabalho — por isso as duas coisas moram na
+    /// mesma página. É uma instância própria (a de Otimizações continua existindo), pois um mesmo
+    /// ViewModel renderizado em duas páginas brigaria pelos mesmos elementos visuais.
+    /// </summary>
+    public BloatwareDetectorViewModel Debloater { get; }
+
+    public PostFormatViewModel(AppInstallService install, PostFormatTweaksService tweaks,
+        BloatwareDetectorService bloatwareDetector)
     {
         _install = install;
         _tweaks = tweaks;
+        Debloater = new BloatwareDetectorViewModel(bloatwareDetector);
 
         BuildCatalog();
 

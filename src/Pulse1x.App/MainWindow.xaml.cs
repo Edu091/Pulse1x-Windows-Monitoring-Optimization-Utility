@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using Pulse1x.App.Services;
@@ -397,6 +398,20 @@ public partial class MainWindow : FluentWindow
 
         _inGameHub = true;
         NavigateTo(_gameHubPage, GameHubButton);
+    }
+
+    /// <summary>
+    /// Esc abre (e fecha) o menu lateral do GameHub. O handler vive na janela, e não só na página,
+    /// porque <c>PreviewKeyDown</c> de uma Page só dispara com o foco de teclado dentro da árvore
+    /// dela — ao entrar no hub, ou ao voltar de uma janela filha, o foco fica na janela e a tecla
+    /// nunca chegava à página.
+    /// </summary>
+    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!_inGameHub || e.Key != Key.Escape || e.Handled) return;
+
+        _gameHubPage.ToggleMenuFromKeyboard();
+        e.Handled = true;
     }
 
     /// <summary>Sai do GameHub e devolve a janela ao Pulse1x normal.</summary>

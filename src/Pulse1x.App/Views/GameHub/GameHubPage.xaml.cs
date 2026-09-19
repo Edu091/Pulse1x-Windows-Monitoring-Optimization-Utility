@@ -728,16 +728,16 @@ public partial class GameHubPage : Page
     /// <summary>
     /// Esc é o atalho de teclado para o menu lateral. Nos overlays ele primeiro respeita o modal:
     /// fecha teclado/menu aberto, sem deixar o foco escapar para a biblioteca de trás.
+    ///
+    /// Quem escuta a tecla é a janela (<c>MainWindow</c>), não esta página: o PreviewKeyDown de uma
+    /// Page só dispara com o foco de teclado dentro da árvore dela, e ao entrar no hub — ou ao
+    /// voltar de uma janela filha — o foco fica na janela e o Esc se perdia.
     /// </summary>
-    private void GameHubPage_PreviewKeyDown(object sender, KeyEventArgs e)
+    public void ToggleMenuFromKeyboard()
     {
-        if (e.Key != Key.Escape) return;
-
         if (KeyboardOverlay.Visibility == Visibility.Visible) CloseKeyboard();
         else if (MenuOverlay.Visibility == Visibility.Visible) CloseMenu();
         else OpenMenu();
-
-        e.Handled = true;
     }
 
     public void CloseKeyboard()
