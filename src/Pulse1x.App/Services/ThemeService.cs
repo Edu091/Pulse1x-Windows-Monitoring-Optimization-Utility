@@ -197,6 +197,14 @@ public class ThemeService
         SetBrush(resources, "TextFillColorSecondaryBrush", dark ? Color.FromRgb(0xC5, 0xC8, 0xD0) : Color.FromRgb(0x52, 0x57, 0x61));
         SetBrush(resources, "TextFillColorTertiaryBrush", dark ? Color.FromRgb(0x99, 0x9E, 0xA8) : Color.FromRgb(0x73, 0x78, 0x82));
 
+        // A superfície da janela. Os campos do Wpf.Ui (caixas de seleção, de texto) são um branco
+        // TRANSLÚCIDO: eles só ficam escuros porque são compostos sobre ela. A MainWindow usa
+        // Mica, um efeito do sistema que nem sempre é aplicado (efeitos de transparência
+        // desligados no Windows, sessão remota, certos drivers) — e aí a janela caía na superfície
+        // CLARA padrão, os campos viravam blocos brancos e o texto sumia. Fixar este pincel
+        // conforme o tema escolhido garante um fundo por baixo do Mica em qualquer situação.
+        SetBrush(resources, "ApplicationBackgroundBrush", dark ? Color.FromRgb(0x20, 0x20, 0x20) : Color.FromRgb(0xF3, 0xF3, 0xF3));
+
         SetBrush(resources, "ScrollBarThumbFill", primary);
         SetBrush(resources, "ScrollBarTrackFillPointerOver", secondary);
 

@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.4.9 — 18/09/2026
+
+- Corrigidos os campos brancos com texto invisível na página de Configurações e nas demais telas do aplicativo. A janela principal dependia do efeito Mica do Windows para ter um fundo escuro; quando o sistema não o aplicava (efeitos de transparência desligados, sessão remota, certos drivers de vídeo), ela caía em um fundo claro e as caixas de seleção e de texto, que são translúcidas, viravam blocos brancos.
+
 ## 1.4.8 — 18/09/2026
 
 - A seção Sobre passa a exibir a versão realmente em execução: ela estava fixada em "1.0.0" desde o primeiro lançamento.
