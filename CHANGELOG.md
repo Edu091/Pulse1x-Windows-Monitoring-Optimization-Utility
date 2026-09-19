@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 1.6.0 — 19/09/2026
+
+- Nova seção **Personalização do Windows**: muda o visual da barra de tarefas, do Explorador de Arquivos, do Menu Iniciar e das Configurações, com temas completos, preview e reversão total.
+  - **Aparências**: transparente, translúcido, blur, glass, acrylic, mica, cor sólida, gradiente e imagem de fundo, com ajustes de opacidade, transparência, intensidade de blur e de efeitos, cor/tint, saturação, luminosidade, escurecimento, raio de borda e posicionamento/escala/recorte da imagem.
+  - **Explorer por regiões**: fundo principal, painel lateral, barra superior, barra de endereço, barra de comandos, pesquisa, abas e painel de detalhes têm estilos independentes — dá para misturar imagem no fundo com blur na lateral e glass nas abas.
+  - **Temas**: criar, salvar, renomear, duplicar, excluir, aplicar, importar e exportar (.pulsetheme, com as imagens embutidas). Seis presets de fábrica: Windows Default, Pulse Glass, Transparent, Dark Glass, Fluent e Custom.
+  - **Sincronizar aparência** aplica o estilo da barra de tarefas aos demais componentes; desligando, cada um volta a ser independente.
+  - **Confirmação com reversão automática**: ao aplicar um tema, o Pulse pergunta se deve mantê-lo e desfaz sozinho em 5 segundos se ninguém responder — se algo ficar ilegível, não fazer nada é o caminho seguro.
+  - **Persistência sem depender do app**: um host de inicialização reaplica o tema no logon e quando o Explorer reinicia, sem manter o Pulse aberto.
+  - **Reversibilidade**: botões para restaurar cada componente e um para remover toda a personalização, mais um atalho de recuperação (`Restaurar-Windows.cmd`) que devolve o Windows ao padrão mesmo com o Pulse fechado ou quebrado. Nenhum arquivo do Windows é modificado: os efeitos vivem só na memória das janelas.
+  - **Proteção contra falhas**: um alvo que falhe repetidamente entra em quarentena e é restaurado automaticamente, sem ciclos de crash e reaplicação.
+  - **Compatibilidade honesta**: opções que a build atual do Windows não suporta aparecem desativadas com o motivo, e uma incompatibilidade em um componente não afeta os demais.
+  - Menu Iniciar, Configurações e as áreas internas do Explorer dependem de um motor avançado (beta) que não acompanha esta versão; esses alvos aparecem marcados como indisponíveis, e a barra de tarefas e a janela do Explorer funcionam normalmente sem ele.
+
 ## 1.5.2 — 19/09/2026
 
 - As seções do perfil de jogo que estão em "Não alterar" ou "Automático" passam a explicar por que os campos estão esmaecidos: "Mude o seletor acima para Personalizado para editar estes campos." Antes, campos desligados de propósito davam a impressão de estarem quebrados.

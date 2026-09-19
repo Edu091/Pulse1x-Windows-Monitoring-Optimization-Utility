@@ -1,0 +1,646 @@
+﻿<Page
+    x:Class="Pulse1x.App.Views.WinCustom.WinCustomPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
+    xmlns:wincustom="clr-namespace:Pulse1x.App.Models.WinCustom"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    Title="Personalização do Windows">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:FalseToVisibilityConverter x:Key="FalseToVis" />
+        <converters:BlurToVisibilityConverter x:Key="BlurToVis" />
+        <converters:HexToBrushConverter x:Key="HexToBrush" />
+        <converters:EnumToLocalizedNameConverter x:Key="EnumName" />
+        <converters:EnumToBooleanConverter x:Key="EnumToBool" />
+
+        <!-- Linha padrão de um slider: rótulo | controle | valor. Repetida em todos os ajustes. -->
+        <Style x:Key="SliderRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="SliderLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <!-- Fatia do papel de parede simulado, atrás do preview. Dá ao blur/translúcido algo
+             para deixar transparecer, como aconteceria sobre a área de trabalho real. -->
+        <LinearGradientBrush x:Key="PreviewBackdrop" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#2B3A67" Offset="0" />
+            <GradientStop Color="#7B3F6B" Offset="0.45" />
+            <GradientStop Color="#C56B3F" Offset="1" />
+        </LinearGradientBrush>
+    </Page.Resources>
+
+    <Grid Margin="16,16,16,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- CABEÇALHO -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{Binding [WinCustom_Title], Source={x:Static loc:Loc.Instance}}"
+                       FontSize="22" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding [WinCustom_Subtitle], Source={x:Static loc:Loc.Instance}}"
+                       Opacity="0.65" FontSize="12.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- COLUNA 1: TEMAS + COMPONENTES -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding [WinCustom_Themes], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource SectionTitle}" />
+
+                    <ListBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}"
+                             MaxHeight="190" Margin="0,0,0,6"
+                             Background="Transparent" BorderThickness="1"
+                             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="2">
+                                    <ui:SymbolIcon Symbol="Star24" FontSize="13" Margin="0,0,6,0"
+                                                   Foreground="{DynamicResource BrandAccentBrush}"
+                                                   Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVis}}" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <ui:Button Content="{Binding [WinCustom_Apply], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding ApplyThemeCommand}" Appearance="Primary"
+                               HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+
+                    <UniformGrid Columns="2" Margin="0,0,0,4">
+                        <ui:Button Content="{Binding [WinCustom_NewTheme], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding CreateThemeCommand}" Margin="0,0,3,4" HorizontalAlignment="Stretch" />
+                        <ui:Button Content="{Binding [WinCustom_Duplicate], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding DuplicateThemeCommand}" Margin="3,0,0,4" HorizontalAlignment="Stretch" />
+                        <ui:Button x:Name="RenameButton" Content="{Binding [WinCustom_Rename], Source={x:Static loc:Loc.Instance}}"
+                                   Click="RenameTheme_Click" Margin="0,0,3,4" HorizontalAlignment="Stretch"
+                                   IsEnabled="{Binding CanEditSelectedTheme}" />
+                        <ui:Button Content="{Binding [WinCustom_Delete], Source={x:Static loc:Loc.Instance}}"
+                                   Click="DeleteTheme_Click" Margin="3,0,0,4" HorizontalAlignment="Stretch"
+                                   IsEnabled="{Binding CanEditSelectedTheme}" />
+                        <ui:Button Content="{Binding [WinCustom_Import], Source={x:Static loc:Loc.Instance}}"
+                                   Click="ImportTheme_Click" Margin="0,0,3,0" HorizontalAlignment="Stretch" />
+                        <ui:Button Content="{Binding [WinCustom_Export], Source={x:Static loc:Loc.Instance}}"
+                                   Click="ExportTheme_Click" Margin="3,0,0,0" HorizontalAlignment="Stretch" />
+                    </UniformGrid>
+
+                    <TextBlock Text="{Binding [WinCustom_BuiltInTheme], Source={x:Static loc:Loc.Instance}}"
+                               Opacity="0.6" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,10"
+                               Visibility="{Binding CanEditSelectedTheme, Converter={StaticResource FalseToVis}}" />
+
+                    <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,4,0,10" />
+
+                    <!-- Componentes: escolher o que personalizar -->
+                    <ItemsControl ItemsSource="{Binding Components}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton GroupName="Comp" Margin="0,0,0,4"
+                                             Checked="ComponentRadio_Checked" Tag="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="13" />
+                                        <Border Background="{DynamicResource BrandAccentBrush}" CornerRadius="3"
+                                                Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                Visibility="{Binding IsBeta, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding [WinCustom_Beta], Source={x:Static loc:Loc.Instance}}"
+                                                       FontSize="9" FontWeight="Bold" Foreground="White" />
+                                        </Border>
+                                    </StackPanel>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,10,0,10" />
+
+                    <ui:ToggleSwitch Content="{Binding [WinCustom_Sync], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding SyncAppearance}" Margin="0,0,0,2" />
+                    <TextBlock Text="{Binding [WinCustom_SyncHint], Source={x:Static loc:Loc.Instance}}"
+                               Opacity="0.6" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- COLUNA 2: EDITOR DAS REGIÕES -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+                <ItemsControl x:Name="RegionEditors">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Expander Margin="0,0,0,8" IsExpanded="False">
+                                <Expander.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <!-- Amostra viva: o preview do estilo já no cabeçalho -->
+                                        <Border Width="34" Height="20" CornerRadius="3" Margin="0,0,8,0"
+                                                Background="{StaticResource PreviewBackdrop}"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                            <Border Background="{Binding PreviewBrush}" CornerRadius="2" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="13" />
+                                        <TextBlock Text="{Binding CurrentKindHint}" VerticalAlignment="Center"
+                                                   FontSize="10.5" Opacity="0.75" Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                                   Visibility="{Binding CurrentKindAvailable, Converter={StaticResource FalseToVis}}" />
+                                    </StackPanel>
+                                </Expander.Header>
+
+                                <StackPanel Margin="4,10,4,4">
+
+                                    <!-- Tipo de aparência -->
+                                    <TextBlock Text="{Binding [WinCustom_Appearance], Source={x:Static loc:Loc.Instance}}"
+                                               FontSize="12.5" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding Options}" Margin="0,0,0,10">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <RadioButton Margin="0,0,10,4" FontSize="12"
+                                                             Content="{Binding Label}"
+                                                             IsEnabled="{Binding IsAvailable}"
+                                                             ToolTip="{Binding UnavailableHint}"
+                                                             Loaded="KindRadio_Loaded"
+                                                             Checked="KindRadio_Checked" Tag="{Binding Kind}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Aviso quando o tipo atual não pode ser aplicado aqui -->
+                                    <ui:InfoBar Severity="Warning" IsOpen="True" Margin="0,0,0,10"
+                                                Message="{Binding CurrentKindHint}"
+                                                Visibility="{Binding CurrentKindAvailable, Converter={StaticResource FalseToVis}}" />
+
+                                    <!-- Ajustes -->
+                                    <StackPanel Visibility="{Binding IsDefault, Converter={StaticResource FalseToVis}}">
+
+                                        <!-- Opacidade -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowOpacity, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_Opacity], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Opacity}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Opacity, StringFormat={}{0:P0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Transparência -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowTransparency, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_Transparency], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Transparency}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Transparency, StringFormat={}{0:P0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Blur -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowBlur, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_BlurRadius], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="60" Value="{Binding BlurRadius}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding BlurRadius, StringFormat={}{0:F0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Intensidade dos efeitos -->
+                                        <Grid Style="{StaticResource SliderRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_EffectIntensity], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding EffectIntensity}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding EffectIntensity, StringFormat={}{0:P0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Cor / Tint -->
+                                        <Expander Margin="0,6,0,6"
+                                                  Visibility="{Binding ShowColorAdjust, Converter={StaticResource BoolToVis}}">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0"
+                                                            Background="{Binding TintColor, Converter={StaticResource HexToBrush}}"
+                                                            BorderThickness="1"
+                                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                                                    <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                                               Text="{Binding [WinCustom_TintColor], Source={x:Static loc:Loc.Instance}}" />
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <controls:ColorPicker SelectedHex="{Binding TintColor, Mode=TwoWay}" Margin="0,8,0,0" />
+                                        </Expander>
+
+                                        <!-- Intensidade do tint -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowTint, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_TintIntensity], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding TintIntensity}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding TintIntensity, StringFormat={}{0:P0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Saturação -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowColorAdjust, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_Saturation], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="2" Value="{Binding Saturation}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Saturation, StringFormat={}{0:F2}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Luminosidade -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowColorAdjust, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_Luminosity], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="-1" Maximum="1" Value="{Binding Luminosity}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Luminosity, StringFormat={}{0:F2}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Escurecimento -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowColorAdjust, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_Darken], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Darken}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Darken, StringFormat={}{0:P0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Border radius -->
+                                        <Grid Style="{StaticResource SliderRow}"
+                                              Visibility="{Binding ShowCornerRadius, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="46" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                       Text="{Binding [WinCustom_CornerRadius], Source={x:Static loc:Loc.Instance}}" />
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="32" Value="{Binding CornerRadius}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding CornerRadius, StringFormat={}{0:F0}}"
+                                                       TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Gradiente -->
+                                        <StackPanel Visibility="{Binding ShowGradient, Converter={StaticResource BoolToVis}}"
+                                                    Margin="0,6,0,0">
+                                            <Expander Margin="0,0,0,4">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0"
+                                                                Background="{Binding GradientStart, Converter={StaticResource HexToBrush}}"
+                                                                BorderThickness="1"
+                                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                                                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                                                   Text="{Binding [WinCustom_GradientStart], Source={x:Static loc:Loc.Instance}}" />
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <controls:ColorPicker SelectedHex="{Binding GradientStart, Mode=TwoWay}" Margin="0,8,0,0" />
+                                            </Expander>
+                                            <Expander Margin="0,0,0,6">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0"
+                                                                Background="{Binding GradientEnd, Converter={StaticResource HexToBrush}}"
+                                                                BorderThickness="1"
+                                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                                                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                                                   Text="{Binding [WinCustom_GradientEnd], Source={x:Static loc:Loc.Instance}}" />
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <controls:ColorPicker SelectedHex="{Binding GradientEnd, Mode=TwoWay}" Margin="0,8,0,0" />
+                                            </Expander>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                <TextBlock Style="{StaticResource SliderLabel}" Width="150"
+                                                           Text="{Binding [WinCustom_GradientDirection], Source={x:Static loc:Loc.Instance}}" />
+                                                <ComboBox Width="180" Loaded="GradientDirectionBox_Loaded"
+                                                          SelectionChanged="GradientDirection_Changed" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Imagem -->
+                                        <StackPanel Visibility="{Binding ShowImage, Converter={StaticResource BoolToVis}}"
+                                                    Margin="0,6,0,0">
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox Grid.Column="0" Text="{Binding ImagePath, UpdateSourceTrigger=LostFocus}"
+                                                            PlaceholderText="{Binding [WinCustom_Image], Source={x:Static loc:Loc.Instance}}" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0"
+                                                           Content="{Binding [WinCustom_PickImage], Source={x:Static loc:Loc.Instance}}"
+                                                           Command="{Binding PickImageCommand}" />
+                                                <ui:Button Grid.Column="2" Margin="6,0,0,0"
+                                                           Content="{Binding [WinCustom_ClearImage], Source={x:Static loc:Loc.Instance}}"
+                                                           Command="{Binding ClearImageCommand}" />
+                                            </Grid>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                <TextBlock Style="{StaticResource SliderLabel}" Width="150"
+                                                           Text="{Binding [WinCustom_ImageFit], Source={x:Static loc:Loc.Instance}}" />
+                                                <ComboBox Width="180" Loaded="ImageFitBox_Loaded"
+                                                          SelectionChanged="ImageFit_Changed" />
+                                            </StackPanel>
+
+                                            <Grid Style="{StaticResource SliderRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="46" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                           Text="{Binding [WinCustom_ImageOffsetX], Source={x:Static loc:Loc.Instance}}" />
+                                                <Slider Grid.Column="1" Minimum="-1" Maximum="1" Value="{Binding ImageOffsetX}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding ImageOffsetX, StringFormat={}{0:F2}}"
+                                                           TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                            </Grid>
+
+                                            <Grid Style="{StaticResource SliderRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="46" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                           Text="{Binding [WinCustom_ImageOffsetY], Source={x:Static loc:Loc.Instance}}" />
+                                                <Slider Grid.Column="1" Minimum="-1" Maximum="1" Value="{Binding ImageOffsetY}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding ImageOffsetY, StringFormat={}{0:F2}}"
+                                                           TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                            </Grid>
+
+                                            <Grid Style="{StaticResource SliderRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="46" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                           Text="{Binding [WinCustom_ImageScale], Source={x:Static loc:Loc.Instance}}" />
+                                                <Slider Grid.Column="1" Minimum="0.2" Maximum="3" Value="{Binding ImageScale}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding ImageScale, StringFormat={}{0:F2}}"
+                                                           TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                            </Grid>
+
+                                            <Grid Style="{StaticResource SliderRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="46" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Style="{StaticResource SliderLabel}"
+                                                           Text="{Binding [WinCustom_ImageOpacity], Source={x:Static loc:Loc.Instance}}" />
+                                                <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding ImageOpacity}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding ImageOpacity, StringFormat={}{0:P0}}"
+                                                           TextAlignment="Right" FontSize="12" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <ui:Button Margin="0,8,0,0" HorizontalAlignment="Left"
+                                                   Content="{Binding [WinCustom_ResetTarget], Source={x:Static loc:Loc.Instance}}"
+                                                   Command="{Binding ResetToDefaultCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- COLUNA 3: PREVIEW + STATUS -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- Preview -->
+                    <TextBlock Text="{Binding [WinCustom_Preview], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource SectionTitle}" />
+
+                    <Border Height="150" CornerRadius="6" Margin="0,0,0,4" ClipToBounds="True"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Background="{StaticResource PreviewBackdrop}">
+                        <Grid x:Name="PreviewHost">
+                            <!-- Simula uma janela sobre o papel de parede: a camada de estilo por
+                                 cima do fundo, para blur e translucidez fazerem sentido visual. -->
+                            <Border x:Name="PreviewLayer" Margin="16" CornerRadius="4" />
+                            <Border x:Name="PreviewDarkenLayer" Margin="16" CornerRadius="4" Background="Black" Opacity="0" />
+                            <TextBlock x:Name="PreviewLabel" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                                       Margin="0,0,0,22" FontSize="11" Foreground="White" Opacity="0.85" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="{Binding [WinCustom_PreviewHint], Source={x:Static loc:Loc.Instance}}"
+                               Opacity="0.6" FontSize="10.5" TextWrapping="Wrap" Margin="0,0,0,14" />
+
+                    <!-- Status -->
+                    <TextBlock Text="{Binding [WinCustom_Status], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource SectionTitle}" />
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                           Text="{Binding [WinCustom_StatusLabel], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Text="{Binding StateText}" />
+                            </Grid>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                           Text="{Binding [WinCustom_StartupLabel], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding StartupStatusText}" />
+                            </Grid>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                           Text="{Binding [WinCustom_ThemeLabel], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding ActiveThemeName}" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                           Text="{Binding [WinCustom_HostLabel], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding HostStatusText}" />
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                           Text="{Binding [WinCustom_CompatLabel], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding CompatibilityText}" TextWrapping="Wrap" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Proteção contra falhas -->
+                    <ui:InfoBar Severity="Warning" IsOpen="True" Margin="0,0,0,10"
+                                Title="{Binding [WinCustom_Quarantine], Source={x:Static loc:Loc.Instance}}"
+                                Message="{Binding QuarantineText}"
+                                Visibility="{Binding HasQuarantine, Converter={StaticResource BoolToVis}}" />
+                    <ui:Button Margin="0,0,0,10" HorizontalAlignment="Stretch"
+                               Content="{Binding [WinCustom_ClearQuarantine], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding ClearQuarantineCommand}"
+                               Visibility="{Binding HasQuarantine, Converter={StaticResource BoolToVis}}" />
+
+                    <!-- Preferências -->
+                    <ui:ToggleSwitch Content="{Binding [WinCustom_Enabled], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding Enabled}" Margin="0,0,0,6" />
+                    <ui:ToggleSwitch Content="{Binding [WinCustom_StartWithWindows], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding StartWithWindows}" Margin="0,0,0,6" />
+                    <ui:ToggleSwitch Content="{Binding [WinCustom_RestoreLastTheme], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding RestoreLastTheme}" Margin="0,0,0,6" />
+                    <ui:ToggleSwitch Content="{Binding [WinCustom_ReapplyOnExplorer], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding ReapplyOnExplorerRestart}" Margin="0,0,0,10" />
+
+                    <!-- Motor avançado (beta) -->
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="12" Margin="0,0,0,12"
+                            BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Text="{Binding [WinCustom_EnableInjection], Source={x:Static loc:Loc.Instance}}" />
+                                <Border Background="{DynamicResource BrandAccentBrush}" CornerRadius="3"
+                                        Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding [WinCustom_Beta], Source={x:Static loc:Loc.Instance}}"
+                                               FontSize="9" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                            <ui:ToggleSwitch IsChecked="{Binding EnableInjection}" Margin="0,0,0,4"
+                                             IsEnabled="{Binding InjectionHostAvailable}" />
+                            <TextBlock Text="{Binding [WinCustom_EnableInjectionHint], Source={x:Static loc:Loc.Instance}}"
+                                       Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
+                            <ui:InfoBar Severity="Informational" IsOpen="True" Margin="0,8,0,0"
+                                        Message="{Binding InjectionUnavailableText}"
+                                        Visibility="{Binding InjectionHostAvailable, Converter={StaticResource FalseToVis}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Controle -->
+                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                        <ui:Button Content="{Binding [WinCustom_Restart], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding RestartCustomizationCommand}" Margin="0,0,3,4" HorizontalAlignment="Stretch" />
+                        <ui:Button Content="{Binding [WinCustom_Reapply], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding ReapplyThemeCommand}" Margin="3,0,0,4" HorizontalAlignment="Stretch" />
+                        <ui:Button Content="{Binding [WinCustom_Pause], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding PauseCustomizationCommand}" Margin="0,0,3,0" HorizontalAlignment="Stretch" />
+                        <ui:Button Content="{Binding [WinCustom_Resume], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding ResumeCustomizationCommand}" Margin="3,0,0,0" HorizontalAlignment="Stretch" />
+                    </UniformGrid>
+
+                    <!-- Reversibilidade -->
+                    <TextBlock Text="{Binding [WinCustom_Restore], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource SectionTitle}" />
+
+                    <ui:Button Content="{Binding [WinCustom_RestoreTaskbar], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding RestoreTaskbarCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4" />
+                    <ui:Button Content="{Binding [WinCustom_RestoreExplorer], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding RestoreExplorerCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4" />
+                    <ui:Button Content="{Binding [WinCustom_RestoreStart], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding RestoreStartMenuCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4" />
+                    <ui:Button Content="{Binding [WinCustom_RestoreSettings], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding RestoreSettingsCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4" />
+                    <ui:Button Content="{Binding [WinCustom_RestartExplorer], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding RestartExplorerCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
+
+                    <ui:Button x:Name="RestoreAllButton" Appearance="Danger" FontWeight="SemiBold"
+                               Content="{Binding [WinCustom_RestoreAll], Source={x:Static loc:Loc.Instance}}"
+                               Click="RestoreAll_Click" HorizontalAlignment="Stretch" Margin="0,0,0,14" />
+
+                    <!-- Emergência -->
+                    <TextBlock Text="{Binding [WinCustom_Emergency], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="{Binding [WinCustom_EmergencyHint], Source={x:Static loc:Loc.Instance}}"
+                               Opacity="0.6" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <ui:Button Content="{Binding [WinCustom_CreateEmergency], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding CreateEmergencyScriptCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
+
+                    <TextBlock Text="{Binding StatusText}" FontSize="11.5" TextWrapping="Wrap"
+                               Opacity="0.8" Margin="0,0,0,16"
+                               Foreground="{DynamicResource BrandAccentBrush}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>

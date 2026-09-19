@@ -15,6 +15,8 @@ internal static partial class LocalizationStrings
         AddGameHub2English();
         AddGameHub3Portuguese();
         AddGameHub3English();
+        AddWinCustomPortuguese();
+        AddWinCustomEnglish();
     }
 
     private static void AddGameHubPortuguese()
