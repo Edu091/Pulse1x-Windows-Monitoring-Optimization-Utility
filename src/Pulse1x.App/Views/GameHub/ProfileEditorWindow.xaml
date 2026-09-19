@@ -36,6 +36,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanConverter x:Key="InvBool" />
         <converters:ModeIsCustomConverter x:Key="ModeIsCustom" />
+        <converters:ModeIsCustomVisibilityConverter x:Key="ModeIsCustomVis" />
         <converters:LocKeyConverter x:Key="LocKey" />
 
         <!-- Cabeçalho de seção: título grande + o seletor de modo à direita. -->
@@ -51,6 +52,17 @@
             <Setter Property="Foreground" Value="{StaticResource HubTextDim}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+
+        <!--
+            Aviso das seções em "Não alterar" / "Automático". Os campos esmaecidos pareciam
+            quebrados; esta linha diz que estão desligados de propósito e como habilitá-los.
+        -->
+        <Style x:Key="SectionLockedHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{StaticResource HubTextDim}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,2" />
         </Style>
 
         <Style x:Key="SectionCard" TargetType="Border">
@@ -126,6 +138,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding PowerMode}" />
                         </Grid>
+
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding PowerMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
 
                         <StackPanel IsEnabled="{Binding PowerMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,10">
@@ -268,6 +284,10 @@
                                       DisplayMemberPath="Label" SelectedItem="{Binding CpuMode}" />
                         </Grid>
 
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding CpuMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding CpuMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
@@ -307,6 +327,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding MemoryMode}" />
                         </Grid>
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding MemoryMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding MemoryMode, Converter={StaticResource ModeIsCustom}}">
                             <ui:ToggleSwitch Content="{Binding [GH_OptimizeBefore], Source={x:Static loc:Loc.Instance}}"
                                              IsChecked="{Binding OptimizeBefore}" Margin="0,0,0,8" />
@@ -324,6 +348,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding LatencyMode}" />
                         </Grid>
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding LatencyMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding LatencyMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -354,6 +382,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding NetworkMode}" />
                         </Grid>
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding NetworkMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding NetworkMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -376,6 +408,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding AudioMode}" />
                         </Grid>
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding AudioMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding AudioMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -426,6 +462,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding DisplayMode}" />
                         </Grid>
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding DisplayMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
+
                         <StackPanel IsEnabled="{Binding DisplayMode, Converter={StaticResource ModeIsCustom}}">
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -476,6 +516,10 @@
                             <ComboBox HorizontalAlignment="Right" Width="170" ItemsSource="{Binding Modes}"
                                       DisplayMemberPath="Label" SelectedItem="{Binding AppsMode}" />
                         </Grid>
+
+                        <TextBlock Text="{Binding [GH_SectionLocked], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource SectionLockedHint}"
+                                   Visibility="{Binding AppsMode, Converter={StaticResource ModeIsCustomVis}, ConverterParameter=invert}" />
 
                         <StackPanel IsEnabled="{Binding AppsMode, Converter={StaticResource ModeIsCustom}}">
                             <TextBlock Text="{Binding [GH_CloseBefore], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />

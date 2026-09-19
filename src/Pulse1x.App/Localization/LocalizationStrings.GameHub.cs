@@ -112,6 +112,9 @@ internal static partial class LocalizationStrings
         t["GH_ModeUnchanged"] = "Não alterar";
         t["GH_ModeAuto"] = "Automático";
         t["GH_ModeCustom"] = "Personalizado";
+        // Mostrado nas seções que estão em "Não alterar" ou "Automático": sem isso, os campos
+        // esmaecidos passavam a impressão de estarem quebrados, em vez de desligados de propósito.
+        t["GH_SectionLocked"] = "Mude o seletor acima para Personalizado para editar estes campos.";
 
         // ---- Perfil: comandos ----
         t["GH_ProfileName"] = "Nome do perfil";
@@ -422,6 +425,7 @@ internal static partial class LocalizationStrings
         t["GH_ModeUnchanged"] = "Leave unchanged";
         t["GH_ModeAuto"] = "Automatic";
         t["GH_ModeCustom"] = "Custom";
+        t["GH_SectionLocked"] = "Switch the selector above to Custom to edit these fields.";
 
         t["GH_ProfileName"] = "Profile name";
         t["GH_Preset"] = "Start from";
