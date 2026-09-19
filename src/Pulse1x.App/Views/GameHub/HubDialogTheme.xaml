@@ -15,6 +15,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
+    <!--
+        O dicionário de ComboBox do Wpf.Ui, mesclado explicitamente para que a chave
+        DefaultComboBoxStyle
+        exista e aponte para o template escuro, sem depender da ordem em que o app monta os
+        recursos. Vem primeiro para que os pincéis definidos abaixo prevaleçam sobre os dele.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ComboBox/ComboBox.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <SolidColorBrush x:Key="HubText" Color="#F2F3F5" />
     <SolidColorBrush x:Key="HubTextDim" Color="#9BA0A9" />
     <SolidColorBrush x:Key="HubSurface" Color="#16171A" />
@@ -96,176 +106,41 @@
     </Style>
 
     <!--
-        Caixas de seleção: TEMPLATE PRÓPRIO, sem herdar de ninguém.
+        Caixas de seleção.
 
-        Por que não basta um BasedOn, como se tentou antes: o App.xaml declara um estilo implícito
-        de ComboBox com BasedOn="{StaticResource {x:Type ComboBox}}" para aplicar o anel de foco.
-        Esse StaticResource é resolvido ENQUANTO o dicionário do aplicativo ainda está sendo
-        montado — e aí ele podia cair no estilo padrão do WPF (o template claro do sistema) em vez
-        do estilo do Wpf.Ui. Esse estilo virava o implícito de todo o app, e este dicionário, ao
-        fazer BasedOn no implícito, herdava o template claro junto. Era isso que deixava TODAS as
-        caixas de seleção da janela de perfil como blocos cinza-claros de texto invisível
-        (medido: RGB(240,240,240) na caixa e RGB(255,255,255) na lista suspensa), enquanto as
-        caixas de texto, que usam ui:TextBox e não passam por esse estilo implícito, continuavam
-        escuras (RGB(28,29,33)).
+        O BasedOn aqui aponta para uma CHAVE EXPLÍCITA (DefaultComboBoxStyle), e não para o estilo
+        implícito
+        do app. Essa é a diferença que corrige o bug.
 
-        Definindo o template aqui, a aparência não depende mais de qual estilo o BasedOn encontra:
-        as cores são as mesmas do resto do hub, em qualquer ordem de carregamento.
+        O que acontecia antes: o App.xaml declara um estilo implícito de ComboBox com
+        BasedOn="{StaticResource {x:Type ComboBox}}" para aplicar o anel de foco do controle. Esse
+        StaticResource é resolvido ENQUANTO o dicionário do aplicativo ainda está sendo montado, e
+        podia cair no estilo PADRÃO do WPF — o template claro do Windows — em vez do estilo do
+        Wpf.Ui. Esse estilo virava o implícito de todo o app, e este dicionário, fazendo BasedOn no
+        implícito, herdava o template claro junto. Resultado: todas as caixas de seleção da janela
+        de perfil viravam blocos cinza-claros de texto invisível (medido: RGB(240,240,240) na caixa
+        e RGB(255,255,255) na lista suspensa), enquanto as caixas de texto, que são ui:TextBox e não
+        passam por esse estilo implícito, continuavam escuras (RGB(28,29,33)).
+
+        Ao mesclar o dicionário de ComboBox do Wpf.Ui no topo deste arquivo, a chave DefaultComboBoxStyle passa a
+        apontar para o template ESCURO do Wpf.Ui de forma determinística, sem depender da ordem de
+        carregamento. Só as cores são sobrescritas aqui.
+
+        Por que não um template próprio (tentativa anterior): reescrever o ControlTemplate resolvia
+        a cor, mas quebrava o DisplayMemberPath — o valor selecionado aparecia como
+        "ChoiceOption { Value = 2, Label = Agressivo }" em vez de "Agressivo". O ComboBox aplica o
+        DisplayMemberPath por dentro do próprio template; um ContentPresenter escrito à mão não
+        recebe esse tratamento. Mantendo o template do Wpf.Ui, o rótulo volta a funcionar.
     -->
-    <Style TargetType="ComboBox">
+    <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
         <Setter Property="Foreground" Value="{StaticResource HubText}" />
         <Setter Property="Background" Value="{StaticResource HubField}" />
         <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,6" />
-        <Setter Property="MinHeight" Value="32" />
-        <Setter Property="FontSize" Value="12.5" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ComboBox">
-                    <Grid>
-                        <!-- O ToggleButton ocupa a caixa inteira: clicar em qualquer ponto abre. -->
-                        <ToggleButton x:Name="Toggle"
-                                      Focusable="False"
-                                      ClickMode="Press"
-                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                            <ToggleButton.Template>
-                                <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bd"
-                                            Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="5"
-                                            SnapsToDevicePixels="True" />
-                                </ControlTemplate>
-                            </ToggleButton.Template>
-                        </ToggleButton>
-
-                        <!-- Valor selecionado. IsHitTestVisible=False para o clique chegar ao ToggleButton. -->
-                        <ContentPresenter x:Name="Content"
-                                          Margin="{TemplateBinding Padding}"
-                                          Content="{TemplateBinding SelectionBoxItem}"
-                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                          HorizontalAlignment="Left"
-                                          VerticalAlignment="Center"
-                                          IsHitTestVisible="False"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"
-                                          SnapsToDevicePixels="True" />
-
-                        <!-- Campo de edição, usado apenas quando IsEditable="True". -->
-                        <TextBox x:Name="PART_EditableTextBox"
-                                 Margin="{TemplateBinding Padding}"
-                                 VerticalAlignment="Center"
-                                 Visibility="Collapsed"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 Foreground="{TemplateBinding Foreground}"
-                                 CaretBrush="{StaticResource HubText}"
-                                 SelectionBrush="#DC2626"
-                                 Style="{x:Null}" />
-
-                        <Path x:Name="Arrow"
-                              Data="M 0 0 L 4 4 L 8 0"
-                              Stroke="{StaticResource HubTextDim}"
-                              StrokeThickness="1.4"
-                              HorizontalAlignment="Right"
-                              VerticalAlignment="Center"
-                              Margin="0,0,11,0"
-                              IsHitTestVisible="False"
-                              SnapsToDevicePixels="True" />
-
-                        <Popup x:Name="PART_Popup"
-                               Placement="Bottom"
-                               AllowsTransparency="True"
-                               Focusable="False"
-                               PopupAnimation="Fade"
-                               IsOpen="{TemplateBinding IsDropDownOpen}">
-                            <!--
-                                A lista vive fora da árvore visual da janela; por isso as cores são
-                                escritas aqui, e não herdadas. Sem isto, o Popup resolvia as chaves
-                                claras do sistema e aparecia branco.
-                            -->
-                            <Border Background="{StaticResource HubField}"
-                                    BorderBrush="{StaticResource HubStroke}"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Margin="0,3,0,0"
-                                    MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                    SnapsToDevicePixels="True">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="2">
-                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"
-                                                    SnapsToDevicePixels="True" />
-                                </ScrollViewer>
-                            </Border>
-                        </Popup>
-                    </Grid>
-
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Toggle" Property="Background" Value="{StaticResource HubFieldHover}" />
-                        </Trigger>
-
-                        <!-- Desabilitado: escurece o campo, mas mantém o texto legível. -->
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Toggle" Property="Background" Value="#212227" />
-                            <Setter TargetName="Toggle" Property="BorderBrush" Value="#2E3036" />
-                            <Setter TargetName="Content" Property="TextElement.Foreground" Value="#8E939C" />
-                            <Setter TargetName="Arrow" Property="Stroke" Value="#6A6E76" />
-                        </Trigger>
-
-                        <Trigger Property="IsEditable" Value="True">
-                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="Content" Property="Visibility" Value="Collapsed" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
-    <Style TargetType="ComboBoxItem">
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
         <Setter Property="Foreground" Value="{StaticResource HubText}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Padding" Value="9,6" />
-        <Setter Property="FontSize" Value="12.5" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="4"
-                            Padding="{TemplateBinding Padding}"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"
-                                          SnapsToDevicePixels="True" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HubFieldHover}" />
-                        </Trigger>
-                        <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HubFieldHover}" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#DC2626" />
-                            <Setter Property="Foreground" Value="#FFFFFF" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#8E939C" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">

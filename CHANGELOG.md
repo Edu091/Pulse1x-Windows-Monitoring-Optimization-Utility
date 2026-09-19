@@ -1,8 +1,8 @@
 # Histórico de versões
 
-## 1.5.2 — 18/09/2026
+## 1.5.2 — 19/09/2026
 
-- Corrigidas as caixas de seleção brancas com o texto invisível na configuração de perfis de jogo. Todas as caixas apareciam como blocos cinza-claros (RGB 240,240,240) e a lista suspensa, branca. A causa: o estilo implícito de caixa de seleção do aplicativo herdava de um recurso resolvido enquanto o dicionário ainda estava sendo montado, e acabava caindo no tema claro padrão do Windows em vez do tema escuro. As janelas do GameHub agora desenham as próprias caixas de seleção, com cores fixas, sem depender dessa ordem de carregamento.
+- Corrigidas as caixas de seleção brancas com o texto invisível na configuração de perfis de jogo. Todas as caixas apareciam como blocos cinza-claros (RGB 240,240,240) e a lista suspensa, branca. A causa: o estilo implícito de caixa de seleção do aplicativo herdava de um recurso resolvido enquanto o dicionário ainda estava sendo montado, e acabava caindo no tema claro padrão do Windows em vez do tema escuro. As janelas do GameHub agora apontam para o estilo escuro do Wpf.Ui por uma chave explícita, sem depender da ordem de carregamento.
 
 ## 1.5.1 — 18/09/2026
 
