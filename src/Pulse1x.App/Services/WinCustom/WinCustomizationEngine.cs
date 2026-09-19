@@ -397,6 +397,11 @@ public class WinCustomizationEngine
             // PID novo = Explorer reiniciado. Damos um instante para o Shell montar as janelas
             // antes de pintar; aplicar cedo demais simplesmente não pega.
             _lastExplorerPid = pid;
+
+            // As janelas antigas morreram junto com o processo: o que sabíamos sobre elas não
+            // vale mais, e sem limpar isso a guarda de idempotência acharia que as novas já
+            // estão pintadas.
+            WindowComposition.ForgetAll();
             var delay = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
             delay.Tick += (_, _) =>
             {

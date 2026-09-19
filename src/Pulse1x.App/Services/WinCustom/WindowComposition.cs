@@ -150,6 +150,18 @@ internal static class WindowComposition
     // =====================================================================================
 
     /// <summary>
+    /// Último efeito aplicado a cada janela. Existe para não reenviar um accent idêntico ao que a
+    /// janela já tem: cada chamada faz o DWM recompor a superfície, e em caminhos de vídeo frágeis
+    /// (adaptadores DisplayLink/USB, drivers antigos, sessões remotas) essa recomposição repetida
+    /// aparece como piscada na tela. Como a reaplicação é disparada por um vigia periódico e pelo
+    /// reinício do Explorer, sem esta guarda o mesmo efeito seria reescrito várias vezes por
+    /// sessão sem necessidade.
+    /// </summary>
+    private static readonly Dictionary<IntPtr, (AccentState State, uint Color)> LastApplied = new();
+
+    private static readonly object Gate = new();
+
+    /// <summary>
     /// Aplica a aparência a um HWND. Devolve false se o handle não for mais válido (a janela
     /// fechou, o Explorer reiniciou) — quem chama trata isso como "tentar de novo depois", nunca
     /// como erro fatal.
@@ -159,7 +171,34 @@ internal static class WindowComposition
         if (hwnd == IntPtr.Zero || !IsWindow(hwnd)) return false;
 
         var (state, color) = Translate(appearance);
-        return SetAccent(hwnd, state, color);
+
+        lock (Gate)
+        {
+            // Já está exatamente assim: não reescrever (ver LastApplied).
+            if (LastApplied.TryGetValue(hwnd, out var current) &&
+                current.State == state && current.Color == color)
+                return true;
+        }
+
+        bool ok = SetAccent(hwnd, state, color);
+
+        lock (Gate)
+        {
+            if (ok) LastApplied[hwnd] = (state, color);
+            else LastApplied.Remove(hwnd);
+
+            // O Shell recria as janelas ao reiniciar, então handles antigos se acumulariam.
+            if (LastApplied.Count > 64) PruneDeadWindows();
+        }
+
+        return ok;
+    }
+
+    /// <summary>Descarta handles de janelas que já não existem.</summary>
+    private static void PruneDeadWindows()
+    {
+        foreach (var dead in LastApplied.Keys.Where(h => !IsWindow(h)).ToList())
+            LastApplied.Remove(dead);
     }
 
     /// <summary>
@@ -170,7 +209,23 @@ internal static class WindowComposition
     public static bool Reset(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero || !IsWindow(hwnd)) return false;
-        return SetAccent(hwnd, AccentState.ACCENT_DISABLED, 0);
+
+        // A reversão NUNCA é pulada pela guarda de idempotência: ela é o caminho de segurança e
+        // precisa valer mesmo que o nosso registro esteja dessincronizado do estado real da
+        // janela (por exemplo, depois de outro programa mexer no mesmo HWND).
+        bool ok = SetAccent(hwnd, AccentState.ACCENT_DISABLED, 0);
+
+        lock (Gate) LastApplied.Remove(hwnd);
+        return ok;
+    }
+
+    /// <summary>
+    /// Esquece o que foi aplicado, sem tocar nas janelas. Usado quando o Explorer reinicia: os
+    /// HWND antigos morreram e os novos precisam receber o efeito de verdade.
+    /// </summary>
+    public static void ForgetAll()
+    {
+        lock (Gate) LastApplied.Clear();
     }
 
     private static bool SetAccent(IntPtr hwnd, AccentState state, uint color)
