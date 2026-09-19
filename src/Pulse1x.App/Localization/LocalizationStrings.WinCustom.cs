@@ -11,7 +11,8 @@ internal static partial class LocalizationStrings
         var t = Pt;
 
         // ---- Navegação e cabeçalho ----
-        t["Nav_WinCustom"] = "Personalização do Windows";
+        // Rótulo curto: a navegação lateral tem 220px e o nome completo era cortado.
+        t["Nav_WinCustom"] = "Personalização";
         t["WinCustom_Title"] = "Personalização do Windows";
         t["WinCustom_Subtitle"] = "Mude o visual da barra de tarefas, do Menu Iniciar, do Explorer e das Configurações. Tudo é reversível.";
 
@@ -223,7 +224,7 @@ internal static partial class LocalizationStrings
     {
         var t = En;
 
-        t["Nav_WinCustom"] = "Windows Personalization";
+        t["Nav_WinCustom"] = "Personalization";
         t["WinCustom_Title"] = "Windows Personalization";
         t["WinCustom_Subtitle"] = "Change how the taskbar, Start menu, File Explorer and Settings look. Everything is reversible.";
 

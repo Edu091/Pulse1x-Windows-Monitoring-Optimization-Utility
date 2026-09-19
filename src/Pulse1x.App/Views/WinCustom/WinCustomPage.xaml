@@ -61,7 +61,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="230" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="330" />
             </Grid.ColumnDefinitions>
 
             <!-- COLUNA 1: TEMAS + COMPONENTES -->
@@ -120,7 +120,7 @@
                                 <RadioButton GroupName="Comp" Margin="0,0,0,4"
                                              Checked="ComponentRadio_Checked" Tag="{Binding}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="13" />
+                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="13" TextWrapping="Wrap" />
                                         <Border Background="{DynamicResource BrandAccentBrush}" CornerRadius="3"
                                                 Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center"
                                                 Visibility="{Binding IsBeta, Converter={StaticResource BoolToVis}}">
@@ -510,25 +510,25 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="150" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,6,0"
                                            Text="{Binding [WinCustom_StatusLabel], Source={x:Static loc:Loc.Instance}}" />
-                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Text="{Binding StateText}" />
+                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Text="{Binding StateText}" TextWrapping="Wrap" />
                             </Grid>
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="150" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,6,0"
                                            Text="{Binding [WinCustom_StartupLabel], Source={x:Static loc:Loc.Instance}}" />
-                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding StartupStatusText}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding StartupStatusText}" TextWrapping="Wrap" />
                             </Grid>
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="150" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,6,0"
                                            Text="{Binding [WinCustom_ThemeLabel], Source={x:Static loc:Loc.Instance}}" />
                                 <TextBlock Grid.Column="1" FontSize="12" Text="{Binding ActiveThemeName}" TextTrimming="CharacterEllipsis" />
                             </Grid>
@@ -537,16 +537,16 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="150" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,6,0"
                                            Text="{Binding [WinCustom_HostLabel], Source={x:Static loc:Loc.Instance}}" />
-                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding HostStatusText}" />
+                                <TextBlock Grid.Column="1" FontSize="12" Text="{Binding HostStatusText}" TextWrapping="Wrap" />
                             </Grid>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="135"
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.7" Width="150" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,6,0"
                                            Text="{Binding [WinCustom_CompatLabel], Source={x:Static loc:Loc.Instance}}" />
                                 <TextBlock Grid.Column="1" FontSize="12" Text="{Binding CompatibilityText}" TextWrapping="Wrap" />
                             </Grid>
@@ -566,12 +566,15 @@
                     <!-- Preferências -->
                     <ui:ToggleSwitch Content="{Binding [WinCustom_Enabled], Source={x:Static loc:Loc.Instance}}"
                                      IsChecked="{Binding Enabled}" Margin="0,0,0,6" />
-                    <ui:ToggleSwitch Content="{Binding [WinCustom_StartWithWindows], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding StartWithWindows}" Margin="0,0,0,6" />
-                    <ui:ToggleSwitch Content="{Binding [WinCustom_RestoreLastTheme], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding RestoreLastTheme}" Margin="0,0,0,6" />
-                    <ui:ToggleSwitch Content="{Binding [WinCustom_ReapplyOnExplorer], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding ReapplyOnExplorerRestart}" Margin="0,0,0,10" />
+                    <ui:ToggleSwitch IsChecked="{Binding StartWithWindows}" Margin="0,0,0,6">
+                        <TextBlock Text="{Binding [WinCustom_StartWithWindows], Source={x:Static loc:Loc.Instance}}" TextWrapping="Wrap" />
+                    </ui:ToggleSwitch>
+                    <ui:ToggleSwitch IsChecked="{Binding RestoreLastTheme}" Margin="0,0,0,6">
+                        <TextBlock Text="{Binding [WinCustom_RestoreLastTheme], Source={x:Static loc:Loc.Instance}}" TextWrapping="Wrap" />
+                    </ui:ToggleSwitch>
+                    <ui:ToggleSwitch IsChecked="{Binding ReapplyOnExplorerRestart}" Margin="0,0,0,10">
+                        <TextBlock Text="{Binding [WinCustom_ReapplyOnExplorer], Source={x:Static loc:Loc.Instance}}" TextWrapping="Wrap" />
+                    </ui:ToggleSwitch>
 
                     <!-- Motor avançado (beta) -->
                     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -625,8 +628,10 @@
                                Command="{Binding RestartExplorerCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
 
                     <ui:Button x:Name="RestoreAllButton" Appearance="Danger" FontWeight="SemiBold"
-                               Content="{Binding [WinCustom_RestoreAll], Source={x:Static loc:Loc.Instance}}"
-                               Click="RestoreAll_Click" HorizontalAlignment="Stretch" Margin="0,0,0,14" />
+                               Click="RestoreAll_Click" HorizontalAlignment="Stretch" Margin="0,0,0,14">
+                        <TextBlock Text="{Binding [WinCustom_RestoreAll], Source={x:Static loc:Loc.Instance}}"
+                                   TextWrapping="Wrap" TextAlignment="Center" FontSize="12" />
+                    </ui:Button>
 
                     <!-- Emergência -->
                     <TextBlock Text="{Binding [WinCustom_Emergency], Source={x:Static loc:Loc.Instance}}"
