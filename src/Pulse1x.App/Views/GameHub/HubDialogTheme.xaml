@@ -1,0 +1,87 @@
+<!--
+    Paleta compartilhada das janelas de diálogo do GameHub.
+
+    Motivo de existir: os pincéis de controle do Wpf.Ui (ControlFillColor*) são um BRANCO
+    TRANSLÚCIDO (#0FFFFFFF). Eles só parecem escuros porque são compostos sobre uma superfície
+    escura. Qualquer coisa que mexa no tema, na transparência da personalização ou no acento podia
+    deixá-los claros — e então as caixas de combinação e de texto viravam blocos brancos com o
+    texto invisível, como aconteceu na janela de perfis.
+
+    Aqui as cores são FIXAS e OPACAS, sem depender do tema do app. Cada janela do hub aplica este
+    dicionário e fica imune a essas variações.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <SolidColorBrush x:Key="HubText" Color="#F2F3F5" />
+    <SolidColorBrush x:Key="HubTextDim" Color="#9BA0A9" />
+    <SolidColorBrush x:Key="HubSurface" Color="#16171A" />
+    <SolidColorBrush x:Key="HubStroke" Color="#2A2C31" />
+    <SolidColorBrush x:Key="HubField" Color="#1C1D21" />
+    <SolidColorBrush x:Key="HubFieldHover" Color="#24262B" />
+
+    <!--
+        A lista suspensa de um ComboBox vive num Popup, fora da árvore visual da janela, e por isso
+        não herda os pincéis definidos acima: ela resolve as chaves do próprio Wpf.Ui.
+        Sobrescrevemos essas chaves AQUI, no dicionário que cada janela do hub aplica — assim o
+        Popup as encontra subindo até a janela, sem precisar de um Setter de Resources (que não
+        funciona: Resources não é uma propriedade de dependência).
+    -->
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#1C1D21" />
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#24262B" />
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Color="#2A2C31" />
+    <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#1C1D21" />
+    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#F2F3F5" />
+    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#C5C8D0" />
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#6B7079" />
+    <SolidColorBrush x:Key="AcrylicBackgroundFillColorDefaultBrush" Color="#16171A" />
+    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#16171A" />
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#1C1D21" />
+    <SolidColorBrush x:Key="SystemFillColorNeutralBackgroundBrush" Color="#24262B" />
+
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+    </Style>
+
+    <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="FontSize" Value="12.5" />
+    </Style>
+
+    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="Background" Value="{StaticResource HubField}" />
+        <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+    </Style>
+
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="Background" Value="{StaticResource HubField}" />
+        <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+        <Setter Property="CaretBrush" Value="{StaticResource HubText}" />
+    </Style>
+
+    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="Background" Value="{StaticResource HubField}" />
+        <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+        <Setter Property="CaretBrush" Value="{StaticResource HubText}" />
+    </Style>
+
+    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+        <Setter Property="Background" Value="{StaticResource HubField}" />
+        <Setter Property="BorderBrush" Value="{StaticResource HubStroke}" />
+    </Style>
+
+    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+        <Setter Property="Foreground" Value="{StaticResource HubText}" />
+    </Style>
+</ResourceDictionary>

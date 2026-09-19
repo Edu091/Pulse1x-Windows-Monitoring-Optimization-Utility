@@ -22,6 +22,11 @@
 
     <!-- Tema do GameHub: esta janela pertence ao hub, não ao app. -->
     <ui:FluentWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="HubDialogTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanConverter x:Key="InvBool" />
         <converters:EnumToBooleanConverter x:Key="EnumToBool" />
@@ -70,6 +75,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </ui:FluentWindow.Resources>
 
     <Grid>

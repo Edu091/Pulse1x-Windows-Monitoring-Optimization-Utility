@@ -15,8 +15,19 @@
     MinHeight="480"
     MinWidth="480"
     ExtendsContentIntoTitleBar="True"
-    WindowBackdropType="Mica"
+    WindowBackdropType="None"
+    Background="#0A0A0C"
+    Foreground="#F2F3F5"
     WindowStartupLocation="CenterOwner">
+
+    <!-- Paleta fixa do hub: ver HubDialogTheme.xaml. -->
+    <ui:FluentWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="HubDialogTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </ui:FluentWindow.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

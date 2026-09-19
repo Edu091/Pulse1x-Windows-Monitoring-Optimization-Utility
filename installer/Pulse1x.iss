@@ -23,7 +23,11 @@ AppVersion={#AppVersion}
 ; Mesmo nome do mutex de instância única do app (App.xaml.cs) — permite ao Inno Setup detectar
 ; com precisão o Pulse1x em execução para /CLOSEAPPLICATIONS e /RESTARTAPPLICATIONS (usado pelo
 ; GitHubUpdateService ao atualizar com o app já aberto).
-AppMutex=Pulse1x_SingleInstance_Mutex
+; Os DOIS nomes: o instalador roda elevado e, nesse contexto, pode não enxergar um mutex criado
+; na sessão do usuário — sem ver o app aberto, ele não o fecharia e falharia ao substituir o .exe
+; em uso. O "Global\" resolve isso; o local é mantido para continuar detectando versões antigas
+; (1.4.6 e anteriores), que só criavam esse.
+AppMutex=Global\Pulse1x_SingleInstance_Mutex,Pulse1x_SingleInstance_Mutex
 AppPublisher=Eduardo Almeida Bedin
 AppPublisherURL=https://github.com/Edu091/Pulse1x-Windows-Monitoring-Optimization-Utility
 DefaultDirName={autopf}\Pulse1x

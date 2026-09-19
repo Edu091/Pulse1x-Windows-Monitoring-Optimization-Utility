@@ -207,15 +207,17 @@ public class ThemeService
         SetBrush(resources, "ToggleSwitchStrokeOnPointerOver", secondary);
         SetBrush(resources, "ToggleSwitchStrokeOnPressed", Darken(primary, 0.30));
 
-        // O acento do Wpf.Ui (usado por controles que não leem as chaves acima).
-        try
-        {
-            var theme = _settings.Current.DarkTheme
-                ? Wpf.Ui.Appearance.ApplicationTheme.Dark
-                : Wpf.Ui.Appearance.ApplicationTheme.Light;
-            Wpf.Ui.Appearance.ApplicationAccentColorManager.Apply(primary, theme);
-        }
-        catch { /* trocar o acento nunca pode derrubar o app */ }
+        // NÃO chamar ApplicationAccentColorManager.Apply aqui.
+        //
+        // Ele não troca só o acento: recria os pincéis de acento E de texto do dicionário do
+        // Wpf.Ui. Chamado uma segunda vez (o App.xaml.cs já aplica o acento na inicialização),
+        // os pincéis recriados vinham com o texto PRETO mesmo no tema escuro — e como as caixas
+        // de combinação e de texto herdam esse Foreground, elas apareciam como blocos claros com
+        // o texto invisível. Era o que quebrava a janela de perfis do GameHub.
+        //
+        // Todas as chaves de acento que aquele gerenciador preencheria já são definidas acima por
+        // SetBrush, com as cores escolhidas pelo usuário, então a chamada era redundante além de
+        // destrutiva. O acento inicial continua sendo aplicado uma única vez em App.xaml.cs.
     }
 
     /// <summary>

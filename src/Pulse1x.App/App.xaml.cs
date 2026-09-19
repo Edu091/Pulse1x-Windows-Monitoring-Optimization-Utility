@@ -19,6 +19,21 @@ public partial class App : Application
     private const string SingleInstanceMutexName = "Pulse1x_SingleInstance_Mutex";
     private const string ShowWindowSignalName = "Pulse1x_ShowWindow_Event";
 
+    /// <summary>
+    /// O MESMO nome do mutex, mas no espaço "Global\" — visível por TODAS as sessões do Windows.
+    ///
+    /// Existe por causa do instalador: o Inno Setup roda elevado e usa o AppMutex para descobrir
+    /// que o Pulse1x está aberto, fechá-lo e reabri-lo depois (é o que permite atualizar sem
+    /// desinstalar). Um mutex comum vive apenas na sessão de quem o criou, então o instalador
+    /// elevado podia não enxergá-lo, não fechar o app e então falhar ao substituir o .exe em uso.
+    ///
+    /// É um mutex ADICIONAL: o local continua sendo o que controla a instância única, para que a
+    /// detecção siga funcionando contra versões anteriores já instaladas.
+    /// </summary>
+    private const string GlobalInstanceMutexName = @"Global\Pulse1x_SingleInstance_Mutex";
+
+    private Mutex? _globalInstanceMutex;
+
     // Identidade estável do app perante o Shell do Windows (Menu Iniciar/busca/barra de tarefas),
     // independente do caminho ou do conteúdo binário do .exe. Sem isso, como o Pulse1x.App.exe é
     // substituído NO MESMO CAMINHO a cada atualização (tanto pelo instalador Inno Setup quanto pelo
@@ -85,6 +100,12 @@ public partial class App : Application
         }
 
         _singleInstanceMutex = mutex;
+
+        // Marca a presença do app para o instalador elevado (ver GlobalInstanceMutexName).
+        // Nunca pode impedir o app de abrir: se o sistema negar a criação no espaço global,
+        // seguimos com o mutex local e o instalador apenas pedirá para fechar o app à mão.
+        try { _globalInstanceMutex = new Mutex(initiallyOwned: false, GlobalInstanceMutexName, out _); }
+        catch { _globalInstanceMutex = null; }
 
         if (SelfUpdateService.TryApplyPendingUpdate())
         {
@@ -356,6 +377,9 @@ public partial class App : Application
         _hardwareMonitorService?.Dispose();
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
+        // Criado sem posse (initiallyOwned: false), então só descartamos — liberar um mutex não
+        // possuído lançaria exceção.
+        _globalInstanceMutex?.Dispose();
         base.OnExit(e);
     }
 }
