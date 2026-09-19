@@ -68,6 +68,26 @@ public class WinCustomizationEngine
     }
 
     public CapabilityMatrix Capabilities => _capabilities;
+
+    /// <summary>
+    /// Barras de tarefas existentes e em que monitor estão — alimenta o seletor de monitores da
+    /// seção. É consultado ao vivo, porque monitores podem ser conectados a qualquer momento.
+    /// </summary>
+    public IReadOnlyList<WindowComposition.TaskbarOnMonitor> Taskbars() =>
+        WindowComposition.FindTaskbarsWithMonitors();
+
+    /// <summary>
+    /// Se ALGUMA barra de tarefas selecionada está oculta pela ocultação automática do Windows.
+    /// Nesse caso o efeito é aplicado mas fica invisível, e a seção precisa dizer isso — do
+    /// contrário parece que a personalização simplesmente não funcionou.
+    /// </summary>
+    public bool AnySelectedTaskbarHidden()
+    {
+        var settings = _settings();
+        return WindowComposition.FindTaskbarsWithMonitors()
+            .Where(t => settings.IncludesMonitor(t.DeviceName))
+            .Any(t => WindowComposition.IsTaskbarHidden(t.Hwnd));
+    }
     public CustomizationWatchdog Watchdog => _watchdog;
     public WinThemeStore Store => _store;
 
@@ -143,6 +163,8 @@ public class WinCustomizationEngine
         if (appearance.Kind == AppearanceKind.WindowsDefault)
         {
             // "Padrão" não é uma falha: limpamos o efeito e saímos sem contar tentativa.
+            // A limpeza ignora o filtro de monitores de propósito — voltar ao padrão tem de
+            // alcançar TODAS as barras, inclusive as que deixaram de estar selecionadas.
             foreach (var hwnd in WindowComposition.FindAllTaskbars())
                 WindowComposition.Reset(hwnd);
             return ApplyOutcome.Ok(target);
@@ -154,16 +176,29 @@ public class WinCustomizationEngine
         if (!_watchdog.BeginAttempt(target))
             return ApplyOutcome.Failed(target, "quarantined");
 
-        var taskbars = WindowComposition.FindAllTaskbars();
-        if (taskbars.Count == 0)
+        var all = WindowComposition.FindTaskbarsWithMonitors();
+        if (all.Count == 0)
         {
             _watchdog.RecordFailure(target, "taskbar not found");
             return ApplyOutcome.Failed(target, "taskbar not found");
         }
 
+        var settings = _settings();
+
         bool any = false;
-        foreach (var hwnd in taskbars)
-            any |= WindowComposition.Apply(hwnd, appearance);
+        foreach (var taskbar in all)
+        {
+            if (settings.IncludesMonitor(taskbar.DeviceName))
+            {
+                any |= WindowComposition.Apply(taskbar.Hwnd, appearance);
+            }
+            else
+            {
+                // Monitor fora da seleção volta ao padrão, para que desmarcar uma tela
+                // realmente a limpe em vez de deixar o efeito anterior preso nela.
+                WindowComposition.Reset(taskbar.Hwnd);
+            }
+        }
 
         if (!any)
         {

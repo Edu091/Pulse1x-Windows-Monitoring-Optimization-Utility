@@ -9,7 +9,7 @@ namespace Pulse1x.App.Services.WinCustom;
 /// modo que qualquer um deles produza um resultado visível assim que aplicado, sem exigir que o
 /// usuário ligue a parte beta. Os alvos que dependem de injeção ficam no padrão do Windows.
 /// </summary>
-internal static class WinThemePresets
+public static class WinThemePresets
 {
     public static List<WinTheme> BuildAll() => new()
     {

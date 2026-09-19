@@ -20,7 +20,7 @@ namespace Pulse1x.App.Services.WinCustom;
 /// superfície própria, o que só o motor de injeção faz. O <see cref="CapabilityMatrix"/> já
 /// impede que eles cheguem até aqui.
 /// </summary>
-internal static class WindowComposition
+public static class WindowComposition
 {
     // =====================================================================================
     //  Interop
@@ -123,6 +123,92 @@ internal static class WindowComposition
         all.AddRange(FindSecondaryTaskbars());
         return all;
     }
+
+    /// <summary>
+    /// Uma barra de tarefas e o monitor em que ela está. O nome do dispositivo
+    /// (<c>\\.\DISPLAY1</c>) é estável entre execuções, então serve de identificador do monitor
+    /// escolhido pelo usuário — ao contrário do HWND, que muda quando o Explorer reinicia.
+    /// </summary>
+    public readonly record struct TaskbarOnMonitor(
+        IntPtr Hwnd, string DeviceName, bool IsPrimary, int Width, int Height);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private const uint MONITORINFOF_PRIMARY = 1;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFOEX info);
+
+    /// <summary>
+    /// Barras de tarefas existentes, cada uma já associada ao seu monitor. É o que permite ao
+    /// usuário escolher em qual tela a personalização vale — num notebook com monitor externo,
+    /// mexer nas duas raramente é o desejado.
+    /// </summary>
+    public static List<TaskbarOnMonitor> FindTaskbarsWithMonitors()
+    {
+        var result = new List<TaskbarOnMonitor>();
+
+        foreach (var hwnd in FindAllTaskbars())
+        {
+            var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (monitor == IntPtr.Zero) continue;
+
+            var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+            if (!GetMonitorInfo(monitor, ref info)) continue;
+
+            result.Add(new TaskbarOnMonitor(
+                hwnd,
+                info.szDevice ?? "",
+                (info.dwFlags & MONITORINFOF_PRIMARY) != 0,
+                info.rcMonitor.Right - info.rcMonitor.Left,
+                info.rcMonitor.Bottom - info.rcMonitor.Top));
+        }
+
+        // Monitor principal primeiro: é o que o usuário pensa como "a" barra de tarefas.
+        return result.OrderByDescending(t => t.IsPrimary).ToList();
+    }
+
+    /// <summary>
+    /// Barra de tarefas visível no momento? Com a ocultação automática ligada, o Windows põe a
+    /// janela fora da área do monitor, e qualquer efeito aplicado a ela fica invisível — o que
+    /// parece, de fora, que a personalização "não funcionou". A seção usa isto para avisar.
+    /// </summary>
+    public static bool IsTaskbarHidden(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero || !IsWindow(hwnd)) return false;
+
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor == IntPtr.Zero) return false;
+
+        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+        if (!GetMonitorInfo(monitor, ref info)) return false;
+
+        if (!GetWindowRect(hwnd, out var rect)) return false;
+
+        // Considera oculta quando a maior parte da janela está fora do monitor.
+        int visibleHeight = Math.Min(rect.Bottom, info.rcMonitor.Bottom) - Math.Max(rect.Top, info.rcMonitor.Top);
+        int height = rect.Bottom - rect.Top;
+        return height > 0 && visibleHeight < height / 2;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
 
     /// <summary>
     /// Janelas abertas do Explorador de Arquivos. A classe "CabinetWClass" identifica as janelas

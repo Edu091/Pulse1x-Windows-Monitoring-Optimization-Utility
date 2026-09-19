@@ -1,4 +1,4 @@
-namespace Pulse1x.App.Localization;
+﻿namespace Pulse1x.App.Localization;
 
 /// <summary>
 /// Textos da seção Personalização do Windows. Segue o mesmo padrão do GameHub: um arquivo
@@ -205,6 +205,24 @@ internal static partial class LocalizationStrings
             "componente foi restaurado.";
         t["WinCustom_ClearQuarantine"] = "Tentar novamente";
 
+        // ---- Monitores ----
+        t["WinCustom_Monitors"] = "Aplicar em quais telas";
+        t["WinCustom_HiddenTag"] = "(oculta)";
+        t["WinCustom_DisableAutoHide"] = "Desligar ocultação automática";
+        t["WinCustom_AutoHideDisabled"] = "Ocultação automática desligada. O Explorer foi reiniciado.";
+        t["WinCustom_AutoHideFailed"] = "Não foi possível alterar a ocultação automática.";
+        t["WinCustom_AutoHideConfirm"] =
+            "Isto desliga a ocultação automática da barra de tarefas e reinicia o Explorer — as janelas " +
+            "abertas piscam por um instante, mas nada é fechado.\n\nContinuar?";
+        t["WinCustom_MonitorPrimary"] = "Monitor principal ({0}x{1})";
+        t["WinCustom_MonitorSecondary"] = "Monitor secundário ({0}x{1})";
+        t["WinCustom_MonitorsHint"] =
+            "Desmarque uma tela para deixá-la com a barra de tarefas padrão do Windows.";
+        t["WinCustom_TaskbarHiddenWarning"] =
+            "A ocultação automática da barra de tarefas está ligada, então ela fica escondida fora da tela " +
+            "e a personalização não aparece. Desligue em Configurações do Windows ▸ Personalização ▸ " +
+            "Barra de tarefas ▸ Comportamentos.";
+
         // ---- Confirmação com reversão automática ----
         t["WinCustom_ConfirmTitle"] = "Manter esta personalização?";
         t["WinCustom_ConfirmMessage"] =
@@ -406,6 +424,22 @@ internal static partial class LocalizationStrings
             "Personalization of {0} was stopped automatically after repeated failures and the component " +
             "was restored.";
         t["WinCustom_ClearQuarantine"] = "Try again";
+
+        t["WinCustom_Monitors"] = "Apply to which screens";
+        t["WinCustom_HiddenTag"] = "(hidden)";
+        t["WinCustom_DisableAutoHide"] = "Turn off auto-hide";
+        t["WinCustom_AutoHideDisabled"] = "Auto-hide turned off. Explorer was restarted.";
+        t["WinCustom_AutoHideFailed"] = "Could not change the auto-hide setting.";
+        t["WinCustom_AutoHideConfirm"] =
+            "This turns off taskbar auto-hide and restarts Explorer — open windows will flicker for a " +
+            "moment, but nothing is closed.\n\nContinue?";
+        t["WinCustom_MonitorPrimary"] = "Primary monitor ({0}x{1})";
+        t["WinCustom_MonitorSecondary"] = "Secondary monitor ({0}x{1})";
+        t["WinCustom_MonitorsHint"] =
+            "Uncheck a screen to leave its taskbar with the default Windows look.";
+        t["WinCustom_TaskbarHiddenWarning"] =
+            "Taskbar auto-hide is on, so the taskbar sits off-screen and the personalization is not " +
+            "visible. Turn it off in Windows Settings ▸ Personalization ▸ Taskbar ▸ Taskbar behaviors.";
 
         t["WinCustom_ConfirmTitle"] = "Keep this personalization?";
         t["WinCustom_ConfirmMessage"] =

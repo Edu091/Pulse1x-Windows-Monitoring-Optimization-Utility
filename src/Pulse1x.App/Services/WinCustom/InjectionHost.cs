@@ -125,7 +125,7 @@ public static class InjectionHost
 /// <see cref="InjectionHost.IsAvailable"/> ANTES de qualquer P/Invoke ser resolvido — carregar
 /// uma DLL inexistente lançaria DllNotFoundException no primeiro uso.
 /// </summary>
-internal static class NativeBridge
+public static class NativeBridge
 {
     // A implementação nativa não acompanha esta build (ver InjectionHost). Os métodos existem
     // para fixar o contrato; nunca são chamados enquanto IsAvailable for false.

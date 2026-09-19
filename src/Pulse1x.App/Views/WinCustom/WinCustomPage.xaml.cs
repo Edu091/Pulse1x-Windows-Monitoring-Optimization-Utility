@@ -33,6 +33,14 @@ public partial class WinCustomPage : Page
         viewModel.ConfirmChangeRequested += themeName =>
             ConfirmChangeWindow.Ask(Window.GetWindow(this), themeName);
 
+        // Desligar a ocultação automática reinicia o Explorer, então confirmamos antes.
+        viewModel.ConfirmDisableAutoHideRequested += () =>
+            MessageBox.Show(
+                Window.GetWindow(this),
+                Loc.S("WinCustom_AutoHideConfirm"),
+                Loc.S("WinCustom_DisableAutoHide"),
+                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
         // Mostra as regiões do componente selecionado e mantém o preview em dia.
         ShowComponent(viewModel.SelectedComponent);
         viewModel.PropertyChanged += (_, e) =>

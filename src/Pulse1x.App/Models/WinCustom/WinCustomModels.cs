@@ -340,4 +340,19 @@ public class WinCustomSettings
 
     /// <summary>Componente que serve de referência quando a sincronização está ligada.</summary>
     public WinComponent SyncSource { get; set; } = WinComponent.Taskbar;
+
+    /// <summary>
+    /// Monitores em que a personalização da barra de tarefas vale, pelo nome do dispositivo
+    /// (<c>\\.\DISPLAY1</c>). Lista vazia = todos os monitores, que é o padrão e o comportamento
+    /// de quem tem uma tela só.
+    ///
+    /// Guardamos o nome do dispositivo, e não o HWND, porque a janela é recriada a cada reinício
+    /// do Explorer — o nome do monitor sobrevive.
+    /// </summary>
+    public List<string> TaskbarMonitors { get; set; } = new();
+
+    /// <summary>Se este monitor deve receber a personalização.</summary>
+    public bool IncludesMonitor(string deviceName) =>
+        TaskbarMonitors.Count == 0 ||
+        TaskbarMonitors.Contains(deviceName, StringComparer.OrdinalIgnoreCase);
 }

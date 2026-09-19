@@ -16,7 +16,7 @@ namespace Pulse1x.App.Services.WinCustom;
 /// o papel de parede real), o preview usa uma aproximação — é a única parte que não pode ser
 /// idêntica, porque depende do que estiver atrás da janela no momento.
 /// </summary>
-internal static class AppearancePreview
+public static class AppearancePreview
 {
     /// <summary>
     /// Pincel que representa a aparência. <paramref name="backdrop"/> é o que está "atrás"

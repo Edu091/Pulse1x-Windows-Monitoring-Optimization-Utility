@@ -164,6 +164,68 @@ public class CustomizationHostService
         catch { }
     }
 
+    // =====================================================================================
+    //  Ocultação automática da barra de tarefas
+    // =====================================================================================
+
+    private const string StuckRectsKey =
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3";
+
+    /// <summary>
+    /// Posição, dentro do blob StuckRects3, do byte de flags da barra de tarefas. O bit 0 é a
+    /// ocultação automática. É um formato não documentado, mas estável desde o Windows 7.
+    /// </summary>
+    private const int AutoHideFlagIndex = 8;
+
+    /// <summary>
+    /// Se a ocultação automática está ligada. Importa para a personalização porque, com ela
+    /// ativa, o Windows mantém a barra fora da tela: o efeito É aplicado, mas fica invisível — e
+    /// de fora parece que a personalização não funcionou.
+    /// </summary>
+    public static bool IsTaskbarAutoHideEnabled()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(StuckRectsKey);
+            if (key?.GetValue("Settings") is not byte[] blob || blob.Length <= AutoHideFlagIndex)
+                return false;
+            return (blob[AutoHideFlagIndex] & 1) != 0;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Liga ou desliga a ocultação automática. Mexe APENAS no bit 0 do blob, preservando todo o
+    /// resto (posição, tamanho, monitor) — reescrever o blob inteiro bagunçaria a barra.
+    ///
+    /// É reversível como qualquer outra preferência do Windows: o mesmo botão desfaz, e o valor
+    /// é o mesmo que a tela de Configurações do Windows grava.
+    /// </summary>
+    public static bool SetTaskbarAutoHide(bool enabled)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(StuckRectsKey, writable: true);
+            if (key?.GetValue("Settings") is not byte[] blob || blob.Length <= AutoHideFlagIndex)
+                return false;
+
+            byte current = blob[AutoHideFlagIndex];
+            byte updated = enabled ? (byte)(current | 1) : (byte)(current & ~1);
+            if (current == updated) return true;   // já está como pedido
+
+            blob[AutoHideFlagIndex] = updated;
+            key.SetValue("Settings", blob, RegistryValueKind.Binary);
+
+            // O Explorer só relê o blob ao ser reiniciado; sem isso a mudança não aparece.
+            RestartExplorer();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// Reinicia o Explorer. É a forma mais confiável de devolver o Shell ao padrão e também o
     /// que o usuário espera de "Restaurar Explorer" quando algo ficou estranho.

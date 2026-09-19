@@ -36,6 +36,36 @@ public partial class ComponentTab : ObservableObject
 }
 
 /// <summary>
+/// Um monitor no seletor "em quais telas aplicar". Marcar/desmarcar reaplica na hora, para o
+/// efeito da escolha ser imediato.
+/// </summary>
+public partial class MonitorChoice : ObservableObject
+{
+    /// <summary>Nome estável do dispositivo (\\.\DISPLAY1) — é o que fica salvo.</summary>
+    public string DeviceName { get; }
+
+    public string Label { get; }
+
+    private readonly Action _onChanged;
+
+    [ObservableProperty] private bool isSelected;
+
+    /// <summary>Barra oculta pela ocultação automática: o efeito existe, mas não aparece.</summary>
+    [ObservableProperty] private bool isHidden;
+
+    public MonitorChoice(string deviceName, string label, bool selected, bool hidden, Action onChanged)
+    {
+        DeviceName = deviceName;
+        Label = label;
+        isSelected = selected;
+        isHidden = hidden;
+        _onChanged = onChanged;
+    }
+
+    partial void OnIsSelectedChanged(bool value) => _onChanged();
+}
+
+/// <summary>
 /// ViewModel da seção Personalização do Windows: biblioteca de temas, editores por componente e
 /// região, sincronização, status e todas as ações de restauração.
 /// </summary>
@@ -67,6 +97,7 @@ public partial class WinCustomViewModel : ObservableObject
 
         BuildComponentTabs();
         ReloadThemes();
+        RefreshMonitors();
 
         _engine.StateChanged += OnEngineStateChanged;
         _engine.Watchdog.TargetQuarantined += OnTargetQuarantined;
@@ -227,6 +258,104 @@ public partial class WinCustomViewModel : ObservableObject
 
         if (_settings.Current.WinCustom.ActiveThemeId == SelectedTheme.Id && Enabled)
             _engine.ApplyActiveTheme();
+    }
+
+    // =====================================================================================
+    //  Monitores
+    // =====================================================================================
+
+    /// <summary>Monitores com barra de tarefas, para o usuário escolher onde aplicar.</summary>
+    public ObservableCollection<MonitorChoice> Monitors { get; } = new();
+
+    /// <summary>Alguma barra selecionada está oculta — a seção mostra o aviso.</summary>
+    [ObservableProperty] private bool anyTaskbarHidden;
+
+    /// <summary>
+    /// Desliga a ocultação automática da barra de tarefas — a causa mais comum de "apliquei o
+    /// tema e não mudou nada". Reinicia o Explorer, então confirmamos antes de fazer.
+    /// </summary>
+    [RelayCommand]
+    private void DisableAutoHide()
+    {
+        if (ConfirmDisableAutoHideRequested?.Invoke() == false) return;
+
+        if (CustomizationHostService.SetTaskbarAutoHide(false))
+        {
+            StatusText = Loc.S("WinCustom_AutoHideDisabled");
+
+            // O Explorer foi reiniciado: as janelas antigas morreram, então reaplicamos nas novas.
+            if (Enabled) _engine.ApplyActiveTheme();
+        }
+        else
+        {
+            StatusText = Loc.S("WinCustom_AutoHideFailed");
+        }
+
+        RefreshMonitors();
+    }
+
+    /// <summary>Confirmação antes de reiniciar o Explorer, atendida pelo code-behind.</summary>
+    public event Func<bool>? ConfirmDisableAutoHideRequested;
+
+    /// <summary>Evita reaplicar enquanto a lista de monitores é reconstruída.</summary>
+    private bool _loadingMonitors;
+
+    /// <summary>
+    /// Relê os monitores conectados. Chamado ao abrir a seção e sempre que o status é atualizado,
+    /// porque um monitor pode ser ligado ou desligado a qualquer momento.
+    /// </summary>
+    public void RefreshMonitors()
+    {
+        _loadingMonitors = true;
+        try
+        {
+            var prefs = _settings.Current.WinCustom;
+            var taskbars = _engine.Taskbars();
+
+            Monitors.Clear();
+            foreach (var taskbar in taskbars)
+            {
+                string label = Loc.F(
+                    taskbar.IsPrimary ? "WinCustom_MonitorPrimary" : "WinCustom_MonitorSecondary",
+                    taskbar.Width, taskbar.Height);
+
+                Monitors.Add(new MonitorChoice(
+                    taskbar.DeviceName,
+                    label,
+                    prefs.IncludesMonitor(taskbar.DeviceName),
+                    WindowComposition.IsTaskbarHidden(taskbar.Hwnd),
+                    OnMonitorSelectionChanged));
+            }
+
+            AnyTaskbarHidden = Monitors.Any(m => m.IsSelected && m.IsHidden);
+        }
+        finally
+        {
+            _loadingMonitors = false;
+        }
+    }
+
+    /// <summary>
+    /// O usuário marcou/desmarcou um monitor: salva e reaplica. Com TODOS marcados gravamos uma
+    /// lista vazia, que significa "todos" — assim conectar um monitor novo depois já o inclui,
+    /// em vez de deixá-lo de fora por não constar de uma lista antiga.
+    /// </summary>
+    private void OnMonitorSelectionChanged()
+    {
+        if (_loadingMonitors) return;
+
+        var prefs = _settings.Current.WinCustom;
+        var selected = Monitors.Where(m => m.IsSelected).Select(m => m.DeviceName).ToList();
+
+        prefs.TaskbarMonitors = selected.Count == Monitors.Count
+            ? new List<string>()
+            : selected;
+
+        _settings.Save();
+
+        AnyTaskbarHidden = Monitors.Any(m => m.IsSelected && m.IsHidden);
+
+        if (Enabled) _engine.ApplyActiveTheme();
     }
 
     // =====================================================================================
@@ -631,6 +760,8 @@ public partial class WinCustomViewModel : ObservableObject
         if (HasQuarantine)
             QuarantineText = Loc.F("WinCustom_QuarantinedTarget",
                 string.Join(", ", quarantined.Select(q => q.Target)));
+
+        AnyTaskbarHidden = Monitors.Any(m => m.IsSelected && m.IsHidden);
 
         OnPropertyChanged(nameof(CanEditSelectedTheme));
         OnPropertyChanged(nameof(InjectionHostAvailable));

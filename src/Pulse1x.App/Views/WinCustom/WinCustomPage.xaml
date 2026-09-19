@@ -135,6 +135,30 @@
 
                     <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,10,0,10" />
 
+                    <!-- Monitores: em quais telas a barra de tarefas recebe o efeito -->
+                    <TextBlock Text="{Binding [WinCustom_Monitors], Source={x:Static loc:Loc.Instance}}"
+                               FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <ItemsControl ItemsSource="{Binding Monitors}" Margin="0,0,0,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <CheckBox IsChecked="{Binding IsSelected}" FontSize="12">
+                                        <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                                    </CheckBox>
+                                    <!-- Marca discreta; a explicacao completa aparece uma vez so, abaixo -->
+                                    <TextBlock Text="{Binding [WinCustom_HiddenTag], Source={x:Static loc:Loc.Instance}}"
+                                               FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"
+                                               Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                               Visibility="{Binding IsHidden, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding [WinCustom_MonitorsHint], Source={x:Static loc:Loc.Instance}}"
+                               Opacity="0.6" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,0,0,10" />
+
                     <ui:ToggleSwitch Content="{Binding [WinCustom_Sync], Source={x:Static loc:Loc.Instance}}"
                                      IsChecked="{Binding SyncAppearance}" Margin="0,0,0,2" />
                     <TextBlock Text="{Binding [WinCustom_SyncHint], Source={x:Static loc:Loc.Instance}}"
@@ -552,6 +576,18 @@
                             </Grid>
                         </StackPanel>
                     </Border>
+
+                    <!-- Aviso de barra oculta: o efeito e aplicado, mas fica fora da tela -->
+                    <StackPanel Visibility="{Binding AnyTaskbarHidden, Converter={StaticResource BoolToVis}}"
+                                Margin="0,0,0,10">
+                        <ui:InfoBar Severity="Warning" IsOpen="True" IsClosable="False"
+                                    Message="{Binding [WinCustom_TaskbarHiddenWarning], Source={x:Static loc:Loc.Instance}}" />
+                        <ui:Button Appearance="Primary" HorizontalAlignment="Stretch" Margin="0,6,0,0"
+                                   Command="{Binding DisableAutoHideCommand}">
+                            <TextBlock Text="{Binding [WinCustom_DisableAutoHide], Source={x:Static loc:Loc.Instance}}"
+                                       TextWrapping="Wrap" TextAlignment="Center" FontSize="12" />
+                        </ui:Button>
+                    </StackPanel>
 
                     <!-- Proteção contra falhas -->
                     <ui:InfoBar Severity="Warning" IsOpen="True" Margin="0,0,0,10"
