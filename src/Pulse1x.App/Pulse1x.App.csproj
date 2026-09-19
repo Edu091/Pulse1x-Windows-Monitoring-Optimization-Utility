@@ -16,8 +16,14 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.4.7</Version>
+    <Version>1.4.8</Version>
   </PropertyGroup>
+
+  <!-- O histórico de versões viaja dentro do executável, para a seção Sobre exibi-lo sem
+       depender de internet nem de um arquivo ao lado do .exe (a publicação é single-file). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\CHANGELOG.md" Link="CHANGELOG.md" LogicalName="Pulse1x.App.CHANGELOG.md" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

@@ -68,9 +68,11 @@ internal static partial class LocalizationStrings
 
         // ---- Sobre ----
         ["About_Title"] = "Sobre",
-        ["About_Version"] = "Versão 1.0.0",
+        ["About_Version"] = "Versão {0}",
         ["About_Description"] = "Pulse1x é um monitor de hardware simples, moderno e leve para Windows. " +
             "Acompanhe em tempo real o uso e a temperatura da CPU e GPU, memória RAM, espaço em disco e velocidade de rede.",
+        ["About_Changelog"] = "Histórico de versões",
+        ["About_ChangelogHide"] = "Ocultar histórico",
 
         // ---- Detalhes do componente ----
         ["Detail_Title"] = "Detalhes",
@@ -1107,9 +1109,11 @@ internal static partial class LocalizationStrings
 
         // ---- About ----
         ["About_Title"] = "About",
-        ["About_Version"] = "Version 1.0.0",
+        ["About_Version"] = "Version {0}",
         ["About_Description"] = "Pulse1x is a simple, modern and lightweight hardware monitor for Windows. " +
             "Track CPU and GPU usage and temperature, RAM, disk space and network speed in real time.",
+        ["About_Changelog"] = "Version history",
+        ["About_ChangelogHide"] = "Hide history",
 
         // ---- Component details ----
         ["Detail_Title"] = "Details",
