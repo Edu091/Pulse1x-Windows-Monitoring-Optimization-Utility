@@ -285,6 +285,7 @@ internal static partial class LocalizationStrings
         t["GH_ResetArt"] = "Buscar a arte novamente";
         t["GH_ArtReset"] = "Arte descartada — a busca automática vai preencher de novo.";
         t["GH_NameAndExeRequired"] = "Informe pelo menos o nome e o executável.";
+        t["GH_ExeRequired"] = "Escolha o executável do emulador.";
         t["GH_PickExecutable"] = "Escolher o executável";
         t["GH_PickImage"] = "Escolher a imagem";
 
@@ -590,6 +591,7 @@ internal static partial class LocalizationStrings
         t["GH_ResetArt"] = "Fetch the artwork again";
         t["GH_ArtReset"] = "Artwork discarded — the automatic search will fill it again.";
         t["GH_NameAndExeRequired"] = "Please provide at least the name and the executable.";
+        t["GH_ExeRequired"] = "Choose the emulator's executable.";
         t["GH_PickExecutable"] = "Choose the executable";
         t["GH_PickImage"] = "Choose the image";
 

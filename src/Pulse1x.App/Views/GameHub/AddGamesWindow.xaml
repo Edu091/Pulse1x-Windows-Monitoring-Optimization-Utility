@@ -284,9 +284,6 @@
                                 </Style>
                             </StackPanel.Style>
 
-                            <TextBlock Text="{Binding [GH_EmulatorName], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
-                            <ui:TextBox Text="{Binding EmulatorName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
-
                             <TextBlock Text="{Binding [GH_Extensions], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
                             <ui:TextBox Text="{Binding EmulatorExtensions, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
 

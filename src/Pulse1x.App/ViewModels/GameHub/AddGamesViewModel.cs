@@ -339,12 +339,17 @@ public partial class AddGamesViewModel : ObservableObject
 
     private async Task RunEmulatorAsync()
     {
-        if (string.IsNullOrWhiteSpace(EmulatorName) || string.IsNullOrWhiteSpace(EmulatorExecutable))
+        if (string.IsNullOrWhiteSpace(EmulatorExecutable))
         {
-            ResultMessage = Loc.S("GH_NameAndExeRequired");
+            ResultMessage = Loc.S("GH_ExeRequired");
             HasResult = true;
             return;
         }
+
+        // O nome não é mais pedido na tela: vem do emulador escolhido e, em "Outro emulador",
+        // do próprio arquivo — é só o rótulo do emulador na biblioteca.
+        if (string.IsNullOrWhiteSpace(EmulatorName))
+            EmulatorName = Path.GetFileNameWithoutExtension(EmulatorExecutable);
 
         if (string.IsNullOrWhiteSpace(EmulatorRoms) || !Directory.Exists(EmulatorRoms))
         {

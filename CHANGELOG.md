@@ -1,4 +1,8 @@
-# Histórico de versões
+﻿# Histórico de versões
+
+## 1.6.7 — 20/09/2026
+
+- O cadastro de emulador não pede mais o **nome**: ele vem do emulador escolhido na lista e, em "Outro emulador", do próprio arquivo. É só um rótulo na biblioteca, e digitá-lo não mudava nada no funcionamento.
 
 ## 1.6.6 — 20/09/2026
 
