@@ -1,5 +1,10 @@
 ﻿# Histórico de versões
 
+## 1.7.1 — 20/09/2026
+
+- **ROMs de Switch agora têm capa.** A arte vem do catálogo da eShop (nome, ícone e banner oficiais de cada título), que cobre o console inteiro — inclusive os exclusivos, que não existem em loja de PC. O catálogo é lido em fluxo, então a consulta custa poucos megabytes de memória e leva segundos na primeira ROM.
+- **Corrigidos os jogos da Steam que ficavam sem capa.** A loja passou a servir a arte dos títulos mais recentes por um endereço com hash, e os caminhos fixos do CDN respondiam 404 — o jogo aparecia com o quadrado colorido mesmo estando na loja normalmente. Agora, quando o caminho fixo falha, o Pulse pergunta à própria loja qual é o endereço da imagem.
+
 ## 1.7.0 — 20/09/2026
 
 - As **ROMs agora ganham a capa original do console**, buscada no acervo público do libretro (o mesmo que o RetroArch usa) — a loja da Steam, usada até aqui, não cataloga jogos de console. Cobre Nintendo (NES ao Wii U, Game Boy ao 3DS), PlayStation 1 a 4, PSP, Vita, Sega (Master System ao Dreamcast), Xbox, arcade e outros.

@@ -113,6 +113,40 @@ public class OnlineArtService
     }
 
     /// <summary>
+    /// A URL da arte de um appid, perguntada à API de detalhes da loja. Os endereços fixos do CDN
+    /// (.../apps/&lt;id&gt;/library_600x900.jpg) deixaram de valer para os jogos publicados mais
+    /// recentemente, que a Steam serve por um caminho com hash — daí o 404 em títulos que estão
+    /// na loja normalmente. Aqui a própria loja diz qual é o endereço bom.
+    /// </summary>
+    public async Task<string?> ResolveArtUrlAsync(string appId, bool wantHero, CancellationToken token = default)
+    {
+        try
+        {
+            using var response = await Http.GetAsync(
+                $"https://store.steampowered.com/api/appdetails?appids={appId}", token);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+            if (!document.RootElement.TryGetProperty(appId, out var entry)) return null;
+            if (!entry.TryGetProperty("data", out var data)) return null;
+
+            if (data.TryGetProperty("header_image", out var header))
+            {
+                string? url = header.GetString();
+                if (!string.IsNullOrEmpty(url)) return url;
+            }
+            if (!wantHero && data.TryGetProperty("capsule_image", out var capsule))
+            {
+                string? url = capsule.GetString();
+                if (!string.IsNullOrEmpty(url)) return url;
+            }
+            return null;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return null; }
+    }
+
+    /// <summary>
     /// Baixa uma imagem para um arquivo. Devolve false (sem lançar) quando a URL não existe — é
     /// comum um jogo ter capa vertical mas não hero, por exemplo.
     /// </summary>

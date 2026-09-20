@@ -228,6 +228,7 @@ public partial class App : Application
         // para as ROMs — a loja não cataloga jogos de console, o acervo tem a capa original.
         artService.Online = new OnlineArtService();
         artService.RomArt = new RomArtService();
+        artService.SwitchArt = new SwitchArtService();
         artService.OnlineEnabled = hubSettings.OnlineArtEnabled;
 
         // As Configurações mexem no som ao vivo (volume, arquivos, restaurar padrão).

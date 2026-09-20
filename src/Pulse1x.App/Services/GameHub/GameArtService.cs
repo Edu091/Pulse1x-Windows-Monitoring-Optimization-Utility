@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -125,7 +126,7 @@ public class GameArtService
             if (downloaded is not null) return downloaded;
         }
 
-        if (RomArt is not null && game.Launcher == LauncherKind.Emulator)
+        if ((RomArt is not null || SwitchArt is not null) && game.Launcher == LauncherKind.Emulator)
         {
             string? boxart = await DownloadRomCoverAsync(game, token);
             if (boxart is not null) return boxart;
@@ -166,6 +167,9 @@ public class GameArtService
     /// <summary>Capas de ROM no acervo do libretro — a loja não cataloga jogos de console.</summary>
     public RomArtService? RomArt { get; set; }
 
+    /// <summary>Capas de Switch pelo catálogo da eShop — o console não está no acervo do libretro.</summary>
+    public SwitchArtService? SwitchArt { get; set; }
+
     /// <summary>Procurar capa na internet pelo nome quando não houver arte local.</summary>
     public bool OnlineEnabled { get; set; } = true;
 
@@ -182,10 +186,10 @@ public class GameArtService
             if (downloaded is not null) return downloaded;
         }
 
-        // 4) ROM: o acervo do libretro tem a capa original do console, que a loja não cataloga.
-        //    Vem antes da busca por nome porque é mais preciso — casa pelo arquivo, com região.
-        if (OnlineEnabled && RomArt is not null && kind == ArtKind.Cover &&
-            game.Launcher == LauncherKind.Emulator)
+        // 4) ROM: capa original do console. O libretro cobre do NES ao Wii U, e o catálogo da
+        //    eShop cobre o Switch, que não está lá. Vem antes da busca por nome na loja porque
+        //    casa pelo arquivo (com região) e traz a arte do console, não a da versão de PC.
+        if (OnlineEnabled && kind == ArtKind.Cover && game.Launcher == LauncherKind.Emulator)
         {
             string? boxart = await DownloadRomCoverAsync(game, token);
             if (boxart is not null) return boxart;
@@ -212,6 +216,10 @@ public class GameArtService
         return null;
     }
 
+    /// <summary>Plataforma de Switch, escrita pelo usuário ao cadastrar o emulador.</summary>
+    private static bool IsSwitch(string? platform) =>
+        platform is not null && platform.Contains("switch", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// Baixa a capa original da ROM no acervo do libretro. A busca usa o nome do ARQUIVO, não o
     /// nome exibido: o scanner limpa "(USA)" e as demais tags do título para a biblioteca ficar
@@ -227,21 +235,26 @@ public class GameArtService
         try
         {
             string fileName = Path.GetFileNameWithoutExtension(game.RomPath);
-            string? url = await RomArt!.FindCoverUrlAsync(game.Category, fileName, token);
-            if (url is null)
-            {
-                lock (_failed) _failed.Add(key);
-                return null;
-            }
-
             string destination = PathFor(game, ArtKind.Cover);
-            if (!await RomArt.DownloadAsync(url, destination, token))
+
+            // O acervo do libretro cobre do NES ao Wii U, mas não o Switch. Para esse console a
+            // arte oficial vem do catálogo da eShop.
+            if (RomArt is not null)
             {
-                lock (_failed) _failed.Add(key);
-                return null;
+                string? url = await RomArt.FindCoverUrlAsync(game.Category, fileName, token);
+                if (url is not null && await RomArt.DownloadAsync(url, destination, token))
+                    return destination;
             }
 
-            return destination;
+            if (SwitchArt is not null && IsSwitch(game.Category))
+            {
+                string? url = await SwitchArt.FindCoverUrlAsync(fileName, token);
+                if (url is not null && await SwitchArt.DownloadAsync(url, destination, token))
+                    return destination;
+            }
+
+            lock (_failed) _failed.Add(key);
+            return null;
         }
         catch (OperationCanceledException) { throw; }
         catch
@@ -276,8 +289,14 @@ public class GameArtService
             string destination = PathFor(game, kind);
             if (!await Online.DownloadAsync(url, destination, token))
             {
-                lock (_failed) _failed.Add(key);
-                return null;
+                // O endereço fixo do CDN não vale para os jogos publicados recentemente: a loja
+                // passou a servi-los por um caminho com hash. Perguntamos a ela qual é.
+                string? resolved = await Online.ResolveArtUrlAsync(best.AppId, kind == ArtKind.Hero, token);
+                if (resolved is null || !await Online.DownloadAsync(resolved, destination, token))
+                {
+                    lock (_failed) _failed.Add(key);
+                    return null;
+                }
             }
 
             game.OnlineArtAppId = best.AppId;
@@ -407,8 +426,53 @@ public class GameArtService
         catch (OperationCanceledException) { return null; }
         finally { _downloadGate.Release(); }
 
+        // Nenhum dos caminhos fixos existe. Em jogos publicados recentemente a Steam passou a
+        // servir a arte por uma URL com hash (.../apps/<id>/<hash>/header.jpg), e os caminhos sem
+        // hash usados acima devolvem 404 — o jogo aparecia sem capa mesmo estando na loja. A API
+        // de detalhes informa a URL boa, então é ela quem decide antes de desistirmos.
+        string? viaDetails = await DownloadSteamArtFromDetailsAsync(game, kind, token);
+        if (viaDetails is not null) return viaDetails;
+
         lock (_failed) _failed.Add(key);
         return null;
+    }
+
+    /// <summary>
+    /// Pergunta à API pública de detalhes da loja qual é a URL da arte deste appid e baixa de lá.
+    /// Devolve null quando o jogo não tem aquela imagem — nem todo título publica capa vertical.
+    /// </summary>
+    private async Task<string?> DownloadSteamArtFromDetailsAsync(GameEntry game, ArtKind kind, CancellationToken token)
+    {
+        if (kind == ArtKind.Icon) return null;
+
+        try
+        {
+            string api = $"https://store.steampowered.com/api/appdetails?appids={game.LauncherAppId}";
+            using var response = await Http.GetAsync(api, token);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+            if (!document.RootElement.TryGetProperty(game.LauncherAppId!, out var entry)) return null;
+            if (!entry.TryGetProperty("data", out var data)) return null;
+
+            // header_image é o que praticamente todo jogo tem; a capsule pequena fica como último
+            // recurso, melhor que o quadrado colorido gerado.
+            string? url = null;
+            if (data.TryGetProperty("header_image", out var header)) url = header.GetString();
+            if (url is null && data.TryGetProperty("capsule_image", out var capsule)) url = capsule.GetString();
+            if (string.IsNullOrEmpty(url)) return null;
+
+            string destination = PathFor(game, kind, ".jpg");
+            using var image = await Http.GetAsync(url, token);
+            if (!image.IsSuccessStatusCode) return null;
+
+            await using var stream = await image.Content.ReadAsStreamAsync(token);
+            await using var file = File.Create(destination);
+            await stream.CopyToAsync(file, token);
+            return destination;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return null; }
     }
 
     /// <summary>Extrai o ícone de maior resolução embutido no executável do jogo/app.</summary>
