@@ -9,6 +9,8 @@ public enum HubZone
     Chrome,
     /// <summary>Os botões de ação do jogo em destaque (Jogar, Perfil, Favorito...).</summary>
     Hero,
+    /// <summary>A faixa de cartões largos acima da biblioteca (recentes, favoritos, mais jogados).</summary>
+    Highlight,
     /// <summary>O menu lateral aberto pelo botão View.</summary>
     Menu,
     /// <summary>O teclado virtual da busca.</summary>
@@ -71,16 +73,25 @@ public class HubInputRouter
     /// Resolve para onde ir ao navegar verticalmente saindo de uma zona. Devolve null quando o
     /// movimento deve ser tratado dentro da própria zona.
     /// </summary>
-    public HubZone? ResolveVerticalExit(GamepadDirection direction, bool atGridTopRow, bool hasSelection)
+    public HubZone? ResolveVerticalExit(GamepadDirection direction, bool atGridTopRow, bool hasSelection,
+        bool hasHighlightRow = false)
     {
         return (_zone, direction) switch
         {
-            // Da grade, subindo na primeira linha: vai para as ações do jogo em destaque.
+            // Da grade, subindo na primeira linha: passa pela faixa de destaques quando ela existe,
+            // senão vai direto para as ações do jogo.
+            (HubZone.Grid, GamepadDirection.Up) when atGridTopRow && hasHighlightRow => HubZone.Highlight,
             (HubZone.Grid, GamepadDirection.Up) when atGridTopRow && hasSelection => HubZone.Hero,
             (HubZone.Grid, GamepadDirection.Up) when atGridTopRow => HubZone.Chrome,
 
-            // Do destaque: cima leva ao cromo, baixo volta à grade.
+            // A faixa fica entre as ações do jogo e a grade.
+            (HubZone.Highlight, GamepadDirection.Up) when hasSelection => HubZone.Hero,
+            (HubZone.Highlight, GamepadDirection.Up) => HubZone.Chrome,
+            (HubZone.Highlight, GamepadDirection.Down) => HubZone.Grid,
+
+            // Do destaque: cima leva ao cromo, baixo desce para a faixa (ou direto à grade).
             (HubZone.Hero, GamepadDirection.Up) => HubZone.Chrome,
+            (HubZone.Hero, GamepadDirection.Down) when hasHighlightRow => HubZone.Highlight,
             (HubZone.Hero, GamepadDirection.Down) => HubZone.Grid,
 
             // Do cromo, descendo: volta ao destaque (ou direto à grade, se não há seleção).

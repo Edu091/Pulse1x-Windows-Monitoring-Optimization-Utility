@@ -93,6 +93,19 @@ public partial class GameCardViewModel : ObservableObject
         if (_wideRequested) return;
         _wideRequested = true;
 
+        // A arte de destaque pode ainda não ter sido procurada — ou ser a própria capa, que foi o
+        // recurso quando o jogo não publica nada widescreen. Nesses casos vale procurar de fato
+        // antes de desistir: um banner verdadeiro muda completamente o cartão.
+        bool hasRealHero = !string.IsNullOrEmpty(Entry.HeroPath)
+            && !GameArtService.IsPlaceholder(Entry.HeroPath)
+            && !string.Equals(Entry.HeroPath, Entry.CoverPath, StringComparison.OrdinalIgnoreCase);
+
+        if (!hasRealHero)
+        {
+            try { await _art.EnsureArtAsync(Entry); }
+            catch { /* sem rede: segue com o que houver no disco */ }
+        }
+
         string? path = Entry.HeroPath ?? Entry.CoverPath ?? Entry.IconPath;
         if (path is null) return;
 

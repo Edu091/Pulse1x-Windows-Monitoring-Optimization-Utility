@@ -1,5 +1,13 @@
 ﻿# Histórico de versões
 
+## 1.7.4 — 20/09/2026
+
+- O GameHub foi remodelado em torno de uma **faixa de destaques** acima da biblioteca: cartões largos e arredondados que alternam entre **Recentes**, **Favoritos** e **Mais jogados**. A grade de capas abaixo ficou compacta, assumindo o papel de catálogo.
+- O destaque mostra o estado da máquina — **CPU, GPU e RAM ao vivo** — e o **FPS médio real** que aquele jogo alcançou nas sessões registradas.
+- Clicar em **Perfil** agora lista os perfis para escolher, com o atual marcado, em vez de abrir direto o editor. Mudar o que um perfil faz continua acessível, no rodapé dessa lista.
+- O seletor do controle percorre a faixa de destaques: as setas laterais andam entre os cartões e as verticais entram e saem da faixa.
+- Botões com gradiente e profundidade: o Jogar ganhou volume e brilho na cor da marca, e as superfícies de vidro substituíram os blocos chapados.
+
 ## 1.7.3 — 20/09/2026
 
 - Os jogos que ficaram com o **quadrado colorido no lugar da capa** agora são tentados de novo sozinhos ao abrir o GameHub, uma vez por sessão. Antes a correção existia mas dependia de acionar "Procurar capas que faltam" no menu, e quem não soubesse disso continuava vendo a capa antiga.

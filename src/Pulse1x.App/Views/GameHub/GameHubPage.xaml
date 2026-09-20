@@ -86,7 +86,15 @@
                                 <Setter TargetName="SegLabel" Property="Foreground" Value="{StaticResource HubText}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="SegBd" Property="Background" Value="#26FFFFFF" />
+                                <!-- O segmento ativo ganha volume, para a escolha se ler de longe. -->
+                                <Setter TargetName="SegBd" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#3DFFFFFF" Offset="0" />
+                                            <GradientStop Color="#1FFFFFFF" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                                 <Setter TargetName="SegLabel" Property="Foreground" Value="{StaticResource HubText}" />
                                 <Setter TargetName="SegLabel" Property="FontWeight" Value="SemiBold" />
                             </Trigger>
@@ -110,7 +118,7 @@
                     CommandParameter="{Binding}" Cursor="Hand" Margin="0,0,16,0">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="WideBd" Width="300" Height="170" CornerRadius="16"
+                        <Border x:Name="WideBd" Width="360" Height="202" CornerRadius="18"
                                 Background="{StaticResource HubSurface}" BorderThickness="2"
                                 BorderBrush="Transparent" RenderTransformOrigin="0.5,0.5">
                             <Border.RenderTransform>
@@ -118,10 +126,17 @@
                             </Border.RenderTransform>
                             <Border CornerRadius="14" ClipToBounds="True">
                                 <Grid Loaded="WideCard_Loaded">
-                                    <Image Source="{Binding WideArt}" Stretch="UniformToFill" />
+                                    <!--
+                                        Alinhado ao topo, não ao centro: quando o jogo não tem arte
+                                        widescreen, o que entra aqui é a capa vertical recortada, e
+                                        é no terço superior dela que ficam o personagem e o logo.
+                                        Centralizar cortava justamente essa parte.
+                                    -->
+                                    <Image Source="{Binding WideArt}" Stretch="UniformToFill"
+                                           HorizontalAlignment="Center" VerticalAlignment="Top" />
 
                                     <!-- Véu inferior: o texto precisa ser legível sobre qualquer arte. -->
-                                    <Border VerticalAlignment="Bottom" Height="66">
+                                    <Border VerticalAlignment="Bottom" Height="96">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                                 <GradientStop Color="#00000000" Offset="0" />
@@ -131,13 +146,13 @@
                                         </Border.Background>
                                     </Border>
 
-                                    <StackPanel VerticalAlignment="Bottom" Margin="12,0,12,10">
-                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13"
+                                    <StackPanel VerticalAlignment="Bottom" Margin="16,0,16,14">
+                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15.5"
                                                    FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                            <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                       Foreground="#B0B4BC" VerticalAlignment="Center" Margin="0,0,5,0" />
-                                            <TextBlock Text="{Binding PlaytimeText}" Foreground="#B0B4BC" FontSize="11"
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                            <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                       Foreground="#C2C6CE" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBlock Text="{Binding PlaytimeText}" Foreground="#C2C6CE" FontSize="12"
                                                        VerticalAlignment="Center" />
                                         </StackPanel>
                                     </StackPanel>
@@ -178,23 +193,45 @@
             adivinhadas por um ícone. Usada no seletor de perfil, ao lado do Jogar.
         -->
         <Style x:Key="HubPillButton" TargetType="Button">
-            <Setter Property="Background" Value="#14FFFFFF" />
             <Setter Property="Foreground" Value="{StaticResource HubText}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="18,13" />
+            <Setter Property="Padding" Value="18,15" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="13.5" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="9" Background="{TemplateBinding Background}"
-                                BorderThickness="0" BorderBrush="Transparent"
+                        <!--
+                            Superfície de vidro: um gradiente muito sutil de branco sobre o fundo
+                            escuro, com a borda superior mais clara. É o que separa o botão do plano
+                            de fundo sem pintá-lo de uma cor sólida.
+                        -->
+                        <Border x:Name="Bd" CornerRadius="10" BorderThickness="1"
                                 Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#26FFFFFF" Offset="0" />
+                                    <GradientStop Color="#14FFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#33FFFFFF" Offset="0" />
+                                    <GradientStop Color="#0DFFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#24FFFFFF" />
+                                <Setter TargetName="Bd" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#3DFFFFFF" Offset="0" />
+                                            <GradientStop Color="#24FFFFFF" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
@@ -564,10 +601,24 @@
                                 IsEnabled="{Binding IsLaunching, Converter={StaticResource InvBool}}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="PlayBd" CornerRadius="9" Padding="42,14"
+                                    <Border x:Name="PlayBd" CornerRadius="10" Padding="46,16"
                                             BorderThickness="0" BorderBrush="Transparent"
-                                            Background="{DynamicResource BrandAccentBrush}"
                                             RenderTransformOrigin="0.5,0.5">
+                                        <!--
+                                            Gradiente vertical claro→escuro no vermelho da marca: dá
+                                            volume ao botão sem depender de sombra, que sobre um fundo
+                                            escuro quase não aparece.
+                                        -->
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#F04444" Offset="0" />
+                                                <GradientStop Color="#DC2626" Offset="0.55" />
+                                                <GradientStop Color="#B01B1B" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#DC2626" BlurRadius="22" ShadowDepth="0" Opacity="0.4" />
+                                        </Border.Effect>
                                         <Border.RenderTransform>
                                             <ScaleTransform x:Name="PlayScale" />
                                         </Border.RenderTransform>
@@ -637,7 +688,19 @@
                         </Button>
 
                         <!-- Ações do jogo: agrupadas e separadas do que é "jogar". -->
-                        <Border Background="#12FFFFFF" CornerRadius="9" Margin="12,0,0,0" Padding="3">
+                        <Border CornerRadius="10" Margin="12,0,0,0" Padding="4" BorderThickness="1">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#1FFFFFFF" Offset="0" />
+                                    <GradientStop Color="#0FFFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#2BFFFFFF" Offset="0" />
+                                    <GradientStop Color="#0AFFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource HubChromeButton}" Padding="13,11"
                                         Click="Statistics_Click"
@@ -754,7 +817,7 @@
                         </Border>
                     </StackPanel>
 
-                    <ItemsControl ItemsSource="{Binding ContinuePlaying}"
+                    <ItemsControl x:Name="HighlightList" ItemsSource="{Binding ContinuePlaying}"
                                   ItemTemplate="{StaticResource HubWideCardTemplate}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

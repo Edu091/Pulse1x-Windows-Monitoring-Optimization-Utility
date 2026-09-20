@@ -136,6 +136,9 @@ public partial class GameHubPage : Page
                 case HubZone.Hero:
                     PlayButton.Focus();
                     break;
+                case HubZone.Highlight:
+                    GamepadFocusService.FocusFirst(HighlightList);
+                    break;
                 case HubZone.Menu:
                     GamepadFocusService.FocusFirst(MenuList);
                     break;
@@ -177,12 +180,23 @@ public partial class GameHubPage : Page
             return;
         }
 
-        // As zonas de foco (cromo e destaque) usam o foco espacial do WPF.
+        // Na faixa de destaques, esquerda e direita andam entre os cartões; só cima e baixo trocam
+        // de zona. Sem esta separação, o primeiro toque lateral já saltaria para fora da faixa.
+        if (_router.Zone == HubZone.Highlight &&
+            direction is GamepadDirection.Left or GamepadDirection.Right)
+        {
+            if (GamepadFocusService.Move(direction))
+                _viewModel.PlaySound(HubSound.Navigate);
+            return;
+        }
+
+        // As zonas de foco (cromo, destaque e faixa) usam o foco espacial do WPF.
         if (_router.Zone != HubZone.Grid)
         {
             // Antes de mover o foco, vemos se o movimento deve trocar de zona.
             var exit = _router.ResolveVerticalExit(direction, atGridTopRow: false,
-                hasSelection: _viewModel.SelectedGame is not null);
+                hasSelection: _viewModel.SelectedGame is not null,
+                hasHighlightRow: _viewModel.HasContinuePlaying);
 
             if (exit is HubZone target && !_router.IsModal)
             {
@@ -196,11 +210,12 @@ public partial class GameHubPage : Page
             return;
         }
 
-        // Na grade: subir na primeira linha sai para o destaque/cromo.
+        // Na grade: subir na primeira linha sai para a faixa/destaque/cromo.
         if (direction == GamepadDirection.Up && _viewModel.IsAtGridTopRow)
         {
             var exit = _router.ResolveVerticalExit(direction, atGridTopRow: true,
-                hasSelection: _viewModel.SelectedGame is not null);
+                hasSelection: _viewModel.SelectedGame is not null,
+                hasHighlightRow: _viewModel.HasContinuePlaying);
             if (exit is HubZone target)
             {
                 _router.SetZone(target);
