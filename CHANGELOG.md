@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.6.6 — 20/09/2026
+
+- Cadastrar um emulador agora é **escolher qual você usa** numa lista — Ryujinx, Eden, Citron ou Yuzu (e forks) — em vez de descobrir a linha de comando dele. Extensões, argumentos e plataforma vêm prontos; basta apontar o executável e a pasta das ROMs.
+- Cada emulador mostra **qual arquivo escolher**. No Citron isso resolve a pegadinha que fazia o emulador abrir sem o jogo: quem carrega a ROM pela linha de comando é o `citron-cmd.exe`, não o `citron.exe`.
+- Os campos técnicos (nome, extensões, argumentos, plataforma) ficaram **recolhidos em "Configurações avançadas"**. Continuam editáveis para o que o catálogo não cobre, e abrem sozinhos ao escolher "Outro emulador".
+
 ## 1.6.5 — 20/09/2026
 
 - O cadastro de emulador agora **reconhece o emulador pelo executável** e preenche sozinho extensões, argumentos e plataforma. Cada emulador tem sua própria sintaxe de linha de comando — Ryujinx aceita o caminho da ROM solto, Eden, Citron e os forks do Yuzu exigem `-g` — e descobrir isso na tentativa e erro era o que fazia a ROM abrir o emulador vazio em vez do jogo.

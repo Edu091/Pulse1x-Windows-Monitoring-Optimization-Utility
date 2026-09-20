@@ -41,6 +41,22 @@ public partial class AddMethodOption : ObservableObject
 }
 
 /// <summary>
+/// Um emulador na escolha rápida. <see cref="Preset"/> nulo é a opção "outro emulador", que deixa
+/// o usuário preencher tudo à mão para consoles que o catálogo ainda não cobre.
+/// </summary>
+public class EmulatorChoice
+{
+    public EmulatorPreset? Preset { get; }
+    public string Label { get; }
+
+    public EmulatorChoice(EmulatorPreset? preset)
+    {
+        Preset = preset;
+        Label = preset?.Name ?? Loc.S("GH_EmuOther");
+    }
+}
+
+/// <summary>
 /// Assistente de "Adicionar jogos". Reúne num lugar só todas as formas de popular a biblioteca, em
 /// vez de espalhar botões pela barra de ferramentas: escolher o método à esquerda, ajustar o que
 /// for preciso à direita e confirmar.
@@ -131,6 +147,11 @@ public partial class AddGamesViewModel : ObservableObject
         EmulatorExtensions = string.Join(", ", value.Extensions);
         EmulatorArguments = value.ArgumentsTemplate;
         EmulatorPlatform = value.Platform;
+
+        // Reflete o emulador no seletor sem deixar o preset reescrever os ajustes salvos.
+        var preset = EmulatorPresets.FindByExecutable(value.Executable);
+        SelectedEmulatorChoice = EmulatorChoices.FirstOrDefault(c => c.Preset?.Name == preset?.Name)
+                                 ?? EmulatorChoices.Last();
         _loadingExistingEmulator = false;
     }
 
@@ -138,45 +159,89 @@ public partial class AddGamesViewModel : ObservableObject
     // trava, o preset sobrescreveria os argumentos que ele mesmo ajustou da última vez.
     private bool _loadingExistingEmulator;
 
-    /// <summary>
-    /// Reconhece o emulador pelo executável escolhido e preenche o resto do formulário. Cada
-    /// emulador tem sua própria sintaxe de linha de comando — uns querem o caminho solto, outros
-    /// exigem <c>-g</c> — e descobrir isso na tentativa e erro é o que costuma fazer a ROM abrir
-    /// o emulador vazio em vez do jogo. Tudo continua editável: o preset é um ponto de partida.
-    /// </summary>
-    partial void OnEmulatorExecutableChanged(string value)
-    {
-        if (_loadingExistingEmulator) return;
+    // =====================================================================================
+    //  Escolha do emulador
+    // =====================================================================================
 
-        var preset = EmulatorPresets.FindByExecutable(value);
-        if (preset is null)
+    /// <summary>
+    /// Emuladores de Switch oferecidos na escolha rápida, mais a opção "outro" para quem quiser
+    /// cadastrar um emulador de qualquer outro console à mão.
+    /// </summary>
+    public IReadOnlyList<EmulatorChoice> EmulatorChoices { get; } =
+        EmulatorPresets.Switch.Select(p => new EmulatorChoice(p))
+            .Append(new EmulatorChoice(null))
+            .ToList();
+
+    [ObservableProperty] private EmulatorChoice? selectedEmulatorChoice;
+
+    /// <summary>
+    /// Escolher o emulador é o que dispensa o usuário de saber a linha de comando dele: o preset
+    /// define extensões, argumentos e plataforma de uma vez. Cada emulador tem sua própria
+    /// sintaxe — o Ryujinx aceita o caminho da ROM solto, o Eden e o Citron exigem <c>-g</c> — e
+    /// errar isso faz o emulador abrir vazio em vez de carregar o jogo, sem nada na tela
+    /// explicando o motivo.
+    /// </summary>
+    partial void OnSelectedEmulatorChoiceChanged(EmulatorChoice? value)
+    {
+        OnPropertyChanged(nameof(RequiresManualSetup));
+        if (value?.Preset is null)
         {
+            // "Outro emulador": nada a preencher, e os campos técnicos passam a ser necessários.
+            ExecutableHint = "";
             DetectedEmulatorNote = "";
             return;
         }
+        if (_loadingExistingEmulator) return;
 
-        if (string.IsNullOrWhiteSpace(EmulatorName) ||
-            EmulatorName == Path.GetFileNameWithoutExtension(value))
-            EmulatorName = preset.Name;
+        var preset = value.Preset;
+        EmulatorName = preset.Name;
+        EmulatorPlatform = preset.Platform;
+        EmulatorExtensions = preset.Extensions;
+        EmulatorArguments = preset.Arguments;
 
-        // Só completamos o que está vazio — um ajuste feito à mão vale mais que o padrão.
-        if (string.IsNullOrWhiteSpace(EmulatorPlatform)) EmulatorPlatform = preset.Platform;
-        if (string.IsNullOrWhiteSpace(EmulatorExtensions)) EmulatorExtensions = preset.Extensions;
-        if (string.IsNullOrWhiteSpace(EmulatorArguments) || EmulatorArguments == "\"{rom}\"")
-            EmulatorArguments = preset.Arguments;
-
-        DetectedEmulatorNote = preset.NoteKey is not null
-            ? Loc.F("GH_EmuDetectedWithNote", preset.Name, Loc.S(preset.NoteKey))
-            : Loc.F("GH_EmuDetected", preset.Name);
+        ExecutableHint = preset.ExecutableHintKey is not null ? Loc.S(preset.ExecutableHintKey) : "";
+        DetectedEmulatorNote = preset.NoteKey is not null ? Loc.S(preset.NoteKey) : "";
     }
 
-    /// <summary>Aviso exibido quando o executável escolhido é um emulador conhecido.</summary>
+    /// <summary>
+    /// Reconhece o emulador pelo executável, para quem chegou pelo botão Procurar sem escolher
+    /// antes. Só age quando ainda não há um emulador selecionado — escolhido à mão, a escolha manda.
+    /// </summary>
+    partial void OnEmulatorExecutableChanged(string value)
+    {
+        if (_loadingExistingEmulator || SelectedEmulatorChoice?.Preset is not null) return;
+
+        var preset = EmulatorPresets.FindByExecutable(value);
+        if (preset is null) return;
+
+        var choice = EmulatorChoices.FirstOrDefault(c => c.Preset?.Name == preset.Name);
+        if (choice is not null) SelectedEmulatorChoice = choice; // preenche o resto pelo preset
+    }
+
+    /// <summary>Qual arquivo escolher, quando o nome não é óbvio (o citron-cmd.exe, por exemplo).</summary>
+    [ObservableProperty] private string executableHint = "";
+
+    public bool HasExecutableHint => !string.IsNullOrEmpty(ExecutableHint);
+
+    partial void OnExecutableHintChanged(string value) => OnPropertyChanged(nameof(HasExecutableHint));
+
+    /// <summary>Observação do emulador escolhido, quando há alguma pegadinha conhecida.</summary>
     [ObservableProperty] private string detectedEmulatorNote = "";
 
     public bool HasDetectedEmulatorNote => !string.IsNullOrEmpty(DetectedEmulatorNote);
 
     partial void OnDetectedEmulatorNoteChanged(string value) =>
         OnPropertyChanged(nameof(HasDetectedEmulatorNote));
+
+    /// <summary>
+    /// Os campos técnicos (extensões, argumentos, plataforma) ficam recolhidos: com o emulador
+    /// escolhido eles já vêm certos, e quem não conhece a sintaxe não deveria precisar encará-los.
+    /// Continuam ali, editáveis, para casos que o catálogo não cobre.
+    /// </summary>
+    [ObservableProperty] private bool showAdvancedEmulatorFields;
+
+    /// <summary>Com "Outro emulador", os campos técnicos são o único jeito de configurar: abrem sozinhos.</summary>
+    public bool RequiresManualSetup => SelectedEmulatorChoice is not null && SelectedEmulatorChoice.Preset is null;
 
     // =====================================================================================
     //  Execução

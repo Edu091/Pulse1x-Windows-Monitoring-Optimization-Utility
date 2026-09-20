@@ -18,7 +18,16 @@ public record EmulatorPreset(
     /// </summary>
     string? MainProcessName = null,
     /// <summary>Observação mostrada ao usuário quando o preset é reconhecido.</summary>
-    string? NoteKey = null);
+    string? NoteKey = null,
+    /// <summary>
+    /// Nome do arquivo que deve ser escolhido, quando não é óbvio — o Citron é iniciado pelo
+    /// citron-cmd.exe, e apontar para o citron.exe faz o emulador abrir sem carregar a ROM.
+    /// </summary>
+    string? ExecutableHintKey = null)
+{
+    /// <summary>Emulador de Nintendo Switch, oferecido na escolha rápida.</summary>
+    public bool IsSwitch => Platform == "Nintendo Switch";
+}
 
 /// <summary>
 /// Catálogo de emuladores conhecidos, usado para preencher o formulário de cadastro sozinho.
@@ -46,22 +55,25 @@ public static class EmulatorPresets
         // como argumento solto. O GTK antigo (Ryujinx.Ava.exe) continua na lista porque ainda
         // circula em instalações mais velhas.
         new("Ryujinx", "Nintendo Switch", SwitchExtensions, "\"{rom}\"",
-            new[] { "ryujinx", "ryujinx.ava", "ryujinxlauncher" }),
+            new[] { "ryujinx", "ryujinx.ava", "ryujinxlauncher" },
+            ExecutableHintKey: "GH_EmuHintRyujinx"),
 
         // Eden: o Qt aceita tanto o caminho solto quanto -g; usamos -g por ser explícito.
         // O eden-cli é o SDL, com as mesmas flags.
         new("Eden", "Nintendo Switch", SwitchExtensions, "-g \"{rom}\"",
-            new[] { "eden", "eden-cli" }),
+            new[] { "eden", "eden-cli" },
+            ExecutableHintKey: "GH_EmuHintEden"),
 
         // Citron: quem entende linha de comando é o citron-cmd, não o executável da interface.
         // Apontar para o citron.exe aqui costuma resultar no emulador abrindo sem carregar nada.
         new("Citron", "Nintendo Switch", SwitchExtensions, "-g \"{rom}\"",
             new[] { "citron", "citron-cmd" }, MainProcessName: "citron",
-            NoteKey: "GH_EmuNoteCitron"),
+            NoteKey: "GH_EmuNoteCitron", ExecutableHintKey: "GH_EmuHintCitron"),
 
         // Forks do Yuzu (Suyu, Sudachi e afins): mantiveram a CLI do Yuzu original — yuzu.exe -g rom.
         new("Yuzu (e forks)", "Nintendo Switch", SwitchExtensions, "-g \"{rom}\"",
-            new[] { "yuzu", "suyu", "sudachi", "yuzu-cmd" }),
+            new[] { "yuzu", "suyu", "sudachi", "yuzu-cmd" },
+            ExecutableHintKey: "GH_EmuHintYuzu"),
 
         // ---------- Outros consoles ----------
 
@@ -98,6 +110,14 @@ public static class EmulatorPresets
         new("melonDS", "Nintendo DS", "nds, srl, dsi",
             "\"{rom}\"", new[] { "melonds" }),
     };
+
+    /// <summary>
+    /// Emuladores de Switch, na ordem em que aparecem na escolha rápida do cadastro. É a lista que
+    /// dispensa o usuário de saber a sintaxe de linha de comando: escolher aqui já define
+    /// extensões, argumentos e plataforma.
+    /// </summary>
+    public static IReadOnlyList<EmulatorPreset> Switch { get; } =
+        All.Where(p => p.IsSwitch).ToList();
 
     /// <summary>
     /// Procura o preset correspondente a um executável. A comparação é pelo nome do arquivo, sem

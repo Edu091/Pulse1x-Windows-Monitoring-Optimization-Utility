@@ -205,10 +205,19 @@
                         <ComboBox ItemsSource="{Binding ExistingEmulators}" DisplayMemberPath="Name"
                                   SelectedItem="{Binding SelectedExistingEmulator}" Margin="0,0,0,12" />
 
-                        <TextBlock Text="{Binding [GH_EmulatorName], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
-                        <ui:TextBox Text="{Binding EmulatorName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                        <!-- Escolher o emulador aqui é o que dispensa saber a linha de comando dele:
+                             extensões, argumentos e plataforma vêm prontos. -->
+                        <TextBlock Text="{Binding [GH_WhichEmulator], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+                        <ComboBox ItemsSource="{Binding EmulatorChoices}" DisplayMemberPath="Label"
+                                  SelectedItem="{Binding SelectedEmulatorChoice}" Margin="0,0,0,12" />
 
                         <TextBlock Text="{Binding [GH_EmulatorExe], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+
+                        <!-- Qual arquivo escolher, quando o nome não é óbvio (o citron-cmd.exe). -->
+                        <TextBlock Text="{Binding ExecutableHint}" TextWrapping="Wrap" FontSize="12" Opacity="0.7"
+                                   Margin="0,0,0,6"
+                                   Visibility="{Binding HasExecutableHint, Converter={StaticResource BoolToVis}}" />
+
                         <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -220,8 +229,7 @@
                                        Command="{Binding BrowseEmulatorCommand}" />
                         </Grid>
 
-                        <!-- Emulador reconhecido pelo catálogo: diz o que foi preenchido e, quando
-                             há uma pegadinha (o citron-cmd, o core do RetroArch), avisa antes. -->
+                        <!-- Pegadinha conhecida do emulador escolhido (o citron-cmd, o core do RetroArch). -->
                         <Border Margin="0,-6,0,12" Padding="10,8" CornerRadius="8"
                                 Background="{DynamicResource ControlFillColorSecondaryBrush}"
                                 Visibility="{Binding HasDetectedEmulatorNote, Converter={StaticResource BoolToVis}}">
@@ -240,14 +248,54 @@
                                        Command="{Binding BrowseRomsCommand}" />
                         </Grid>
 
-                        <TextBlock Text="{Binding [GH_Extensions], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
-                        <ui:TextBox Text="{Binding EmulatorExtensions, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                        <!-- Campos técnicos: com o emulador escolhido já vêm certos, então ficam
+                             recolhidos. Continuam editáveis para o que o catálogo não cobre. -->
+                        <ToggleButton IsChecked="{Binding ShowAdvancedEmulatorFields, Mode=TwoWay}"
+                                      Style="{DynamicResource GhostToggle}" Background="Transparent" BorderThickness="0"
+                                      HorizontalContentAlignment="Stretch" Padding="0,4" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="12" Opacity="0.75"
+                                           Text="{Binding [GH_EmuAdvanced], Source={x:Static loc:Loc.Instance}}" />
+                                <TextBlock Grid.Column="1" Text="⌄" FontSize="12"
+                                           Visibility="{Binding ShowAdvancedEmulatorFields, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                <TextBlock Grid.Column="1" Text="⌃" FontSize="12"
+                                           Visibility="{Binding ShowAdvancedEmulatorFields, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+                        </ToggleButton>
 
-                        <TextBlock Text="{Binding [GH_ArgumentsTemplate], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
-                        <ui:TextBox Text="{Binding EmulatorArguments, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <!-- Abertos à mão, ou sozinhos quando o emulador é "outro"
+                                             e não há preset para preencher nada. -->
+                                        <DataTrigger Binding="{Binding ShowAdvancedEmulatorFields}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding RequiresManualSetup}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
 
-                        <TextBlock Text="{Binding [GH_EmulatorPlatform], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
-                        <ui:TextBox Text="{Binding EmulatorPlatform, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Text="{Binding [GH_EmulatorName], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+                            <ui:TextBox Text="{Binding EmulatorName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                            <TextBlock Text="{Binding [GH_Extensions], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+                            <ui:TextBox Text="{Binding EmulatorExtensions, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                            <TextBlock Text="{Binding [GH_ArgumentsTemplate], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+                            <ui:TextBox Text="{Binding EmulatorArguments, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                            <TextBlock Text="{Binding [GH_EmulatorPlatform], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
+                            <ui:TextBox Text="{Binding EmulatorPlatform, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Resultado -->
