@@ -12,6 +12,16 @@
         mostram: Otimizacao, onde ela nasceu, e a Central Pos-Formatacao, onde tirar o que veio de
         fabrica e a outra metade do trabalho de preparar um PC recem-formatado. Cada pagina cria
         seu proprio ViewModel sobre o mesmo servico; so o desenho e compartilhado.
+
+        Este dicionario e mesclado nas DUAS paginas (Page.Resources), nunca no App.xaml: o
+        ApplicationThemeManager do Wpf.Ui troca o ThemesDictionary dentro das MergedDictionaries do
+        aplicativo quando o tema muda, e um dicionario extra ali atrapalha essa troca.
+
+        Os conversores precisam estar declarados AQUI: um StaticResource dentro de um dicionario e
+        resolvido no proprio dicionario, no momento em que ele e carregado — as chaves de mesmo
+        nome que as paginas declaram nao sao enxergadas daqui, e o app quebra ao renderizar.
+        As paginas tambem as declaram; chaves iguais em dicionarios diferentes convivem sem
+        conflito, cada uma valendo no seu escopo.
     -->
     <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
     <converters:InverseBooleanConverter x:Key="InvBool" />

@@ -11,8 +11,6 @@
                      pincéis de texto pretos até a primeira troca de tema. -->
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
-                <!-- Desenho do Detector de Bloatware, compartilhado por Otimização e Pós-Formatação. -->
-                <ResourceDictionary Source="pack://application:,,,/Pulse1x.App;component/Views/BloatwareDetectorResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que
@@ -44,11 +42,17 @@
             <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
             </Style>
+            <!-- O Foreground aqui não é decorativo: dentro de um DataTemplate (ex.: a lista de
+                 launchers nas Configurações, as opções do editor de perfil) o texto do CheckBox
+                 não herdava o pincel do tema e saía no PRETO padrão do sistema, ilegível sobre o
+                 fundo escuro. Fixá-lo no pincel do tema resolve em todas as telas de uma vez. -->
             <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
             </Style>
             <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
             </Style>
             <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
@@ -213,6 +217,88 @@
                                     HorizontalAlignment="Left"
                                     CornerRadius="3" />
                             </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- O Expander é o único controle nativo que o Wpf.Ui não restiliza, então ele caía no
+                 tema Aero do Windows: cabeçalho claro com texto PRETO, ilegível sobre o fundo
+                 escuro do app (aparecia assim nas Configurações). Este template segue o mesmo
+                 caminho já usado no ProgressBar e nos ToggleButton de marca — autocontido e
+                 inteiramente baseado nos pincéis do tema, de modo que o texto acompanha o
+                 TextFillColorPrimaryBrush no escuro e no claro. O chevron ⌄/⌃ indica o estado,
+                 como nos demais cabeçalhos recolhíveis do app. -->
+            <Style TargetType="Expander">
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="12,10" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Expander">
+                            <Border CornerRadius="8" SnapsToDevicePixels="True"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition x:Name="ContentRow" Height="0" />
+                                    </Grid.RowDefinitions>
+
+                                    <ToggleButton x:Name="HeaderSite" Grid.Row="0"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Foreground="{TemplateBinding Foreground}"
+                                                  Cursor="Hand" Background="Transparent" BorderThickness="0"
+                                                  HorizontalContentAlignment="Stretch">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border x:Name="HeaderBd" Background="{TemplateBinding Background}"
+                                                        CornerRadius="8" Padding="12,10" SnapsToDevicePixels="True">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <ContentPresenter Grid.Column="0" VerticalAlignment="Center"
+                                                                          ContentSource="Content"
+                                                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                                                        <TextBlock x:Name="Chevron" Grid.Column="1" Text="⌄"
+                                                                   FontSize="13" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                                   Foreground="{TemplateBinding Foreground}" />
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="Chevron" Property="Text" Value="⌃" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                                          TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Expander}}" />
+                                    </ToggleButton>
+
+                                    <ContentPresenter x:Name="ExpandSite" Grid.Row="1"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      Visibility="Collapsed"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsExpanded" Value="True">
+                                    <Setter TargetName="ContentRow" Property="Height" Value="Auto" />
+                                    <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

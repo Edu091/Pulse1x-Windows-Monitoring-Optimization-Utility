@@ -13,6 +13,11 @@
     mc:Ignorable="d"
     Title="Utilidades">
     <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Desenho do Debloater, compartilhado com a página de Otimização. -->
+                <ResourceDictionary Source="pack://application:,,,/Pulse1x.App;component/Views/BloatwareDetectorResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanConverter x:Key="InvBool" />
         <converters:StringToBrushConverter x:Key="StrToBrush" />
@@ -59,6 +64,7 @@
                 </Grid>
             </Border>
         </DataTemplate>
+        </ResourceDictionary>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
