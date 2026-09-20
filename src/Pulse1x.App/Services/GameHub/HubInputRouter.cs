@@ -69,6 +69,12 @@ public class HubInputRouter
     /// <summary>Força uma zona (usado quando o usuário clica com o mouse em alguma área).</summary>
     public void SetZone(HubZone zone) => Zone = zone;
 
+    // Mouse and keyboard already placed focus; do not move it back to the zone's first item.
+    public void TrackFocus(HubZone zone)
+    {
+        if (!IsModal) _zone = zone;
+    }
+
     /// <summary>
     /// Resolve para onde ir ao navegar verticalmente saindo de uma zona. Devolve null quando o
     /// movimento deve ser tratado dentro da própria zona.

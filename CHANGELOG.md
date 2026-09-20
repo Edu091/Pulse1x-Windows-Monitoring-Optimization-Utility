@@ -1,5 +1,13 @@
 ﻿# Histórico de versões
 
+## 1.8.0 — 20/09/2026
+
+- **GameHub remasterizado:** ações mais limpas, bordas arredondadas com recorte real das imagens, capas estáveis e destaque widescreen mais nítido. Os cartões não crescem sobre os vizinhos ao selecionar.
+- **Um único seletor:** a borda acompanha o foco entre biblioteca, destaques e ações, sem deixar outro jogo marcado em vermelho. Mouse, teclado e controle compartilham a mesma área ativa.
+- **Dois cliques abrem o jogo**, tanto na biblioteca quanto em Continuar jogando. No controle, dois toques rápidos em A/X sobre o mesmo cartão iniciam a partida; o botão Jogar continua respondendo a um toque. Cliques no espaço vazio não iniciam jogos.
+- Suporte a **Xbox, DualShock, DualSense e gamepads reconhecidos pelo SDL**, incluindo troca do controle ativo e conexão/desconexão durante o uso. Botões equivalentes preservam as ações de confirmar, voltar, favoritar e buscar.
+- **Legendas adaptadas ao controle:** o rodapé e o teclado virtual mostram os símbolos correspondentes. Configurações permite escolher Automático, Xbox ou PlayStation para os casos em que um emulador de controle oculta a identidade física.
+
 ## 1.7.5 — 20/09/2026
 
 - **O controle dos modos do NitroSense funciona nos Nitro recentes.** O firmware desses modelos usa 0x06 para Desempenho, valor que o Pulse não conhecia — o modo existia no aparelho mas nunca aparecia na lista, e escrever o valor antigo não fazia nada. Confirmado num Nitro ANV15-51, lendo e aplicando os perfis pela mesma interface que o NitroSense usa.

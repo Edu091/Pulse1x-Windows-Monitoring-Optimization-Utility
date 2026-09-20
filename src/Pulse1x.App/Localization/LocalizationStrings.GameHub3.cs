@@ -12,7 +12,11 @@ internal static partial class LocalizationStrings
 
         // Side menu
         t["GH_MenuTitle"] = "Menu";
-        t["GH_MenuHint"] = "Pressione View no controle para abrir este menu a qualquer momento.";
+        t["GH_MenuHint"] = "Pressione {0} no controle para abrir este menu a qualquer momento.";
+        t["GH_PlayDoubleTap"] = "Jogar (2x)";
+        t["GH_Confirm"] = "Confirmar";
+        t["Settings_ControllerGlyphs"] = "Bot\u00f5es do controle";
+        t["Settings_ControllerAuto"] = "Autom\u00e1tico";
         t["GH_MenuGameProfile"] = "Perfil do jogo selecionado";
         t["GH_MenuStatistics"] = "Estat\u00edsticas";
         t["GH_MenuSettings"] = "Configura\u00e7\u00f5es do Pulse1x";
@@ -23,7 +27,7 @@ internal static partial class LocalizationStrings
         t["GH_GameActions"] = "A\u00e7\u00f5es do jogo";
 
         // Virtual keyboard
-        t["GH_KeyboardHint"] = "Direcional move \u00b7 A digita \u00b7 B conclui";
+        t["GH_KeyboardHint"] = "Direcional move \u00b7 {0} digita \u00b7 {1} conclui";
         t["GH_KeySpace"] = "Espa\u00e7o";
         t["GH_KeyClear"] = "Limpar";
         t["GH_KeyDone"] = "Concluir";
@@ -84,7 +88,11 @@ internal static partial class LocalizationStrings
         var t = En;
 
         t["GH_MenuTitle"] = "Menu";
-        t["GH_MenuHint"] = "Press View on the controller to open this menu at any time.";
+        t["GH_MenuHint"] = "Press {0} on the controller to open this menu at any time.";
+        t["GH_PlayDoubleTap"] = "Play (2x)";
+        t["GH_Confirm"] = "Confirm";
+        t["Settings_ControllerGlyphs"] = "Controller buttons";
+        t["Settings_ControllerAuto"] = "Automatic";
         t["GH_MenuGameProfile"] = "Selected game profile";
         t["GH_MenuStatistics"] = "Statistics";
         t["GH_MenuSettings"] = "Pulse1x settings";
@@ -94,7 +102,7 @@ internal static partial class LocalizationStrings
         t["GH_MenuConfirm"] = "Confirm: {0}?";
         t["GH_GameActions"] = "Game actions";
 
-        t["GH_KeyboardHint"] = "D-pad moves \u00b7 A types \u00b7 B finishes";
+        t["GH_KeyboardHint"] = "D-pad moves \u00b7 {0} types \u00b7 {1} finishes";
         t["GH_KeySpace"] = "Space";
         t["GH_KeyClear"] = "Clear";
         t["GH_KeyDone"] = "Done";

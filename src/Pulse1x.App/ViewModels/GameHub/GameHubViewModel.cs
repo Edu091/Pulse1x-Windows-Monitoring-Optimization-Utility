@@ -72,6 +72,53 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string sessionStatus = "";
     [ObservableProperty] private bool isSessionRunning;
     [ObservableProperty] private bool gamepadConnected;
+    [ObservableProperty] private string controllerGlyphs = "Auto";
+    [ObservableProperty] private bool cardInputActive = true;
+
+    private ControllerButtonLabels ButtonLabels => ControllerGlyphs switch
+    {
+        "Xbox" => ControllerButtonLabels.Xbox,
+        "PlayStation" => new("Cross", "Circle", "Square", "Triangle", "L1", "R1", "Share", "Options", "L2"),
+        _ => _gamepad.ActiveControllerLabels,
+    };
+
+    private static string Glyph(string name) => name switch
+    {
+        "Cross" => "\u00d7", "Circle" => "\u25cb", "Square" => "\u25a1", "Triangle" => "\u25b3",
+        "South" => "\u2193", "East" => "\u2192", "West" => "\u2190", "North" => "\u2191",
+        _ => name,
+    };
+
+    public string AcceptGlyph => Glyph(ButtonLabels.Accept);
+    public string BackGlyph => Glyph(ButtonLabels.Back);
+    public string FavoriteGlyph => Glyph(ButtonLabels.Favorite);
+    public string SearchGlyph => Glyph(ButtonLabels.Search);
+    public string MenuGlyph => ButtonLabels.Menu;
+    public string ActionsGlyph => ButtonLabels.GameActions;
+    private bool HasPlayStationGlyphs => ButtonLabels.Accept == "Cross";
+    public string AcceptGlyphBrush => HasPlayStationGlyphs ? "#2563EB" : "#16883F";
+    public string BackGlyphBrush => HasPlayStationGlyphs ? "#B84050" : "#DC2626";
+    public string FavoriteGlyphBrush => HasPlayStationGlyphs ? "#9D477F" : "#2563EB";
+    public string SearchGlyphBrush => HasPlayStationGlyphs ? "#167C68" : "#A77910";
+    public string CardAcceptLabel => Loc.S(CardInputActive ? "GH_PlayDoubleTap" : "GH_Confirm");
+    public string ControllerMenuHint => Loc.F("GH_MenuHint", MenuGlyph);
+
+    partial void OnControllerGlyphsChanged(string value) => RefreshControllerHints();
+    partial void OnCardInputActiveChanged(bool value) => OnPropertyChanged(nameof(CardAcceptLabel));
+
+    private void OnActiveControllerChanged(ControllerIdentity? identity)
+    {
+        GamepadConnected = identity is not null;
+        RefreshControllerHints();
+    }
+
+    private void RefreshControllerHints()
+    {
+        foreach (string property in new[] { nameof(AcceptGlyph), nameof(BackGlyph), nameof(FavoriteGlyph),
+            nameof(SearchGlyph), nameof(MenuGlyph), nameof(ActionsGlyph), nameof(AcceptGlyphBrush),
+            nameof(BackGlyphBrush), nameof(FavoriteGlyphBrush), nameof(SearchGlyphBrush),
+            nameof(ControllerMenuHint), nameof(CardAcceptLabel) }) OnPropertyChanged(property);
+    }
     [ObservableProperty] private string emptyMessage = "";
 
     /// <summary>Desfoque do fundo em destaque, governado pela intensidade global de blur.</summary>
@@ -259,7 +306,8 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         _sessions.StepReported += OnStepReported;
         // A entrada do controle é roteada pela PÁGINA (HubInputRouter), que sabe em que zona o
         // usuário está. A ViewModel só expõe as ações; assim não há dois donos do mesmo evento.
-        _gamepad.ConnectionChanged += connected => GamepadConnected = connected;
+        _gamepad.ActiveControllerChanged += OnActiveControllerChanged;
+        GamepadConnected = _gamepad.IsConnected;
         Loc.Instance.LanguageChanged += OnLanguageChanged;
 
         // O desfoque do destaque segue o mesmo ajuste de intensidade de blur do app inteiro.
@@ -967,7 +1015,7 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     /// botões do topo), quem manda é o foco do WPF — a grade só volta a responder quando o
     /// contexto retorna para ela.
     /// </summary>
-    public bool GridHasFocus { get; set; } = true;
+    [ObservableProperty] private bool gridHasFocus = true;
 
     /// <summary>O item selecionado está na primeira linha da grade? O roteador usa isto para saber
     /// quando "subir" deve sair da grade em vez de mover a seleção.</summary>
@@ -1107,6 +1155,7 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged()
     {
+        RefreshControllerHints();
         BuildFilterOptions();
         RefreshCategoryFilters();
         foreach (var card in _allCards) card.Refresh();
@@ -1129,11 +1178,12 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         SelectedGame?.Entry is { } entry &&
         !string.IsNullOrEmpty(entry.HeroPath) &&
         !string.Equals(entry.HeroPath, entry.CoverPath, StringComparison.OrdinalIgnoreCase)
-            ? 18 : 42;
+            ? 0 : 18;
 
     public void Dispose()
     {
         _artCts?.Cancel();
+        _gamepad.ActiveControllerChanged -= OnActiveControllerChanged;
         _theme.AppearanceChanged -= UpdateBlurFromTheme;
         _library.Changed -= OnLibraryChanged;
         _sessions.SessionStarted -= OnSessionStarted;

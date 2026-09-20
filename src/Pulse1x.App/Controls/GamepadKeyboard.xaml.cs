@@ -20,6 +20,15 @@ public partial class GamepadKeyboard : UserControl
     private bool _shift;
     private readonly List<List<Button>> _rows = new();
     private Button? _firstKey;
+    private string _acceptGlyph = "A";
+    private string _backGlyph = "B";
+
+    public void SetControllerGlyphs(string accept, string back)
+    {
+        _acceptGlyph = accept;
+        _backGlyph = back;
+        HintText.Text = Loc.F("GH_KeyboardHint", accept, back);
+    }
 
     /// <summary>Texto digitado até agora.</summary>
     public string Text
@@ -55,7 +64,7 @@ public partial class GamepadKeyboard : UserControl
 
         Loaded += (_, _) =>
         {
-            HintText.Text = Loc.S("GH_KeyboardHint");
+            HintText.Text = Loc.F("GH_KeyboardHint", _acceptGlyph, _backGlyph);
             PreviewText.Text = _text;
         };
     }
@@ -136,6 +145,7 @@ public partial class GamepadKeyboard : UserControl
             BorderBrush = Brushes.Transparent,
             Cursor = System.Windows.Input.Cursors.Hand,
             Focusable = true,
+            FocusVisualStyle = null,
             Template = (ControlTemplate)Resources["KeyTemplate"],
         };
 

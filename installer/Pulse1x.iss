@@ -7,7 +7,7 @@
 ; .exe num diretório temporário do runner, diferente do caminho fixo usado no publish local
 ; (atualizar_pulse1x.bat). Os #ifndef abaixo mantêm o build manual funcionando sem argumentos.
 #ifndef AppVersion
-  #define AppVersion "1.6.9"
+  #define AppVersion "1.8.0"
 #endif
 #ifndef SourceExeDir
   #define SourceExeDir "C:\Pulse1x\release-public"

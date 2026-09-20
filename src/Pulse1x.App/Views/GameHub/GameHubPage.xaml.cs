@@ -58,6 +58,10 @@ public partial class GameHubPage : Page
         _metrics = metrics;
 
         DataContext = viewModel;
+        LostKeyboardFocus += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (!LibraryList.IsKeyboardFocusWithin) _viewModel.GridHasFocus = false;
+        }));
 
         viewModel.ScrollToRequested += card => LibraryList.ScrollIntoView(card);
         viewModel.EditGameRequested += OpenGameEditor;
@@ -90,6 +94,33 @@ public partial class GameHubPage : Page
 
     private readonly HubInputRouter _router = new();
     private GamepadService? _gamepad;
+    private readonly GameActivationGesture _activation = new();
+    private IInputElement? _profileReturnFocus;
+
+    private void Page_PreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (_viewModel is null || e.NewFocus is not DependencyObject target) return;
+        bool inLibrary = IsWithin(target, LibraryList);
+        _viewModel.GridHasFocus = inLibrary;
+        HubZone zone = inLibrary ? HubZone.Grid
+            : IsWithin(target, HighlightList) ? HubZone.Highlight
+            : IsWithin(target, HeroContent) ? HubZone.Hero : HubZone.Chrome;
+        if (_router.Zone != zone) _activation.Reset();
+        _router.TrackFocus(zone);
+        _viewModel.CardInputActive = !_router.IsModal && !_viewModel.IsProfilePickerOpen &&
+                                    zone is HubZone.Grid or HubZone.Highlight;
+    }
+
+    private static bool IsWithin(DependencyObject target, DependencyObject root)
+    {
+        for (DependencyObject? node = target; node is not null;)
+        {
+            if (ReferenceEquals(node, root)) return true;
+            node = node is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
+        }
+        return false;
+    }
 
     /// <summary>
     /// Assume a entrada do controle enquanto o GameHub está aberto. É o ÚNICO ponto do hub que
@@ -107,6 +138,7 @@ public partial class GameHubPage : Page
         _gamepad = gamepad;
         gamepad.Navigate += OnGamepadNavigate;
         gamepad.Action += OnGamepadAction;
+        gamepad.ActiveControllerChanged += OnControllerChanged;
         _router.ZoneChanged += OnZoneChanged;
     }
 
@@ -115,15 +147,22 @@ public partial class GameHubPage : Page
         if (_gamepad is null) return;
         _gamepad.Navigate -= OnGamepadNavigate;
         _gamepad.Action -= OnGamepadAction;
+        _gamepad.ActiveControllerChanged -= OnControllerChanged;
         _router.ZoneChanged -= OnZoneChanged;
         _gamepad = null;
     }
 
+    private void OnControllerChanged(ControllerIdentity? controller) => _activation.Reset();
+
     /// <summary>Move o foco visual ao trocar de zona, para o usuário ver onde está.</summary>
     private void OnZoneChanged(HubZone zone)
     {
+        _activation.Reset();
+        _viewModel.GridHasFocus = zone == HubZone.Grid;
+        _viewModel.CardInputActive = zone is HubZone.Grid or HubZone.Highlight;
         Dispatcher.BeginInvoke(new Action(() =>
         {
+            if (_router.Zone != zone) return;
             switch (zone)
             {
                 case HubZone.Grid:
@@ -152,6 +191,7 @@ public partial class GameHubPage : Page
     private void OnGamepadNavigate(GamepadDirection direction)
     {
         if (!IsVisible) return;
+        _activation.Reset();
 
         // Com um diálogo aberto (Adicionar jogos, Perfil, Estatísticas...), a entrada pertence a
         // ele: navegamos pelo foco da janela ativa e não mexemos na biblioteca atrás.
@@ -163,6 +203,12 @@ public partial class GameHubPage : Page
                 ? statistics.MoveGamepadFocus(direction)
                 : GamepadFocusService.Move(direction);
             if (moved) _viewModel.PlaySound(HubSound.Navigate);
+            return;
+        }
+
+        if (_viewModel.IsProfilePickerOpen)
+        {
+            if (MoveButtonSelection(ProfilePickerPanel, direction)) _viewModel.PlaySound(HubSound.Navigate);
             return;
         }
 
@@ -225,7 +271,10 @@ public partial class GameHubPage : Page
         }
 
         if (_viewModel.MoveSelection(direction))
+        {
+            FocusLibrary();
             _viewModel.PlaySound(HubSound.Navigate);
+        }
     }
 
     /// <summary>Restaura o foco da zona atual depois de a janela sair do estado minimizado.</summary>
@@ -239,13 +288,15 @@ public partial class GameHubPage : Page
     /// O menu lateral é uma lista vertical. Controlar o índice explicitamente impede que uma
     /// diagonal do analógico faça o WPF saltar para o cromo ou para a biblioteca atrás do overlay.
     /// </summary>
-    private bool MoveMenuSelection(GamepadDirection direction)
+    private bool MoveMenuSelection(GamepadDirection direction) => MoveButtonSelection(MenuList, direction);
+
+    private static bool MoveButtonSelection(DependencyObject root, GamepadDirection direction)
     {
         // Não há navegação horizontal no menu; ignorá-la também neutraliza a segunda componente
         // de um analógico levemente diagonal.
         if (direction is GamepadDirection.Left or GamepadDirection.Right) return false;
 
-        var items = FindDescendants<Button>(MenuList)
+        var items = FindDescendants<Button>(root)
             .Where(button => button.IsVisible && button.IsEnabled)
             .ToList();
         if (items.Count == 0) return false;
@@ -290,6 +341,7 @@ public partial class GameHubPage : Page
     private void OnGamepadAction(GamepadAction action)
     {
         if (!IsVisible) return;
+        if (action != GamepadAction.Accept) _activation.Reset();
 
         // ---- Diálogo aberto por cima: A aciona, B fecha ----
         if (GamepadFocusService.IsDialogActive())
@@ -304,6 +356,17 @@ public partial class GameHubPage : Page
                     _viewModel.PlaySound(HubSound.Back);
                     CloseOrFocusActions(GamepadFocusService.ActiveWindow());
                     break;
+            }
+            return;
+        }
+
+        if (_viewModel.IsProfilePickerOpen)
+        {
+            if (action == GamepadAction.Back) _viewModel.CloseProfilePickerCommand.Execute(null);
+            else if (action == GamepadAction.Accept)
+            {
+                if (GamepadFocusService.IsFocusInside(ProfilePickerPanel)) GamepadFocusService.Accept();
+                else GamepadFocusService.FocusFirst(ProfilePickerPanel);
             }
             return;
         }
@@ -357,10 +420,14 @@ public partial class GameHubPage : Page
         switch (action)
         {
             case GamepadAction.Accept:
-                // Na grade, A joga. Nas outras zonas, A aciona o botão em foco.
                 if (_router.Zone == HubZone.Grid)
                 {
-                    LaunchSelected();
+                    ConfirmGameCard(_viewModel.SelectedGame);
+                }
+                else if (_router.Zone == HubZone.Highlight &&
+                         Keyboard.FocusedElement is FrameworkElement { DataContext: GameCardViewModel card })
+                {
+                    ConfirmGameCard(card);
                 }
                 else
                 {
@@ -530,7 +597,7 @@ public partial class GameHubPage : Page
     {
         // Clicar na busca com o mouse move a zona de entrada para o cromo, para o controle
         // continuar de onde o usuário está olhando.
-        if (_router.Zone == HubZone.Grid) _router.SetZone(HubZone.Chrome);
+        _router.TrackFocus(HubZone.Chrome);
     }
 
     /// <summary>Repassa à ViewModel as preferências próprias do GameHub.</summary>
@@ -539,6 +606,7 @@ public partial class GameHubPage : Page
         var hub = _settings.Current.GameHub;
         _viewModel.ApplyCardSize(hub.CardSize);
         _viewModel.ShowTitles = hub.ShowTitlesOnCards;
+        _viewModel.ControllerGlyphs = hub.ControllerGlyphs;
     }
 
     // =====================================================================================
@@ -549,6 +617,23 @@ public partial class GameHubPage : Page
     {
         if (e.PropertyName == nameof(GameHubViewModel.HeroImage))
             AnimateHero();
+        if (e.PropertyName is nameof(GameHubViewModel.AcceptGlyph) or nameof(GameHubViewModel.BackGlyph))
+            VirtualKeyboard.SetControllerGlyphs(_viewModel.AcceptGlyph, _viewModel.BackGlyph);
+        if (e.PropertyName == nameof(GameHubViewModel.IsProfilePickerOpen))
+        {
+            _activation.Reset();
+            if (_viewModel.IsProfilePickerOpen)
+            {
+                _profileReturnFocus = Keyboard.FocusedElement;
+                _viewModel.GridHasFocus = false;
+                _viewModel.CardInputActive = false;
+                GamepadFocusService.FocusFirst(ProfilePickerPanel);
+            }
+            else Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!GamepadFocusService.IsDialogActive()) _profileReturnFocus?.Focus();
+            }));
+        }
     }
 
     /// <summary>
@@ -618,14 +703,58 @@ public partial class GameHubPage : Page
         _viewModel.ColumnsPerRow = Math.Max(1, (int)(available / cardWidth));
     }
 
-    private void LibraryList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => LaunchSelected();
+    private void LibraryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left || e.OriginalSource is not DependencyObject source) return;
+        if (ItemsControl.ContainerFromElement(LibraryList, source) is not ListBoxItem
+            { DataContext: GameCardViewModel card }) return;
+        _viewModel.SelectedGame = card;
+        e.Handled = true;
+        LaunchSelected();
+    }
+
+    private void WideCard_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: GameCardViewModel card })
+            _viewModel.SelectedGame = card;
+    }
+
+    private void WideCard_Click(object sender, RoutedEventArgs e)
+    {
+        _activation.Reset();
+        if (sender is FrameworkElement { DataContext: GameCardViewModel card })
+            _viewModel.SelectedGame = card;
+    }
+
+    private void WideCard_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left ||
+            sender is not FrameworkElement { DataContext: GameCardViewModel card }) return;
+        _viewModel.SelectedGame = card;
+        e.Handled = true;
+        LaunchSelected();
+    }
+
+    private void ConfirmGameCard(GameCardViewModel? card)
+    {
+        if (card is null) return;
+        _viewModel.SelectedGame = card;
+        if (_activation.Press(card.Id, _router.Zone, Environment.TickCount64,
+                (int)GetDoubleClickTime())) LaunchSelected();
+        else _viewModel.PlaySound(HubSound.Confirm);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
 
     private void Play_Click(object sender, RoutedEventArgs e) => LaunchSelected();
 
     /// <summary>Inicia o jogo em destaque, com o retorno visual de "entrando no jogo".</summary>
     private void LaunchSelected()
     {
-        if (!_viewModel.PlayCommand.CanExecute(null)) return;
+        _activation.Reset();
+        if (_viewModel.SelectedGame is null || _viewModel.IsLaunching || _viewModel.IsSessionRunning ||
+            !_viewModel.PlayCommand.CanExecute(null)) return;
         PlayLaunchAnimation();
         _viewModel.PlayCommand.Execute(null);
     }
@@ -748,6 +877,7 @@ public partial class GameHubPage : Page
         if (KeyboardOverlay.Visibility == Visibility.Visible) return;
 
         VirtualKeyboard.Text = _viewModel.SearchText;
+        VirtualKeyboard.SetControllerGlyphs(_viewModel.AcceptGlyph, _viewModel.BackGlyph);
         VirtualKeyboard.TextChanged -= OnKeyboardTextChanged;
         VirtualKeyboard.TextChanged += OnKeyboardTextChanged;
         VirtualKeyboard.Closed -= CloseKeyboard;
@@ -773,7 +903,8 @@ public partial class GameHubPage : Page
     /// </summary>
     public void ToggleMenuFromKeyboard()
     {
-        if (KeyboardOverlay.Visibility == Visibility.Visible) CloseKeyboard();
+        if (_viewModel.IsProfilePickerOpen) _viewModel.CloseProfilePickerCommand.Execute(null);
+        else if (KeyboardOverlay.Visibility == Visibility.Visible) CloseKeyboard();
         else if (MenuOverlay.Visibility == Visibility.Visible) CloseMenu();
         else OpenMenu();
     }

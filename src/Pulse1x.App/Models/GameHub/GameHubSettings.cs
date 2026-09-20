@@ -30,6 +30,8 @@ public class GameHubSettings
     // ---- Biblioteca ----
     public CardSize CardSize { get; set; } = CardSize.Medium;
 
+    public string ControllerGlyphs { get; set; } = "Auto";
+
     /// <summary>Procurar capas na internet pelo nome quando não houver arte local.</summary>
     public bool OnlineArtEnabled { get; set; } = true;
 

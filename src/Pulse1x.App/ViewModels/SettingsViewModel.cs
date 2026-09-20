@@ -307,6 +307,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool showTitlesOnCards = true;
     [ObservableProperty] private bool scanOnOpen;
     [ObservableProperty] private CardSize cardSize = CardSize.Medium;
+    [ObservableProperty] private string controllerGlyphs = "Auto";
     [ObservableProperty] private bool metricsEnabled = true;
 
     /// <summary>O serviço de som, para aplicar volume/arquivos e tocar a prévia ao ajustar.</summary>
@@ -368,6 +369,7 @@ public partial class SettingsViewModel : ObservableObject
         showTitlesOnCards = hub.ShowTitlesOnCards;
         scanOnOpen = hub.ScanOnOpen;
         cardSize = hub.CardSize;
+        controllerGlyphs = hub.ControllerGlyphs;
         metricsEnabled = hub.MetricsEnabled;
     }
 #pragma warning restore MVVMTK0034
@@ -387,6 +389,7 @@ public partial class SettingsViewModel : ObservableObject
         hub.ShowTitlesOnCards = ShowTitlesOnCards;
         hub.ScanOnOpen = ScanOnOpen;
         hub.CardSize = CardSize;
+        hub.ControllerGlyphs = ControllerGlyphs;
         hub.MetricsEnabled = MetricsEnabled;
         if (Metrics is not null) Metrics.Enabled = MetricsEnabled;
 
@@ -415,6 +418,7 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnShowTitlesOnCardsChanged(bool value) => ApplyGameHub();
     partial void OnScanOnOpenChanged(bool value) => ApplyGameHub();
     partial void OnCardSizeChanged(CardSize value) => ApplyGameHub();
+    partial void OnControllerGlyphsChanged(string value) => ApplyGameHub();
     partial void OnMetricsEnabledChanged(bool value) => ApplyGameHub();
 
     /// <summary>Escolhe um .wav próprio para um dos eventos de navegação.</summary>

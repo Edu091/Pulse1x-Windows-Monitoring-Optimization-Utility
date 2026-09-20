@@ -297,6 +297,16 @@
                    Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
 
         <!-- Sons -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="{Binding [Settings_ControllerGlyphs], Source={x:Static loc:Loc.Instance}}"
+                       VerticalAlignment="Center" FontSize="13" Width="150" />
+            <ComboBox Width="180" SelectedValue="{Binding ControllerGlyphs}" SelectedValuePath="Tag">
+                <ComboBoxItem Tag="Auto" Content="{Binding [Settings_ControllerAuto], Source={x:Static loc:Loc.Instance}}" />
+                <ComboBoxItem Tag="Xbox" Content="Xbox" />
+                <ComboBoxItem Tag="PlayStation" Content="PlayStation" />
+            </ComboBox>
+        </StackPanel>
+
         <ui:ToggleSwitch Content="{Binding [Settings_SoundEnabled], Source={x:Static loc:Loc.Instance}}"
                          IsChecked="{Binding SoundEnabled}" Margin="0,0,0,8" />
 
