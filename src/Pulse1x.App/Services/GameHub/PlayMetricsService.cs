@@ -238,13 +238,19 @@ public class PlayMetricsService
     }
 
     /// <summary>Dia em que mais se jogou (o "pico"), no histórico inteiro.</summary>
-    public (DateTime Day, double Minutes)? PeakDay()
+    public (DateTime Day, double Minutes)? PeakDay() => PeakDay(null);
+
+    /// <summary>Dia em que mais se jogou no histórico geral ou de um jogo específico.</summary>
+    public (DateTime Day, double Minutes)? PeakDay(string? gameId)
     {
         lock (_gate)
         {
-            if (!_data.Sessions.Any(s => s.Minutes > 0)) return null;
-            var best = _data.Sessions
-                .Where(s => s.Minutes > 0)
+            var sessions = _data.Sessions
+                .Where(s => s.Minutes > 0 && (gameId is null || s.GameId == gameId))
+                .ToList();
+            if (sessions.Count == 0) return null;
+
+            var best = sessions
                 .GroupBy(s => s.StartedAt.Date)
                 .Select(g => (Day: g.Key, Minutes: g.Sum(s => s.Minutes)))
                 .OrderByDescending(x => x.Minutes)

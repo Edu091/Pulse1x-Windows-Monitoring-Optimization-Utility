@@ -143,7 +143,8 @@
                            Foreground="{StaticResource HubText}" FontSize="12" VerticalAlignment="Center" />
                 <ui:ToggleSwitch x:Name="MasterToggle" Grid.Column="2"
                                  Content="{Binding [GH_StatsMaster], Source={x:Static loc:Loc.Instance}}"
-                                 Foreground="{StaticResource HubText}" IsChecked="{Binding MetricsEnabled}" />
+                                 Foreground="{StaticResource HubText}" IsChecked="{Binding MetricsEnabled}"
+                                 FocusVisualStyle="{StaticResource ActionFocusVisual}" />
             </Grid>
         </Border>
 
@@ -360,16 +361,26 @@
                                Foreground="{StaticResource HubTextDim}" FontSize="10.5" Margin="0,2,0,0" />
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectTime], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding PlaytimeEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
-                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectFps], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding FpsEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
-                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectTemp], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding TemperaturesEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
-                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectUse], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding HardwareUsageEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
-                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectRam], Source={x:Static loc:Loc.Instance}}"
-                                     IsChecked="{Binding MemoryEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                    <ui:ToggleSwitch x:Name="PlaytimeToggle"
+                                     Content="{Binding [GH_StatsCollectTime], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding PlaytimeEnabled}" Foreground="{StaticResource HubText}" Margin="8,0"
+                                     FocusVisualStyle="{StaticResource ActionFocusVisual}" />
+                    <ui:ToggleSwitch x:Name="FpsToggle"
+                                     Content="{Binding [GH_StatsCollectFps], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding FpsEnabled}" Foreground="{StaticResource HubText}" Margin="8,0"
+                                     FocusVisualStyle="{StaticResource ActionFocusVisual}" />
+                    <ui:ToggleSwitch x:Name="TemperatureToggle"
+                                     Content="{Binding [GH_StatsCollectTemp], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding TemperaturesEnabled}" Foreground="{StaticResource HubText}" Margin="8,0"
+                                     FocusVisualStyle="{StaticResource ActionFocusVisual}" />
+                    <ui:ToggleSwitch x:Name="HardwareUsageToggle"
+                                     Content="{Binding [GH_StatsCollectUse], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding HardwareUsageEnabled}" Foreground="{StaticResource HubText}" Margin="8,0"
+                                     FocusVisualStyle="{StaticResource ActionFocusVisual}" />
+                    <ui:ToggleSwitch x:Name="MemoryToggle"
+                                     Content="{Binding [GH_StatsCollectRam], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding MemoryEnabled}" Foreground="{StaticResource HubText}" Margin="8,0"
+                                     FocusVisualStyle="{StaticResource ActionFocusVisual}" />
                 </WrapPanel>
             </Grid>
         </Border>
@@ -381,7 +392,8 @@
                            VerticalAlignment="Center" MaxWidth="650" TextWrapping="Wrap"
                            HorizontalAlignment="Left" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="{Binding [GH_StatsClear], Source={x:Static loc:Loc.Instance}}"
+                    <ui:Button x:Name="ClearHistoryButton"
+                               Content="{Binding [GH_StatsClear], Source={x:Static loc:Loc.Instance}}"
                                Command="{Binding ClearHistoryCommand}" Margin="0,0,8,0" Padding="16,7"
                                FocusVisualStyle="{StaticResource ActionFocusVisual}" />
                     <ui:Button x:Name="CloseButton" Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}"

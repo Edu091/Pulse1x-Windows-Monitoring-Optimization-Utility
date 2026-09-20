@@ -1,5 +1,10 @@
 ﻿# Histórico de versões
 
+## 1.6.9 — 20/09/2026
+
+- Cada jogo da biblioteca agora possui seu próprio painel de estatísticas, mesmo antes da primeira sessão. Horas, FPS, 1% low, telemetria, gráfico e maior dia ficam isolados por jogo.
+- A navegação por gamepad percorre jogos, coleta geral, coletores individuais e ações com um seletor visível. O botão B continua levando o seletor para **Fechar** antes de sair.
+
 ## 1.6.8 — 20/09/2026
 
 - O GameHub ganhou um painel de **Estatísticas Pro** acessível por um novo ícone ao lado das ações do jogo. A tela reúne horas jogadas, FPS médio, 1% low, temperaturas e uso médios de CPU/GPU, RAM, sessões e atividade dos últimos 14 dias.

@@ -38,7 +38,7 @@ internal static partial class LocalizationStrings
         t["GH_StatsPerDay"] = "M\u00e9dia por dia (30 dias)";
         t["GH_StatsPeak"] = "Maior dia";
         t["GH_StatsMostPlayed"] = "Mais jogado";
-        t["GH_StatsGames"] = "Jogos monitorados";
+        t["GH_StatsGames"] = "Estat\u00edsticas por jogo";
         t["GH_StatsNoSelection"] = "Nenhum jogo selecionado";
         t["GH_StatsNoSession"] = "Sem sess\u00f5es registradas";
         t["GH_StatsPeriod"] = "Hist\u00f3rico de {0} a {1}";
@@ -62,7 +62,7 @@ internal static partial class LocalizationStrings
         t["GH_StatsEnabled"] = "Registrar horas e desempenho";
         t["GH_StatsClear"] = "Apagar hist\u00f3rico";
         t["GH_StatsClearConfirm"] = "Apagar todo o hist\u00f3rico de sess\u00f5es?\n\nAs horas, m\u00e9dias e estat\u00edsticas de FPS ser\u00e3o perdidas. Esta a\u00e7\u00e3o n\u00e3o pode ser desfeita.";
-        t["GH_StatsEmpty"] = "Ainda n\u00e3o h\u00e1 sess\u00f5es registradas. Jogue alguma coisa pelo GameHub e as estat\u00edsticas aparecem aqui.";
+        t["GH_StatsEmpty"] = "Sua biblioteca ainda est\u00e1 vazia. Adicione um jogo ao GameHub para acompanhar as estat\u00edsticas.";
         t["GH_StatsFpsEstimated"] = "O FPS \u00e9 estimado sem injetar nada no jogo \u2014 serve para comparar sess\u00f5es do mesmo jogo, n\u00e3o como n\u00famero de benchmark.";
         t["GH_StatsImpactOff"] = "Impacto: zero. Todas as medi\u00e7\u00f5es est\u00e3o desligadas.";
         t["GH_StatsImpactMinimal"] = "Impacto: desprez\u00edvel. Apenas o registro da sess\u00e3o est\u00e1 ativo.";
@@ -108,7 +108,7 @@ internal static partial class LocalizationStrings
         t["GH_StatsPerDay"] = "Daily average (30 days)";
         t["GH_StatsPeak"] = "Biggest day";
         t["GH_StatsMostPlayed"] = "Most played";
-        t["GH_StatsGames"] = "Monitored games";
+        t["GH_StatsGames"] = "Statistics by game";
         t["GH_StatsNoSelection"] = "No game selected";
         t["GH_StatsNoSession"] = "No recorded sessions";
         t["GH_StatsPeriod"] = "History from {0} to {1}";
@@ -132,7 +132,7 @@ internal static partial class LocalizationStrings
         t["GH_StatsEnabled"] = "Record hours and performance";
         t["GH_StatsClear"] = "Clear history";
         t["GH_StatsClearConfirm"] = "Delete the whole session history?\n\nHours, averages and FPS statistics will be lost. This cannot be undone.";
-        t["GH_StatsEmpty"] = "No sessions recorded yet. Play something through GameHub and the statistics show up here.";
+        t["GH_StatsEmpty"] = "Your library is empty. Add a game to GameHub to track its statistics.";
         t["GH_StatsFpsEstimated"] = "FPS is estimated without injecting anything into the game \u2014 use it to compare sessions of the same game, not as a benchmark number.";
         t["GH_StatsImpactOff"] = "Impact: none. All measurements are disabled.";
         t["GH_StatsImpactMinimal"] = "Impact: negligible. Only session logging is active.";

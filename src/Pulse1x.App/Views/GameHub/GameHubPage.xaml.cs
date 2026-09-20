@@ -154,8 +154,12 @@ public partial class GameHubPage : Page
         // ele: navegamos pelo foco da janela ativa e não mexemos na biblioteca atrás.
         if (GamepadFocusService.IsDialogActive())
         {
+            var dialog = GamepadFocusService.ActiveWindow();
             GamepadFocusService.EnsureFocusInActiveWindow();
-            if (GamepadFocusService.Move(direction)) _viewModel.PlaySound(HubSound.Navigate);
+            bool moved = dialog is StatisticsWindow statistics
+                ? statistics.MoveGamepadFocus(direction)
+                : GamepadFocusService.Move(direction);
+            if (moved) _viewModel.PlaySound(HubSound.Navigate);
             return;
         }
 
@@ -767,7 +771,7 @@ public partial class GameHubPage : Page
     private void OpenStatistics()
     {
         var window = new StatisticsWindow(new StatisticsViewModel(
-            _metrics, _settings, _viewModel.SelectedGame?.Entry.Id))
+            _metrics, _settings, _library.Games, _viewModel.SelectedGame?.Entry.Id))
         {
             Owner = Window.GetWindow(this),
         };

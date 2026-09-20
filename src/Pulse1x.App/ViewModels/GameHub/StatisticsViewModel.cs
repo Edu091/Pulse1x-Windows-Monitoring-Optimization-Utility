@@ -26,6 +26,7 @@ public partial class StatisticsViewModel : ObservableObject
 {
     private readonly PlayMetricsService _metrics;
     private readonly SettingsService _settings;
+    private readonly IReadOnlyList<GameEntry> _libraryGames;
 
     public event Action? CloseRequested;
 
@@ -58,10 +59,15 @@ public partial class StatisticsViewModel : ObservableObject
     [ObservableProperty] private string selectedLongestSessionText = "";
     [ObservableProperty] private string impactText = "";
 
-    public StatisticsViewModel(PlayMetricsService metrics, SettingsService settings, string? selectedGameId = null)
+    public StatisticsViewModel(
+        PlayMetricsService metrics,
+        SettingsService settings,
+        IEnumerable<GameEntry> libraryGames,
+        string? selectedGameId = null)
     {
         _metrics = metrics;
         _settings = settings;
+        _libraryGames = libraryGames.ToList();
 
         var hub = settings.Current.GameHub;
         metricsEnabled = metrics.Enabled;
@@ -78,22 +84,39 @@ public partial class StatisticsViewModel : ObservableObject
     private void Refresh(string? selectedGameId = null)
     {
         Games.Clear();
-        foreach (var stats in _metrics.AllStats()) Games.Add(stats);
+        var recorded = _metrics.AllStats();
+        var recordedById = recorded
+            .GroupBy(s => s.GameId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var game in _libraryGames)
+        {
+            if (recordedById.Remove(game.Id, out var stats))
+            {
+                stats.GameName = game.Name;
+                Games.Add(stats);
+            }
+            else
+            {
+                Games.Add(new GameStats { GameId = game.Id, GameName = game.Name });
+            }
+        }
+
+        // Keep statistics for games that were removed from the library until history is cleared.
+        foreach (var stats in recorded.Where(s => recordedById.ContainsKey(s.GameId)))
+            Games.Add(stats);
 
         IsEmpty = Games.Count == 0;
         TotalText = GameStats.FormatDuration(_metrics.TotalMinutes);
         PerDayText = GameStats.FormatDuration(_metrics.AverageMinutesPerDay(30));
         SessionCountText = Games.Sum(g => g.SessionCount).ToString();
 
-        var peak = _metrics.PeakDay();
-        PeakText = peak is null
-            ? "-"
-            : $"{GameStats.FormatDuration(peak.Value.Minutes)} · {peak.Value.Day:dd/MM/yyyy}";
-        MostPlayedText = Games.Count > 0 ? Games[0].GameName : "-";
+        MostPlayedText = recorded.FirstOrDefault(s => s.TotalMinutes > 0)?.GameName ?? "-";
 
         SelectedGame = selectedGameId is null
             ? Games.FirstOrDefault()
-            : Games.FirstOrDefault(g => g.GameId == selectedGameId) ?? Games.FirstOrDefault();
+            : Games.FirstOrDefault(g => string.Equals(g.GameId, selectedGameId,
+                StringComparison.OrdinalIgnoreCase)) ?? Games.FirstOrDefault();
         RefreshSelected();
     }
 
@@ -118,6 +141,11 @@ public partial class StatisticsViewModel : ObservableObject
         SelectedCpuUsageText = FormatMetric(stats?.AverageCpuUsage, "%");
         SelectedGpuUsageText = FormatMetric(stats?.AverageGpuUsage, "%");
         SelectedLongestSessionText = stats?.LongestSessionText ?? "-";
+
+        var peak = stats is null ? null : _metrics.PeakDay(stats.GameId);
+        PeakText = peak is null
+            ? "-"
+            : $"{GameStats.FormatDuration(peak.Value.Minutes)} · {peak.Value.Day:dd/MM/yyyy}";
 
         DailyBars.Clear();
         var daily = _metrics.DailyTotals(stats?.GameId, 14);
