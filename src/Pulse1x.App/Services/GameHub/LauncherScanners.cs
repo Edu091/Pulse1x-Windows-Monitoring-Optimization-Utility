@@ -543,12 +543,25 @@ public class EmulatorScanner
                 RomPath = file,
                 Category = emulator.Platform,
                 ProfileId = emulator.DefaultProfileId,
-                KnownProcessName = Path.GetFileNameWithoutExtension(emulator.Executable),
+                KnownProcessName = MainProcessFor(emulator),
                 AutoDetected = true,
             });
         }
 
         return games;
+    }
+
+    /// <summary>
+    /// Qual processo fica de pé com o jogo rodando. Quase sempre é o próprio executável chamado,
+    /// mas alguns emuladores têm um binário separado só para a linha de comando — o Citron é
+    /// iniciado pelo citron-cmd e quem segue rodando é o citron. Errar esse nome faz o perfil
+    /// aplicar prioridade no processo errado e não perceber quando o jogo fecha.
+    /// </summary>
+    private static string MainProcessFor(EmulatorEntry emulator)
+    {
+        string exe = Path.GetFileNameWithoutExtension(emulator.Executable);
+        var preset = EmulatorPresets.FindByExecutable(emulator.Executable);
+        return preset?.MainProcessName ?? exe;
     }
 
     /// <summary>"Super Mario World (USA) [!]" vira "Super Mario World".</summary>

@@ -220,6 +220,14 @@
                                        Command="{Binding BrowseEmulatorCommand}" />
                         </Grid>
 
+                        <!-- Emulador reconhecido pelo catálogo: diz o que foi preenchido e, quando
+                             há uma pegadinha (o citron-cmd, o core do RetroArch), avisa antes. -->
+                        <Border Margin="0,-6,0,12" Padding="10,8" CornerRadius="8"
+                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                Visibility="{Binding HasDetectedEmulatorNote, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding DetectedEmulatorNote}" TextWrapping="Wrap" FontSize="12" Opacity="0.9" />
+                        </Border>
+
                         <TextBlock Text="{Binding [GH_RomsFolder], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource FieldLabel}" />
                         <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>

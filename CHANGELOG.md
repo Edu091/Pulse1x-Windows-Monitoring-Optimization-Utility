@@ -1,5 +1,25 @@
 # Histórico de versões
 
+## 1.6.5 — 20/09/2026
+
+- O cadastro de emulador agora **reconhece o emulador pelo executável** e preenche sozinho extensões, argumentos e plataforma. Cada emulador tem sua própria sintaxe de linha de comando — Ryujinx aceita o caminho da ROM solto, Eden, Citron e os forks do Yuzu exigem `-g` — e descobrir isso na tentativa e erro era o que fazia a ROM abrir o emulador vazio em vez do jogo.
+- Catálogo inicial com Ryujinx (e o fork Ryubing), Eden, Citron, Yuzu e forks (Suyu, Sudachi), RetroArch, Dolphin, PCSX2, RPCS3, PPSSPP, Cemu, Citra e forks (Lime, Azahar), DuckStation, xemu, Vita3K e melonDS. Tudo continua editável: o catálogo é um ponto de partida, não uma imposição.
+- **Citron**: o Pulse avisa que é preciso apontar para o `citron-cmd.exe`, e não para o `citron.exe` — só ele carrega a ROM pela linha de comando. Também passa a acompanhar o processo certo (`citron`), para que o perfil de otimização não seja aplicado ao processo errado nem deixe de perceber o jogo fechando.
+
+## 1.6.4 — 19/09/2026
+
+- Corrigidas as fontes que apareciam **pretas sobre o fundo escuro**: o texto das caixas de seleção e dos botões de opção dentro de listas (lista de launchers nas Configurações, opções do editor de perfil, plano de fundo do aplicativo) não herdava a cor do tema.
+- As seções recolhíveis das Configurações usavam o tema antigo do Windows, com cabeçalho claro e texto preto. Agora seguem o visual do resto do app.
+
+## 1.6.3 — 19/09/2026
+
+- **Esc abre o menu lateral do GameHub.** O atalho existia, mas só funcionava quando o foco do teclado estava dentro da página — ao entrar no hub ou voltar de uma janela, a tecla não fazia nada.
+- A Central Pós-Formatação agora tem **categorias recolhíveis**, com a contagem de itens no cabeçalho. "Drivers e Fabricantes" começa fechada: sozinha, ela empurrava o resto da página para fora da tela.
+- O **Debloater** (Detector de Bloatware) passa a aparecer também na Central Pós-Formatação — instalar o que falta e remover o que veio de fábrica são as duas metades de preparar um PC recém-formatado.
+  - O catálogo de programas de fabricante foi de 17 para 65 itens (Dell, HP, Lenovo, ASUS, Acer, Samsung, LG, MSI, Gigabyte, Huawei, Positivo, VAIO), além de antivírus e aplicativos promocionais pré-instalados.
+  - A desinstalação agora roda **em modo silencioso** quando reconhece o formato do desinstalador (MSI, NSIS, Inno Setup, InstallShield) e, depois, oferece apagar as pastas deixadas para trás. Formatos não reconhecidos continuam abrindo o desinstalador oficial.
+- Nova categoria **Hardware (CPU, GPU e RAM)** nas Otimizações Avançadas: agendamento de GPU por hardware, desativar o estacionamento de núcleos, desativar a limitação de energia, interrupções MSI na placa de vídeo e prioridade de jogos no agendador do Windows. Nada faz overclock nem mexe em voltagem — o que muda é como o Windows distribui trabalho ao hardware, e tudo é reversível pelo mesmo histórico das demais otimizações.
+
 ## 1.6.2 — 19/09/2026
 
 - A seção **Personalização do Windows** foi adiada e agora exibe apenas um aviso de "em breve". A versão anterior alterava a barra de tarefas e as janelas do Explorer, mas Menu Iniciar, Configurações e as áreas internas do Explorer não são alcançáveis sem injetar código nesses processos — com risco de derrubar o Explorer a cada atualização do Windows. A seção volta quando houver uma base segura para isso.

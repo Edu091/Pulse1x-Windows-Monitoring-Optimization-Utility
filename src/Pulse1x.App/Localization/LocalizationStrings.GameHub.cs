@@ -302,6 +302,10 @@ internal static partial class LocalizationStrings
         t["GH_EmulatorSaved"] = "Emulador \"{0}\" salvo. Use \"Detectar jogos\" para trazer as ROMs.";
         t["GH_EmulatorRemoveConfirm"] = "Remover o emulador \"{0}\" e as ROMs que ele trouxe para a biblioteca?";
         t["GH_PickEmulator"] = "Escolher o executável do emulador";
+        t["GH_EmuDetected"] = "✅ {0} reconhecido — extensões e argumentos já preenchidos. Você pode ajustar tudo abaixo.";
+        t["GH_EmuDetectedWithNote"] = "✅ {0} reconhecido — extensões e argumentos já preenchidos. {1}";
+        t["GH_EmuNoteCitron"] = "Importante: aponte para o citron-cmd.exe, não para o citron.exe — só ele carrega a ROM pela linha de comando.";
+        t["GH_EmuNoteRetroArch"] = "Troque {core} pelo caminho do core (.dll) do console que você quer emular.";
         t["GH_Close"] = "Fechar";
         t["GH_Delete"] = "Excluir";
 
@@ -597,6 +601,10 @@ internal static partial class LocalizationStrings
         t["GH_EmulatorSaved"] = "Emulator \"{0}\" saved. Use \"Detect games\" to bring in the ROMs.";
         t["GH_EmulatorRemoveConfirm"] = "Remove the emulator \"{0}\" and the ROMs it brought into the library?";
         t["GH_PickEmulator"] = "Choose the emulator executable";
+        t["GH_EmuDetected"] = "✅ {0} recognised — extensions and arguments already filled in. You can adjust everything below.";
+        t["GH_EmuDetectedWithNote"] = "✅ {0} recognised — extensions and arguments already filled in. {1}";
+        t["GH_EmuNoteCitron"] = "Important: point to citron-cmd.exe, not citron.exe — only it loads the ROM from the command line.";
+        t["GH_EmuNoteRetroArch"] = "Replace {core} with the path to the core (.dll) for the console you want to emulate.";
         t["GH_Close"] = "Close";
         t["GH_Delete"] = "Delete";
 

@@ -124,13 +124,59 @@ public partial class AddGamesViewModel : ObservableObject
     partial void OnSelectedExistingEmulatorChanged(EmulatorEntry? value)
     {
         if (value is null) return;
+        _loadingExistingEmulator = true;
         EmulatorName = value.Name;
         EmulatorExecutable = value.Executable;
         EmulatorRoms = value.RomsFolder;
         EmulatorExtensions = string.Join(", ", value.Extensions);
         EmulatorArguments = value.ArgumentsTemplate;
         EmulatorPlatform = value.Platform;
+        _loadingExistingEmulator = false;
     }
+
+    // Carregar um emulador já cadastrado não é o usuário escolhendo um executável novo: sem esta
+    // trava, o preset sobrescreveria os argumentos que ele mesmo ajustou da última vez.
+    private bool _loadingExistingEmulator;
+
+    /// <summary>
+    /// Reconhece o emulador pelo executável escolhido e preenche o resto do formulário. Cada
+    /// emulador tem sua própria sintaxe de linha de comando — uns querem o caminho solto, outros
+    /// exigem <c>-g</c> — e descobrir isso na tentativa e erro é o que costuma fazer a ROM abrir
+    /// o emulador vazio em vez do jogo. Tudo continua editável: o preset é um ponto de partida.
+    /// </summary>
+    partial void OnEmulatorExecutableChanged(string value)
+    {
+        if (_loadingExistingEmulator) return;
+
+        var preset = EmulatorPresets.FindByExecutable(value);
+        if (preset is null)
+        {
+            DetectedEmulatorNote = "";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(EmulatorName) ||
+            EmulatorName == Path.GetFileNameWithoutExtension(value))
+            EmulatorName = preset.Name;
+
+        // Só completamos o que está vazio — um ajuste feito à mão vale mais que o padrão.
+        if (string.IsNullOrWhiteSpace(EmulatorPlatform)) EmulatorPlatform = preset.Platform;
+        if (string.IsNullOrWhiteSpace(EmulatorExtensions)) EmulatorExtensions = preset.Extensions;
+        if (string.IsNullOrWhiteSpace(EmulatorArguments) || EmulatorArguments == "\"{rom}\"")
+            EmulatorArguments = preset.Arguments;
+
+        DetectedEmulatorNote = preset.NoteKey is not null
+            ? Loc.F("GH_EmuDetectedWithNote", preset.Name, Loc.S(preset.NoteKey))
+            : Loc.F("GH_EmuDetected", preset.Name);
+    }
+
+    /// <summary>Aviso exibido quando o executável escolhido é um emulador conhecido.</summary>
+    [ObservableProperty] private string detectedEmulatorNote = "";
+
+    public bool HasDetectedEmulatorNote => !string.IsNullOrEmpty(DetectedEmulatorNote);
+
+    partial void OnDetectedEmulatorNoteChanged(string value) =>
+        OnPropertyChanged(nameof(HasDetectedEmulatorNote));
 
     // =====================================================================================
     //  Execução
