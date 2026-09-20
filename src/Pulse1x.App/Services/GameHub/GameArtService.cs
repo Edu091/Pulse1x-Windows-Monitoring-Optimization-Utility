@@ -67,6 +67,76 @@ public class GameArtService
         return changed;
     }
 
+    /// <summary>
+    /// Uma capa é "de verdade" quando não é o quadrado colorido que o Pulse1x desenha ao não achar
+    /// nada. Como o placeholder é gravado com esse marcador no nome, dá para reconhecê-lo depois e
+    /// tentar de novo — é o que permite ilustrar um jogo que ficou sem capa numa varredura antiga,
+    /// por exemplo porque a internet estava fora ou o acervo ainda não tinha aquele título.
+    /// </summary>
+    public static bool IsPlaceholder(string? path) =>
+        path is not null && path.Contains("_placeholder_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Item sem capa de verdade — nenhuma, ou apenas o placeholder gerado.</summary>
+    public static bool NeedsRealCover(GameEntry game) =>
+        string.IsNullOrEmpty(game.CoverPath) || IsPlaceholder(game.CoverPath) || !File.Exists(game.CoverPath);
+
+    /// <summary>
+    /// Procura de novo a capa dos itens que ficaram sem uma de verdade. Diferente do
+    /// <see cref="EnsureArtAsync"/>, aqui o placeholder não conta como capa e as falhas anteriores
+    /// são esquecidas — é uma segunda chance, pedida pelo usuário.
+    /// </summary>
+    public async Task<int> RefetchMissingCoversAsync(IEnumerable<GameEntry> games,
+        IProgress<(int done, int total, string name)>? progress = null, CancellationToken token = default)
+    {
+        var pending = games.Where(g => !g.ArtLockedByUser && NeedsRealCover(g)).ToList();
+        if (pending.Count == 0) return 0;
+
+        lock (_failed) _failed.Clear();
+
+        int found = 0;
+        for (int i = 0; i < pending.Count; i++)
+        {
+            token.ThrowIfCancellationRequested();
+            var game = pending[i];
+            progress?.Report((i + 1, pending.Count, game.Name));
+
+            string? resolved = await ResolveRealCoverAsync(game, token);
+            if (resolved is null) continue;
+
+            game.CoverPath = resolved;
+            found++;
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Só as fontes que produzem uma capa real: acervo de ROM e busca na loja. Sem placeholder —
+    /// quem chama isto já tem um e quer trocá-lo por arte de verdade.
+    /// </summary>
+    private async Task<string?> ResolveRealCoverAsync(GameEntry game, CancellationToken token)
+    {
+        if (game.Launcher == LauncherKind.Steam && game.LauncherAppId is not null)
+        {
+            string? local = SteamLocalArt(game.LauncherAppId, ArtKind.Cover);
+            if (local is not null) return local;
+
+            string? downloaded = await DownloadSteamArtAsync(game, ArtKind.Cover, token);
+            if (downloaded is not null) return downloaded;
+        }
+
+        if (RomArt is not null && game.Launcher == LauncherKind.Emulator)
+        {
+            string? boxart = await DownloadRomCoverAsync(game, token);
+            if (boxart is not null) return boxart;
+        }
+
+        if (Online is not null)
+            return await DownloadByNameAsync(game, ArtKind.Cover, token);
+
+        return null;
+    }
+
     private async Task<bool> EnsureOneAsync(GameEntry game, ArtKind kind, CancellationToken token)
     {
         string? current = kind switch
@@ -93,6 +163,9 @@ public class GameArtService
     /// <summary>Busca online por nome — injetada pelo App quando a opção está ligada.</summary>
     public OnlineArtService? Online { get; set; }
 
+    /// <summary>Capas de ROM no acervo do libretro — a loja não cataloga jogos de console.</summary>
+    public RomArtService? RomArt { get; set; }
+
     /// <summary>Procurar capa na internet pelo nome quando não houver arte local.</summary>
     public bool OnlineEnabled { get; set; } = true;
 
@@ -109,25 +182,73 @@ public class GameArtService
             if (downloaded is not null) return downloaded;
         }
 
-        // 4) Busca online pelo NOME. É o que ilustra a Epic, a GOG, os executáveis avulsos e as
-        //    ROMs — que não têm appid nem cache local de onde tirar a capa.
+        // 4) ROM: o acervo do libretro tem a capa original do console, que a loja não cataloga.
+        //    Vem antes da busca por nome porque é mais preciso — casa pelo arquivo, com região.
+        if (OnlineEnabled && RomArt is not null && kind == ArtKind.Cover &&
+            game.Launcher == LauncherKind.Emulator)
+        {
+            string? boxart = await DownloadRomCoverAsync(game, token);
+            if (boxart is not null) return boxart;
+        }
+
+        // 5) Busca online pelo NOME. É o que ilustra a Epic, a GOG, os executáveis avulsos e as
+        //    ROMs de console fora do acervo (o Switch), que não têm appid nem cache local.
         if (OnlineEnabled && Online is not null && kind != ArtKind.Icon)
         {
             string? found = await DownloadByNameAsync(game, kind, token);
             if (found is not null) return found;
         }
 
-        // 5) Ícone do executável — serve de capa/ícone para jogos e apps fora de loja.
+        // 6) Ícone do executável — serve de capa/ícone para jogos e apps fora de loja.
         if (kind != ArtKind.Hero)
         {
             string? extracted = ExtractIcon(game);
             if (extracted is not null) return extracted;
         }
 
-        // 6) Placeholder gerado (só capa e hero; sem ícone o cartão usa a própria capa).
+        // 7) Placeholder gerado (só capa e hero; sem ícone o cartão usa a própria capa).
         if (kind == ArtKind.Cover) return GeneratePlaceholder(game, 300, 450);
         if (kind == ArtKind.Hero) return GeneratePlaceholder(game, 960, 540);
         return null;
+    }
+
+    /// <summary>
+    /// Baixa a capa original da ROM no acervo do libretro. A busca usa o nome do ARQUIVO, não o
+    /// nome exibido: o scanner limpa "(USA)" e as demais tags do título para a biblioteca ficar
+    /// legível, mas é justamente essa marcação que identifica a capa certa no acervo.
+    /// </summary>
+    private async Task<string?> DownloadRomCoverAsync(GameEntry game, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(game.RomPath)) return null;
+
+        string key = $"rom:{game.Id}";
+        lock (_failed) { if (_failed.Contains(key)) return null; }
+
+        try
+        {
+            string fileName = Path.GetFileNameWithoutExtension(game.RomPath);
+            string? url = await RomArt!.FindCoverUrlAsync(game.Category, fileName, token);
+            if (url is null)
+            {
+                lock (_failed) _failed.Add(key);
+                return null;
+            }
+
+            string destination = PathFor(game, ArtKind.Cover);
+            if (!await RomArt.DownloadAsync(url, destination, token))
+            {
+                lock (_failed) _failed.Add(key);
+                return null;
+            }
+
+            return destination;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch
+        {
+            lock (_failed) _failed.Add(key);
+            return null;
+        }
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,6 +14,7 @@ public enum HubMenuAction
     Statistics,
     Settings,
     ScanGames,
+    FetchCovers,
     ExitHub,
     Sleep,
     Restart,
@@ -63,6 +64,7 @@ public partial class HubMenuViewModel : ObservableObject
         Items.Add(new HubMenuItem(HubMenuAction.AddGames, "", "GH_AddTitle"));
         Items.Add(new HubMenuItem(HubMenuAction.Statistics, "", "GH_MenuStatistics"));
         Items.Add(new HubMenuItem(HubMenuAction.ScanGames, "", "GH_Scan"));
+        Items.Add(new HubMenuItem(HubMenuAction.FetchCovers, "", "GH_FetchCovers"));
         Items.Add(new HubMenuItem(HubMenuAction.Settings, "", "GH_MenuSettings"));
         Items.Add(new HubMenuItem(HubMenuAction.ExitHub, "", "GH_ExitHub"));
         Items.Add(new HubMenuItem(HubMenuAction.Sleep, "", "GH_MenuSleep", destructive: true));

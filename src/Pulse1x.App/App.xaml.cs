@@ -224,8 +224,10 @@ public partial class App : Application
             CustomSounds = hubSettings.CustomSounds,
         };
 
-        // Busca de capas na internet pelo nome do jogo (catálogo público da Steam).
+        // Busca de capas na internet: a loja da Steam pelo nome do jogo, e o acervo do libretro
+        // para as ROMs — a loja não cataloga jogos de console, o acervo tem a capa original.
         artService.Online = new OnlineArtService();
+        artService.RomArt = new RomArtService();
         artService.OnlineEnabled = hubSettings.OnlineArtEnabled;
 
         // As Configurações mexem no som ao vivo (volume, arquivos, restaurar padrão).

@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.7.0 — 20/09/2026
+
+- As **ROMs agora ganham a capa original do console**, buscada no acervo público do libretro (o mesmo que o RetroArch usa) — a loja da Steam, usada até aqui, não cataloga jogos de console. Cobre Nintendo (NES ao Wii U, Game Boy ao 3DS), PlayStation 1 a 4, PSP, Vita, Sega (Master System ao Dreamcast), Xbox, arcade e outros.
+- A busca entende as diferenças entre o nome do arquivo e o do acervo: região no nome (`Metroid Prime (USA)`), artigo no fim (`Legend of Zelda, The`) e pontuação trocada. Quando a confiança é baixa, prefere não ilustrar a ilustrar errado.
+- Novo item no menu do GameHub: **Procurar capas que faltam**. Ele tenta de novo nos jogos que ficaram com o quadrado colorido no lugar da capa — útil quando a varredura anterior rodou sem internet.
+- Jogos de Switch continuam dependendo da busca por nome na loja: eles não estão no acervo do libretro, e os exclusivos do console não têm equivalente em loja de PC.
+
 ## 1.6.9 — 20/09/2026
 
 - Cada jogo da biblioteca agora possui seu próprio painel de estatísticas, mesmo antes da primeira sessão. Horas, FPS, 1% low, telemetria, gráfico e maior dia ficam isolados por jogo.

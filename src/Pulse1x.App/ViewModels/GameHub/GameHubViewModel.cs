@@ -617,6 +617,51 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     /// o Modo Gaming — buscar capa enquanto o usuário joga seria exatamente o tipo de trabalho que o
     /// modo existe para evitar.
     /// </summary>
+    /// <summary>
+    /// Procura capa de verdade para os itens que ficaram sem — os que exibem o quadrado colorido
+    /// gerado pelo Pulse1x. Diferente da busca automática, esta é pedida pelo usuário e esquece as
+    /// falhas anteriores: a internet pode ter voltado, ou o acervo pode ter ganhado aquele título.
+    /// </summary>
+    [RelayCommand]
+    private async Task FetchCoversAsync()
+    {
+        if (IsScanning) return;
+
+        IsScanning = true;
+        ScanStatus = Loc.S("GH_FetchingCovers");
+        _artCts?.Cancel();
+        _artCts = new CancellationTokenSource();
+        var token = _artCts.Token;
+
+        try
+        {
+            var entries = _allCards.Select(c => c.Entry).ToList();
+            var progress = new Progress<(int done, int total, string name)>(p =>
+                ScanStatus = Loc.F("GH_FetchingCoversProgress", p.done, p.total, p.name));
+
+            int found = await _art.RefetchMissingCoversAsync(entries, progress, token);
+
+            if (found > 0)
+            {
+                _library.Save();
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    foreach (var card in _allCards.ToList())
+                    {
+                        card.ReleaseCover();
+                        card.RequestCover();
+                    }
+                    if (SelectedGame is not null) OnSelectedGameChanged(null, SelectedGame);
+                });
+            }
+
+            ScanStatus = found == 0 ? Loc.S("GH_FetchCoversNone") : Loc.F("GH_FetchCoversResult", found);
+        }
+        catch (OperationCanceledException) { ScanStatus = ""; }
+        catch (Exception ex) { ScanStatus = Loc.F("GH_ScanFailed", ex.Message); }
+        finally { IsScanning = false; }
+    }
+
     private async Task FetchArtAsync()
     {
         _artCts?.Cancel();

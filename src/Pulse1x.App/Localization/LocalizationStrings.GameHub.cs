@@ -40,6 +40,11 @@ internal static partial class LocalizationStrings
         t["GH_EditProfile"] = "Perfil";
         t["GH_Remove"] = "Remover";
         t["GH_Scan"] = "Detectar jogos";
+        t["GH_FetchCovers"] = "Procurar capas que faltam";
+        t["GH_FetchingCovers"] = "Procurando capas…";
+        t["GH_FetchingCoversProgress"] = "Procurando capas… {0}/{1} — {2}";
+        t["GH_FetchCoversNone"] = "Nenhuma capa nova encontrada.";
+        t["GH_FetchCoversResult"] = "{0} capa(s) encontrada(s).";
         t["GH_ScanShortcuts"] = "Buscar atalhos";
         t["GH_AddGame"] = "Adicionar";
         t["GH_Emulators"] = "Emuladores";
@@ -369,6 +374,11 @@ internal static partial class LocalizationStrings
         t["GH_EditProfile"] = "Profile";
         t["GH_Remove"] = "Remove";
         t["GH_Scan"] = "Detect games";
+        t["GH_FetchCovers"] = "Find missing covers";
+        t["GH_FetchingCovers"] = "Looking for covers…";
+        t["GH_FetchingCoversProgress"] = "Looking for covers… {0}/{1} — {2}";
+        t["GH_FetchCoversNone"] = "No new covers found.";
+        t["GH_FetchCoversResult"] = "{0} cover(s) found.";
         t["GH_ScanShortcuts"] = "Scan shortcuts";
         t["GH_AddGame"] = "Add";
         t["GH_Emulators"] = "Emulators";

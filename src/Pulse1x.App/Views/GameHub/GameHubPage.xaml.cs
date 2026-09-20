@@ -681,6 +681,9 @@ public partial class GameHubPage : Page
             case HubMenuAction.ScanGames:
                 if (_viewModel.ScanCommand.CanExecute(null)) _viewModel.ScanCommand.Execute(null);
                 break;
+            case HubMenuAction.FetchCovers:
+                if (_viewModel.FetchCoversCommand.CanExecute(null)) _viewModel.FetchCoversCommand.Execute(null);
+                break;
             case HubMenuAction.Settings:
                 SettingsRequested?.Invoke();
                 break;
