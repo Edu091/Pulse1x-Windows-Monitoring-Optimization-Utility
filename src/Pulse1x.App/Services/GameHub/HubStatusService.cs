@@ -9,7 +9,8 @@ public record HubStatus(
     bool Charging,
     bool HasBattery,
     double? CpuTemperature,
-    double? GpuTemperature);
+    double? GpuTemperature,
+    double? RamUsedGb);
 
 /// <summary>
 /// Relógio, bateria e temperatura para a barra do GameHub — as mesmas informações que um console
@@ -22,18 +23,27 @@ public record HubStatus(
 public class HubStatusService
 {
     private readonly IHardwareMonitorService _hardware;
+    private readonly ISystemMetricsService? _metrics;
 
-    public HubStatusService(IHardwareMonitorService hardware) => _hardware = hardware;
+    public HubStatusService(IHardwareMonitorService hardware, ISystemMetricsService? metrics = null)
+    {
+        _hardware = hardware;
+        _metrics = metrics;
+    }
 
     public HubStatus Read()
     {
         var (percent, charging, hasBattery) = ReadBattery();
         var (cpu, gpu) = ReadTemperatures();
 
+        double? ram = null;
+        try { ram = _metrics?.ReadRam().UsedGb; }
+        catch { /* sem leitor de memória: o indicador simplesmente não aparece */ }
+
         return new HubStatus(
             DateTime.Now.ToString("HH:mm"),
             percent, charging, hasBattery,
-            cpu, gpu);
+            cpu, gpu, ram);
     }
 
     // =====================================================================================

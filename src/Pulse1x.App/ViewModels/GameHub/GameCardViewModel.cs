@@ -79,11 +79,37 @@ public partial class GameCardViewModel : ObservableObject
         Cover = bitmap;
     }
 
+    /// <summary>
+    /// Arte larga do jogo, para os cartões em formato de banner de "Continuar jogando". Usa a arte
+    /// de destaque quando ela existe; sem ela, a capa vertical — recortada pelo próprio cartão,
+    /// que é o melhor possível quando o jogo não publica nada widescreen.
+    /// </summary>
+    [ObservableProperty] private BitmapImage? wideArt;
+
+    private bool _wideRequested;
+
+    public async void RequestWideArt(int decodeWidth = 480)
+    {
+        if (_wideRequested) return;
+        _wideRequested = true;
+
+        string? path = Entry.HeroPath ?? Entry.CoverPath ?? Entry.IconPath;
+        if (path is null) return;
+
+        var bitmap = await System.Threading.Tasks.Task.Run(
+            () => GameArtService.LoadBitmap(path, decodeWidth));
+
+        if (!_wideRequested) return;
+        WideArt = bitmap;
+    }
+
     /// <summary>Libera o bitmap (usado pelo Modo Gaming ao liberar memória).</summary>
     public void ReleaseCover()
     {
         Cover = null;
         _coverRequested = false;
+        WideArt = null;
+        _wideRequested = false;
     }
 
     /// <summary>Avisa a interface de que os dados do item mudaram (favorito, perfil, tempo jogado).</summary>

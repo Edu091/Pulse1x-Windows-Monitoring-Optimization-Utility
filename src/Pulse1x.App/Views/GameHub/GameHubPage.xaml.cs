@@ -540,12 +540,18 @@ public partial class GameHubPage : Page
     /// Entrada do novo fundo: sobe a opacidade enquanto desliza de leve para o lugar (parallax).
     /// Com as animações desligadas, o fundo simplesmente troca.
     /// </summary>
+    /// <summary>
+    /// Quanto da arte do jogo aparece atrás do destaque. As cortinas do XAML já escurecem o lado
+    /// esquerdo, onde fica o texto, então a imagem pode entrar forte sem prejudicar a leitura.
+    /// </summary>
+    private const double HeroOpacity = 0.9;
+
     private void AnimateHero()
     {
         if (!AnimationSettings.Enabled)
         {
             HeroImageLayer.BeginAnimation(OpacityProperty, null);
-            HeroImageLayer.Opacity = 0.62;
+            HeroImageLayer.Opacity = HeroOpacity;
             HeroParallax.X = 0;
             return;
         }
@@ -554,7 +560,7 @@ public partial class GameHubPage : Page
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
         HeroImageLayer.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0, 0.62, duration) { EasingFunction = ease });
+            new DoubleAnimation(0, HeroOpacity, duration) { EasingFunction = ease });
 
         double offset = AnimationSettings.ScaleOffset(34);
         HeroParallax.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty,
@@ -574,6 +580,16 @@ public partial class GameHubPage : Page
     {
         if (sender is FrameworkElement { DataContext: GameCardViewModel card })
             card.RequestCover((int)Math.Round(_viewModel.CardWidth * 1.3));
+    }
+
+    /// <summary>
+    /// Os cartões largos da faixa do topo pedem a arte widescreen, não a capa: é outro formato e
+    /// outra imagem (a de destaque do jogo), decodificada na largura em que aparece.
+    /// </summary>
+    private void WideCard_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: GameCardViewModel card })
+            card.RequestWideArt(420);
     }
 
     /// <summary>

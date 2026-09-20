@@ -67,6 +67,148 @@
             </Setter>
         </Style>
 
+        <!--
+            Botão segmentado: três opções lado a lado dentro de uma mesma caixa, onde só a ativa
+            recebe preenchimento. Usado para escolher o que a faixa do topo mostra.
+        -->
+        <Style x:Key="HubSegment" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="SegBd" CornerRadius="6" Padding="14,7" Background="Transparent">
+                            <TextBlock x:Name="SegLabel" Text="{TemplateBinding Content}"
+                                       Foreground="{StaticResource HubTextDim}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SegLabel" Property="Foreground" Value="{StaticResource HubText}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="SegBd" Property="Background" Value="#26FFFFFF" />
+                                <Setter TargetName="SegLabel" Property="Foreground" Value="{StaticResource HubText}" />
+                                <Setter TargetName="SegLabel" Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="SegBd" Property="Background" Value="#33FFFFFF" />
+                                <Setter TargetName="SegLabel" Property="Foreground" Value="{DynamicResource BrandAccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            Cartão largo de "Continuar jogando". Formato de banner, maior que as capas da grade, com
+            o nome e as horas sobre a arte — o suficiente para reconhecer o jogo de longe e saber
+            onde parou, sem precisar da capa vertical.
+        -->
+        <DataTemplate x:Key="HubWideCardTemplate">
+            <Button Command="{Binding DataContext.SelectFromContinueCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                    CommandParameter="{Binding}" Cursor="Hand" Margin="0,0,16,0">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="WideBd" Width="300" Height="170" CornerRadius="16"
+                                Background="{StaticResource HubSurface}" BorderThickness="2"
+                                BorderBrush="Transparent" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="WideScale" />
+                            </Border.RenderTransform>
+                            <Border CornerRadius="14" ClipToBounds="True">
+                                <Grid Loaded="WideCard_Loaded">
+                                    <Image Source="{Binding WideArt}" Stretch="UniformToFill" />
+
+                                    <!-- Véu inferior: o texto precisa ser legível sobre qualquer arte. -->
+                                    <Border VerticalAlignment="Bottom" Height="66">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00000000" Offset="0" />
+                                                <GradientStop Color="#CC000000" Offset="0.55" />
+                                                <GradientStop Color="#F2000000" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+
+                                    <StackPanel VerticalAlignment="Bottom" Margin="12,0,12,10">
+                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13"
+                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="#B0B4BC" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                            <TextBlock Text="{Binding PlaytimeText}" Foreground="#B0B4BC" FontSize="11"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="WideBd" Property="BorderBrush" Value="#4DFFFFFF" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="WideScale" Storyboard.TargetProperty="ScaleX" To="1.03" Duration="0:0:0.15" />
+                                            <DoubleAnimation Storyboard.TargetName="WideScale" Storyboard.TargetProperty="ScaleY" To="1.03" Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="WideScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15" />
+                                            <DoubleAnimation Storyboard.TargetName="WideScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="WideBd" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
+
+        <!--
+            Pílula: um botão com rótulo visível, para as escolhas que merecem ser lidas em vez de
+            adivinhadas por um ícone. Usada no seletor de perfil, ao lado do Jogar.
+        -->
+        <Style x:Key="HubPillButton" TargetType="Button">
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="18,13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="9" Background="{TemplateBinding Background}"
+                                BorderThickness="0" BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#24FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Aba de seção (Todos / Recentes / Favoritos): sublinhado fino em vez de caixa. -->
         <Style x:Key="HubTab" TargetType="RadioButton">
             <Setter Property="Cursor" Value="Hand" />
@@ -273,22 +415,27 @@
                 </Image.Effect>
             </Image>
 
-            <!-- Dissolve o fundo para a cor do hub, de cima para baixo -->
+            <!--
+                Duas cortinas sobre a arte. A vertical fecha a imagem antes da grade começar, para
+                as capas nunca competirem com o fundo. A horizontal é o que dá a leitura do destaque:
+                sólida sob o texto à esquerda, transparente à direita, onde a arte aparece inteira.
+            -->
             <Border>
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#990A0A0C" Offset="0" />
-                        <GradientStop Color="#D90A0A0C" Offset="0.45" />
-                        <GradientStop Color="#FF0A0A0C" Offset="0.78" />
-                        <GradientStop Color="#FF0A0A0C" Offset="1" />
+                        <GradientStop Color="#660A0A0C" Offset="0" />
+                        <GradientStop Color="#A60A0A0C" Offset="0.38" />
+                        <GradientStop Color="#F20A0A0C" Offset="0.62" />
+                        <GradientStop Color="#FF0A0A0C" Offset="0.74" />
                     </LinearGradientBrush>
                 </Border.Background>
             </Border>
             <Border>
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#E60A0A0C" Offset="0" />
-                        <GradientStop Color="#730A0A0C" Offset="0.5" />
+                        <GradientStop Color="#F20A0A0C" Offset="0" />
+                        <GradientStop Color="#D90A0A0C" Offset="0.3" />
+                        <GradientStop Color="#590A0A0C" Offset="0.62" />
                         <GradientStop Color="#000A0A0C" Offset="1" />
                     </LinearGradientBrush>
                 </Border.Background>
@@ -303,8 +450,13 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Abas de seção -->
+            <!-- Marca + abas de seção. O logo ancora a tela à esquerda, como num console. -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,34,0">
+                    <Run Text="PULSE" FontSize="19" FontWeight="Bold" Foreground="{StaticResource HubText}" />
+                    <Run Text="1X" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource BrandAccentBrush}" />
+                </TextBlock>
+
                 <RadioButton x:Name="TabAll" Style="{StaticResource HubTab}" GroupName="HubSection"
                              Content="{Binding [GH_AllGames], Source={x:Static loc:Loc.Instance}}"
                              IsChecked="{Binding SectionAll}" />
@@ -464,35 +616,94 @@
                                 Content="{Binding [GH_Stop], Source={x:Static loc:Loc.Instance}}"
                                 Visibility="{Binding IsSessionRunning, Converter={StaticResource BoolToVis}}" />
 
-                        <Button Style="{StaticResource HubChromeButton}" Margin="10,0,0,0" Padding="16,14"
-                                Command="{Binding EditProfileCommand}"
-                                ToolTip="{Binding [GH_EditProfile], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                        <!--
+                            O perfil ao lado do Jogar: é a decisão que acompanha "jogar agora", e
+                            deixá-la aqui evita procurá-la entre ícones sem rótulo.
+                        -->
+                        <Button Style="{StaticResource HubPillButton}" Margin="12,0,0,0"
+                                Command="{Binding OpenProfilePickerCommand}"
+                                ToolTip="{Binding HeroProfileSummary}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           Foreground="{DynamicResource BrandAccentBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,9,0" />
+                                <TextBlock Text="{Binding [GH_ProfileLabel], Source={x:Static loc:Loc.Instance}}"
+                                           VerticalAlignment="Center" Opacity="0.75" Margin="0,0,5,0" />
+                                <TextBlock Text="{Binding HeroProfileName}" FontWeight="SemiBold"
+                                           VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           VerticalAlignment="Center" Margin="10,1,0,0" Opacity="0.6" />
+                            </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
-                                Click="Statistics_Click"
-                                ToolTip="{Binding [GH_MenuStatistics], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
-                        </Button>
-                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
-                                Command="{Binding ToggleFavoriteCommand}"
-                                ToolTip="{Binding [GH_Favorite], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
-                        </Button>
-                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14" Click="ChangeCover_Click"
-                                ToolTip="{Binding [GH_ChangeCover], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
-                        </Button>
-                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
-                                Command="{Binding EditGameCommand}"
-                                ToolTip="{Binding [GH_EditGame], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
-                        </Button>
-                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
-                                Command="{Binding RemoveGameCommand}"
-                                ToolTip="{Binding [GH_Remove], Source={x:Static loc:Loc.Instance}}">
-                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
-                        </Button>
+
+                        <!-- Ações do jogo: agrupadas e separadas do que é "jogar". -->
+                        <Border Background="#12FFFFFF" CornerRadius="9" Margin="12,0,0,0" Padding="3">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource HubChromeButton}" Padding="13,11"
+                                        Click="Statistics_Click"
+                                        ToolTip="{Binding [GH_MenuStatistics], Source={x:Static loc:Loc.Instance}}">
+                                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                                </Button>
+                                <Button Style="{StaticResource HubChromeButton}" Padding="13,11"
+                                        Command="{Binding ToggleFavoriteCommand}"
+                                        ToolTip="{Binding [GH_Favorite], Source={x:Static loc:Loc.Instance}}">
+                                    <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                                </Button>
+                                <Button Style="{StaticResource HubChromeButton}" Padding="13,11" Click="ChangeCover_Click"
+                                        ToolTip="{Binding [GH_ChangeCover], Source={x:Static loc:Loc.Instance}}">
+                                    <TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                                </Button>
+                                <Button Style="{StaticResource HubChromeButton}" Padding="13,11"
+                                        Command="{Binding EditGameCommand}"
+                                        ToolTip="{Binding [GH_EditGame], Source={x:Static loc:Loc.Instance}}">
+                                    <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                                </Button>
+                                <Button Style="{StaticResource HubChromeButton}" Padding="13,11"
+                                        Command="{Binding RemoveGameCommand}"
+                                        ToolTip="{Binding [GH_Remove], Source={x:Static loc:Loc.Instance}}">
+                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--
+                        Telemetria do destaque. CPU, GPU e RAM são leitura ao vivo da máquina; o FPS
+                        é o médio que ESTE jogo alcançou da última vez — fora de uma partida não há
+                        quadros para medir, e um número inventado seria pior que nenhum.
+                    -->
+                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="FontSize" Value="12.5" />
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0"
+                                    Visibility="{Binding HasHeroCpu, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="CPU" Foreground="{StaticResource HubTextDim}" FontWeight="SemiBold" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding HeroCpuText}" Foreground="{StaticResource HubText}" FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0"
+                                    Visibility="{Binding HasHeroGpu, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="GPU" Foreground="{StaticResource HubTextDim}" FontWeight="SemiBold" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding HeroGpuText}" Foreground="{StaticResource HubText}" FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0"
+                                    Visibility="{Binding HasHeroRam, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="RAM" Foreground="{StaticResource HubTextDim}" FontWeight="SemiBold" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding HeroRamText}" Foreground="{StaticResource HubText}" FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding HasHeroFps, Converter={StaticResource BoolToVis}}"
+                                    ToolTip="{Binding [GH_AvgFpsHint], Source={x:Static loc:Loc.Instance}}">
+                            <TextBlock Text="{Binding HeroFpsText}" Foreground="{DynamicResource BrandAccentBrush}"
+                                       FontWeight="Bold" FontSize="13" />
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -504,8 +715,70 @@
                        Foreground="{StaticResource HubTextDim}" Margin="40,60"
                        HorizontalAlignment="Center" />
 
+            <!--
+                Continuar jogando: os últimos jogos abertos, em cartões largos. É a primeira coisa
+                que se procura ao sentar para jogar de novo, e por isso vem antes da grade inteira.
+                Um ItemsControl, não um ListBox: os cartões são os mesmos objetos da grade, e duas
+                listas com seleção brigariam pelo mesmo item.
+            -->
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="40,0,40,22"
+                            Visibility="{Binding HasContinuePlaying, Converter={StaticResource BoolToVis}}">
+                    <!-- O título muda com o modo; os três botões trocam o que a faixa mostra. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <TextBlock Text="{Binding HighlightTitle}" FontSize="19" FontWeight="Bold"
+                                   Foreground="{StaticResource HubText}" VerticalAlignment="Center"
+                                   Margin="0,0,20,0" />
+
+                        <Border Background="#12FFFFFF" CornerRadius="8" Padding="3" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource HubSegment}" GroupName="HighlightRow"
+                                             IsChecked="{Binding HighlightIsRecent, Mode=OneWay}"
+                                             Command="{Binding SetHighlightRowCommand}" CommandParameter="recent"
+                                             Content="{Binding [GH_Recent], Source={x:Static loc:Loc.Instance}}" />
+                                <RadioButton Style="{StaticResource HubSegment}" GroupName="HighlightRow"
+                                             IsChecked="{Binding HighlightIsFavorites, Mode=OneWay}"
+                                             Command="{Binding SetHighlightRowCommand}" CommandParameter="favorites"
+                                             Content="{Binding [GH_Favorites], Source={x:Static loc:Loc.Instance}}" />
+                                <RadioButton Style="{StaticResource HubSegment}" GroupName="HighlightRow"
+                                             IsChecked="{Binding HighlightIsMostPlayed, Mode=OneWay}"
+                                             Command="{Binding SetHighlightRowCommand}" CommandParameter="mostplayed"
+                                             Content="{Binding [GH_MostPlayed], Source={x:Static loc:Loc.Instance}}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding ContinuePlaying}"
+                                  ItemTemplate="{StaticResource HubWideCardTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Cabeçalho da biblioteca: dá nome à grade e separa-a do que vem acima. -->
+                <Grid Grid.Row="1" Margin="40,0,40,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding [GH_LibraryTitle], Source={x:Static loc:Loc.Instance}}"
+                               FontSize="17" FontWeight="Bold" Foreground="{StaticResource HubText}" />
+                    <TextBlock Grid.Column="1" Text="{Binding LibraryCountText}" FontSize="12"
+                               Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center"
+                               HorizontalAlignment="Left" Margin="12,3,0,0" />
+                </Grid>
+
             <!-- Grade de capas -->
-            <ListBox x:Name="LibraryList" Grid.Row="1"
+            <ListBox x:Name="LibraryList" Grid.Row="2"
                      ItemsSource="{Binding Games}"
                      SelectedItem="{Binding SelectedGame}"
                      ItemTemplate="{StaticResource HubCardTemplate}"
@@ -523,6 +796,7 @@
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
             </ListBox>
+            </Grid>
         </Grid>
 
         <!-- ================= RODAPÉ ================= -->
@@ -534,8 +808,24 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="{Binding LibraryCountText}" FontSize="11.5"
-                           Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
+                <!--
+                    Estado da máquina em uma linha. O ponto verde é o mesmo sinal de um console
+                    pronto para jogar; durante uma varredura ou uma sequência de perfil ele some e
+                    o andamento assume o meio do rodapé.
+                -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="#22C55E" Margin="0,0,9,0" VerticalAlignment="Center"
+                             Visibility="{Binding IsBusyAny, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    <TextBlock Text="{Binding [GH_PcReady], Source={x:Static loc:Loc.Instance}}"
+                               FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource HubText}"
+                               VerticalAlignment="Center" Margin="0,0,14,0"
+                               Visibility="{Binding IsBusyAny, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    <Border Width="1" Background="#26FFFFFF" Margin="0,2,14,2"
+                            Visibility="{Binding IsBusyAny, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    <TextBlock Text="{Binding [GH_PcReadyHint], Source={x:Static loc:Loc.Instance}}" FontSize="11.5"
+                               Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center"
+                               Visibility="{Binding IsBusyAny, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                </StackPanel>
 
                 <!-- Andamento da varredura / da sequência do perfil -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -590,12 +880,86 @@
                     <TextBlock Text="{Binding [GH_GameActions], Source={x:Static loc:Loc.Instance}}" FontSize="11.5"
                                Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
                 </StackPanel>
+
+                <!-- Sem controle conectado o canto ficaria vazio; a assinatura ocupa o espaço. -->
+                <TextBlock Grid.Column="2" Text="{Binding [GH_Tagline], Source={x:Static loc:Loc.Instance}}"
+                           FontSize="10.5" FontWeight="SemiBold" Opacity="0.35"
+                           Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center"
+                           Visibility="{Binding GamepadConnected, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
             </Grid>
         </Border>
 
         <!-- Clarão curto ao iniciar um jogo: retorno imediato enquanto o jogo carrega. -->
         <Rectangle x:Name="LaunchFlash" Grid.Row="0" Grid.RowSpan="3" Fill="White" Opacity="0"
                    Visibility="Collapsed" IsHitTestVisible="False" />
+
+        <!--
+            ================= ESCOLHA DE PERFIL =================
+            Trocar o perfil de um jogo é uma escolha entre poucos itens, então ela acontece aqui
+            mesmo, sem abrir o editor. Mudar o que um perfil FAZ continua no editor, alcançável
+            pelo último item da lista.
+        -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#CC000000"
+              Visibility="{Binding IsProfilePickerOpen, Converter={StaticResource BoolToVis}}">
+            <Grid.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding CloseProfilePickerCommand}" />
+            </Grid.InputBindings>
+
+            <Border Background="#F2101114" CornerRadius="14" BorderThickness="1" BorderBrush="#26FFFFFF"
+                    Width="430" MaxHeight="520" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel Margin="22,20">
+                    <TextBlock Text="{Binding [GH_ChooseProfile], Source={x:Static loc:Loc.Instance}}"
+                               FontSize="16" FontWeight="Bold" Foreground="{StaticResource HubText}" />
+                    <TextBlock Text="{Binding HeroName}" FontSize="12" Opacity="0.6" Margin="0,3,0,14"
+                               Foreground="{StaticResource HubTextDim}" TextTrimming="CharacterEllipsis" />
+
+                    <ItemsControl ItemsSource="{Binding ProfileChoices}" MaxHeight="330">
+                        <ItemsControl.Template>
+                            <ControlTemplate TargetType="ItemsControl">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter />
+                                </ScrollViewer>
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource HubPillButton}" Margin="0,0,0,6"
+                                        HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"
+                                        Padding="14,11"
+                                        Command="{Binding DataContext.ChooseProfileCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13.5" />
+                                            <TextBlock Text="{Binding Summary}" FontSize="11.5" Opacity="0.6"
+                                                       TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0"
+                                                   Foreground="{DynamicResource BrandAccentBrush}"
+                                                   Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Height="1" Background="#26FFFFFF" Margin="0,12,0,12" />
+
+                    <Button Style="{StaticResource HubChromeButton}" Padding="12,9"
+                            HorizontalAlignment="Left" Command="{Binding EditCurrentProfileCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding [GH_EditProfileSettings], Source={x:Static loc:Loc.Instance}}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- ================= TECLADO VIRTUAL ================= -->
         <Grid x:Name="KeyboardOverlay" Grid.Row="0" Grid.RowSpan="3" Background="#B3000000"

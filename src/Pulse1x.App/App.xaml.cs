@@ -201,7 +201,7 @@ public partial class App : Application
             processControlService, memoryOptimizationService, networkOptimizationService, snapshotService);
 
         var gamepadService = new GamepadService();
-        var hubStatusService = new HubStatusService(_hardwareMonitorService);
+        var hubStatusService = new HubStatusService(_hardwareMonitorService, systemMetricsService);
         var playMetricsService = new PlayMetricsService();
         var fpsMonitorService = new FpsMonitorService();
         var sessionTelemetryService = new SessionTelemetryService(_hardwareMonitorService, systemMetricsService);
@@ -245,7 +245,11 @@ public partial class App : Application
 
         var gameHubViewModel = new GameHubViewModel(
             libraryService, profileStore, artService, sessionManager, gamingModeService,
-            themeService, gamepadService, soundService, hubStatusService);
+            themeService, gamepadService, soundService, hubStatusService)
+        {
+            // De onde sai o FPS médio real de cada jogo, mostrado no destaque.
+            Metrics = playMetricsService,
+        };
 
         var gameHubPage = new Views.GameHub.GameHubPage(
             gameHubViewModel, libraryService, profileStore, artService,

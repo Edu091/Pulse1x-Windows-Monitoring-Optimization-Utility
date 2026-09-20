@@ -195,6 +195,35 @@ public class GameArtService
             if (boxart is not null) return boxart;
         }
 
+        // 4b) Fundo em destaque de uma ROM de Switch: o banner da eShop já é widescreen, que é
+        //     exatamente o formato que o destaque quer. Os demais consoles só têm a capa vertical
+        //     no acervo, e para eles o destaque usa a própria capa (o passo 7 cuida disso).
+        if (OnlineEnabled && kind == ArtKind.Hero && SwitchArt is not null &&
+            game.Launcher == LauncherKind.Emulator && IsSwitch(game.Category) &&
+            !string.IsNullOrWhiteSpace(game.RomPath))
+        {
+            string key = $"switchhero:{game.Id}";
+            bool skip;
+            lock (_failed) skip = _failed.Contains(key);
+
+            if (!skip)
+            {
+                try
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(game.RomPath);
+                    string? url = await SwitchArt.FindCoverUrlAsync(fileName, token);
+                    string destination = PathFor(game, ArtKind.Hero);
+
+                    if (url is not null && await SwitchArt.DownloadAsync(url, destination, token))
+                        return destination;
+
+                    lock (_failed) _failed.Add(key);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch { lock (_failed) _failed.Add(key); }
+            }
+        }
+
         // 5) Busca online pelo NOME. É o que ilustra a Epic, a GOG, os executáveis avulsos e as
         //    ROMs de console fora do acervo (o Switch), que não têm appid nem cache local.
         if (OnlineEnabled && Online is not null && kind != ArtKind.Icon)
@@ -210,7 +239,14 @@ public class GameArtService
             if (extracted is not null) return extracted;
         }
 
-        // 7) Placeholder gerado (só capa e hero; sem ícone o cartão usa a própria capa).
+        // 7) Sem arte widescreen: a própria capa do jogo serve de fundo. O destaque a exibe
+        //    ampliada e desfocada sob o texto, o que dá as cores do jogo em vez de um gradiente
+        //    genérico — bem mais próximo do jogo do que o quadrado colorido.
+        if (kind == ArtKind.Hero && !string.IsNullOrEmpty(game.CoverPath) &&
+            !IsPlaceholder(game.CoverPath) && File.Exists(game.CoverPath))
+            return game.CoverPath;
+
+        // 8) Placeholder gerado (só capa e hero; sem ícone o cartão usa a própria capa).
         if (kind == ArtKind.Cover) return GeneratePlaceholder(game, 300, 450);
         if (kind == ArtKind.Hero) return GeneratePlaceholder(game, 960, 540);
         return null;

@@ -12,6 +12,9 @@ namespace Pulse1x.App.ViewModels.GameHub;
 /// <summary>Opção de filtro por plataforma (o "Todos" tem <see cref="Kind"/> nulo).</summary>
 public record LauncherFilterOption(LauncherKind? Kind, string Label);
 
+/// <summary>Um perfil na lista de escolha rápida do destaque. Id nulo = "nenhum perfil".</summary>
+public record ProfileChoiceViewModel(string? Id, string Name, string Summary, bool IsCurrent);
+
 /// <summary>Opção de ordenação da biblioteca.</summary>
 public record SortOption(GameSortMode Mode, string Label);
 
@@ -34,6 +37,9 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     private readonly GamepadService _gamepad;
     private readonly GameHubSoundService _sounds;
     private readonly HubStatusService? _status;
+
+    /// <summary>Estatísticas de sessão — de onde vem o FPS médio real de cada jogo.</summary>
+    public PlayMetricsService? Metrics { get; set; }
 
     private readonly List<GameCardViewModel> _allCards = new();
     private CancellationTokenSource? _artCts;
@@ -117,6 +123,24 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string temperatureText = "";
     [ObservableProperty] private bool hasTemperature;
 
+    // ---- Faixa de telemetria do destaque ----
+    // CPU, GPU e RAM são leitura ao vivo do sistema; o FPS é o do próprio jogo em destaque, da
+    // última vez que ele rodou, porque medir quadros de um jogo que não está aberto é impossível.
+    [ObservableProperty] private string heroCpuText = "";
+    [ObservableProperty] private string heroGpuText = "";
+    [ObservableProperty] private string heroRamText = "";
+    [ObservableProperty] private string heroFpsText = "";
+
+    public bool HasHeroCpu => !string.IsNullOrEmpty(HeroCpuText);
+    public bool HasHeroGpu => !string.IsNullOrEmpty(HeroGpuText);
+    public bool HasHeroRam => !string.IsNullOrEmpty(HeroRamText);
+    public bool HasHeroFps => !string.IsNullOrEmpty(HeroFpsText);
+
+    partial void OnHeroCpuTextChanged(string value) => OnPropertyChanged(nameof(HasHeroCpu));
+    partial void OnHeroGpuTextChanged(string value) => OnPropertyChanged(nameof(HasHeroGpu));
+    partial void OnHeroRamTextChanged(string value) => OnPropertyChanged(nameof(HasHeroRam));
+    partial void OnHeroFpsTextChanged(string value) => OnPropertyChanged(nameof(HasHeroFps));
+
     private System.Windows.Threading.DispatcherTimer? _statusTimer;
 
     /// <summary>
@@ -165,6 +189,27 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
 
         HasTemperature = hottest is not null;
         if (hottest is double temp) TemperatureText = $"{temp:0}°C";
+
+        HeroCpuText = status.CpuTemperature is > 0 ? $"{status.CpuTemperature:0}°C" : "";
+        HeroGpuText = status.GpuTemperature is > 0 ? $"{status.GpuTemperature:0}°C" : "";
+        HeroRamText = status.RamUsedGb is > 0 ? $"{status.RamUsedGb:0.0} GB" : "";
+    }
+
+    /// <summary>
+    /// FPS médio que o jogo em destaque alcançou da última vez. Não é leitura ao vivo — fora de
+    /// uma partida não há quadros para medir —, e sim o que ficou registrado nas estatísticas.
+    /// </summary>
+    private void UpdateHeroFps()
+    {
+        var entry = SelectedGame?.Entry;
+        if (entry is null || Metrics is null) { HeroFpsText = ""; return; }
+
+        try
+        {
+            double? fps = Metrics.StatsFor(entry.Id)?.AverageFps;
+            HeroFpsText = fps is > 0 ? $"{fps:0} FPS" : "";
+        }
+        catch { HeroFpsText = ""; }
     }
 
     /// <summary>Pedido para a tela rolar até o item selecionado (navegação por controle/teclado).</summary>
@@ -313,6 +358,7 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         foreach (var card in ordered) Games.Add(card);
 
         OnPropertyChanged(nameof(LibraryCountText));
+        RebuildContinuePlaying();
 
         // Sem resultado de busca/filtro, a grade fica limpa sem exibir uma mensagem no centro.
         // A orientação continua aparecendo apenas quando a biblioteca realmente não tem jogos.
@@ -350,11 +396,13 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     /// <summary>Recalcula o tamanho dos cartões a partir da preferência do GameHub.</summary>
     public void ApplyCardSize(CardSize size)
     {
+        // A faixa do topo é quem carrega os cartões grandes; a grade abaixo é o catálogo completo e
+        // funciona melhor compacta, mostrando mais jogos de uma vez sem precisar rolar.
         (CardWidth, CardHeight) = size switch
         {
-            CardSize.Small => (132d, 198d),
-            CardSize.Large => (208d, 312d),
-            _ => (168d, 252d),
+            CardSize.Small => (104d, 156d),
+            CardSize.Large => (164d, 246d),
+            _ => (132d, 198d),
         };
     }
 
@@ -371,6 +419,8 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         // nem quando a lista se reconstrói sozinha (varredura, troca de filtro).
         if (oldValue is not null && newValue is not null && !ReferenceEquals(oldValue, newValue))
             _sounds.Play(HubSound.Navigate);
+
+        UpdateHeroFps();
 
         // O fundo é pesado (imagem grande) e a seleção muda a cada toque no direcional. Decodificar
         // na hora travava a thread de interface, o que deixava a navegação dura E engolia o som
@@ -447,6 +497,10 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         HeroImage = hero;
         HeroCover = cover;
 
+        // O desfoque depende de o fundo ser arte widescreen ou a capa esticada — só dá para saber
+        // agora, com o jogo já resolvido.
+        UpdateBlurFromTheme();
+
         // Alimenta o tema: o fundo "baseado no jogo" e a adaptação de cores vêm daqui.
         _theme.SetSelectedGameArt(card?.Entry.HeroPath, card?.Entry.CoverPath);
     }
@@ -486,6 +540,143 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
             var profile = _profiles.Find(SelectedGame?.Entry.ProfileId);
             return profile?.SummaryText ?? Loc.S("GH_NoProfileHint");
         }
+    }
+
+    // =====================================================================================
+    //  Continuar jogando
+    // =====================================================================================
+
+    /// <summary>
+    /// A faixa do topo: os jogos que já foram abertos, do mais recente para o mais antigo. É o
+    /// atalho para retomar o que estava em andamento, sem procurar na grade inteira.
+    ///
+    /// Os itens são os MESMOS objetos da grade, de propósito: a capa já carregada é reaproveitada
+    /// e o favorito continua sincronizado. Por isso a faixa é um ItemsControl e não um ListBox —
+    /// um mesmo item selecionado em duas listas brigaria pela seleção.
+    /// </summary>
+    public ObservableCollection<GameCardViewModel> ContinuePlaying { get; } = new();
+
+    public bool HasContinuePlaying => ContinuePlaying.Count > 0;
+
+    /// <summary>Clicar num card da faixa leva o destaque até aquele jogo.</summary>
+    [RelayCommand]
+    private void SelectFromContinue(GameCardViewModel? card)
+    {
+        if (card is null) return;
+        SelectedGame = Games.Contains(card) ? card : Games.FirstOrDefault(g => g.Id == card.Id) ?? card;
+        if (SelectedGame is not null) ScrollToRequested?.Invoke(SelectedGame);
+    }
+
+    /// <summary>O que a faixa do topo mostra.</summary>
+    public enum HighlightMode { Recent, Favorites, MostPlayed }
+
+    [ObservableProperty] private HighlightMode highlightRow = HighlightMode.Recent;
+
+    public bool HighlightIsRecent => HighlightRow == HighlightMode.Recent;
+    public bool HighlightIsFavorites => HighlightRow == HighlightMode.Favorites;
+    public bool HighlightIsMostPlayed => HighlightRow == HighlightMode.MostPlayed;
+
+    /// <summary>Título da faixa, que acompanha o modo escolhido.</summary>
+    public string HighlightTitle => HighlightRow switch
+    {
+        HighlightMode.Favorites => Loc.S("GH_Favorites"),
+        HighlightMode.MostPlayed => Loc.S("GH_MostPlayed"),
+        _ => Loc.S("GH_ContinuePlaying"),
+    };
+
+    partial void OnHighlightRowChanged(HighlightMode value)
+    {
+        OnPropertyChanged(nameof(HighlightIsRecent));
+        OnPropertyChanged(nameof(HighlightIsFavorites));
+        OnPropertyChanged(nameof(HighlightIsMostPlayed));
+        OnPropertyChanged(nameof(HighlightTitle));
+        RebuildContinuePlaying();
+    }
+
+    [RelayCommand]
+    private void SetHighlightRow(string? mode) => HighlightRow = mode switch
+    {
+        "favorites" => HighlightMode.Favorites,
+        "mostplayed" => HighlightMode.MostPlayed,
+        _ => HighlightMode.Recent,
+    };
+
+    private void RebuildContinuePlaying()
+    {
+        IEnumerable<GameCardViewModel> source = HighlightRow switch
+        {
+            HighlightMode.Favorites => _allCards
+                .Where(c => c.Entry.IsFavorite)
+                .OrderByDescending(c => c.Entry.LastPlayed ?? DateTime.MinValue),
+
+            HighlightMode.MostPlayed => _allCards
+                .Where(c => c.Entry.TotalMinutesPlayed > 0)
+                .OrderByDescending(c => c.Entry.TotalMinutesPlayed),
+
+            _ => _allCards
+                .Where(c => c.Entry.LastPlayed is not null)
+                .OrderByDescending(c => c.Entry.LastPlayed),
+        };
+
+        ContinuePlaying.Clear();
+        foreach (var card in source.Take(6)) ContinuePlaying.Add(card);
+
+        OnPropertyChanged(nameof(HasContinuePlaying));
+    }
+
+    // =====================================================================================
+    //  Escolha de perfil
+    // =====================================================================================
+
+    /// <summary>
+    /// Perfis oferecidos ao clicar no seletor do destaque: "nenhum perfil" e os cadastrados. É a
+    /// troca rápida — editar o conteúdo de um perfil continua sendo trabalho do editor, alcançável
+    /// pelo último item da lista.
+    /// </summary>
+    public ObservableCollection<ProfileChoiceViewModel> ProfileChoices { get; } = new();
+
+    [ObservableProperty] private bool isProfilePickerOpen;
+
+    [RelayCommand]
+    private void OpenProfilePicker()
+    {
+        if (SelectedGame is null) return;
+
+        ProfileChoices.Clear();
+        string? current = SelectedGame.Entry.ProfileId;
+
+        ProfileChoices.Add(new ProfileChoiceViewModel(null, Loc.S("GH_NoProfile"), "", current is null));
+        foreach (var profile in _profiles.Profiles)
+            ProfileChoices.Add(new ProfileChoiceViewModel(
+                profile.Id, profile.Name, profile.SummaryText, profile.Id == current));
+
+        IsProfilePickerOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseProfilePicker() => IsProfilePickerOpen = false;
+
+    /// <summary>Aplica o perfil escolhido ao jogo em destaque e fecha a lista.</summary>
+    [RelayCommand]
+    private void ChooseProfile(ProfileChoiceViewModel? choice)
+    {
+        IsProfilePickerOpen = false;
+        if (choice is null || SelectedGame is null) return;
+
+        SelectedGame.Entry.ProfileId = choice.Id;
+        _library.UpdateGame(SelectedGame.Entry);
+
+        OnPropertyChanged(nameof(HeroProfileName));
+        OnPropertyChanged(nameof(HeroProfileSummary));
+        _sounds.Play(HubSound.Confirm);
+    }
+
+    /// <summary>Abre o editor do perfil atual — a porta para mudar o que o perfil faz.</summary>
+    [RelayCommand]
+    private void EditCurrentProfile()
+    {
+        IsProfilePickerOpen = false;
+        if (SelectedGame is not null) EditProfileRequested?.Invoke(SelectedGame.Entry);
     }
 
     // =====================================================================================
@@ -927,7 +1118,18 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         ApplyFilters();
     }
 
-    private void UpdateBlurFromTheme() => HeroBlurRadius = _theme.EffectiveBlur(18);
+    private void UpdateBlurFromTheme() => HeroBlurRadius = _theme.EffectiveBlur(BaseHeroBlur);
+
+    /// <summary>
+    /// Desfoque do fundo em destaque. Uma arte widescreen de verdade só precisa de um véu leve;
+    /// quando o fundo é a própria capa vertical esticada para preencher a tela, o desfoque é o que
+    /// transforma uma imagem distorcida numa mancha com as cores do jogo.
+    /// </summary>
+    private double BaseHeroBlur =>
+        SelectedGame?.Entry is { } entry &&
+        !string.IsNullOrEmpty(entry.HeroPath) &&
+        !string.Equals(entry.HeroPath, entry.CoverPath, StringComparison.OrdinalIgnoreCase)
+            ? 18 : 42;
 
     public void Dispose()
     {
