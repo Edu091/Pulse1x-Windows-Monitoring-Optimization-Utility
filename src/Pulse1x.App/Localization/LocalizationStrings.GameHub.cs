@@ -315,6 +315,8 @@ internal static partial class LocalizationStrings
         t["GH_EmuHintEden"] = "Escolha o eden.exe, na pasta do emulador.";
         t["GH_EmuHintCitron"] = "Escolha o citron-cmd.exe — e não o citron.exe.";
         t["GH_EmuHintYuzu"] = "Escolha o executável principal do emulador (yuzu.exe, suyu.exe ou sudachi.exe).";
+        t["GH_EmuHintPcsx2"] = "Escolha o pcsx2-qt.exe, na pasta do emulador.";
+        t["GH_EmuHintPpsspp"] = "Escolha o PPSSPPWindows64.exe (ou PPSSPPWindows.exe, na versão 32 bits).";
         t["GH_EmuNoteCitron"] = "O Citron só carrega a ROM pela linha de comando através do citron-cmd.exe. Apontar para o citron.exe faz o emulador abrir sem o jogo.";
         t["GH_EmuNoteRetroArch"] = "Troque {core} pelo caminho do core (.dll) do console que você quer emular.";
         t["GH_Close"] = "Fechar";
@@ -625,6 +627,8 @@ internal static partial class LocalizationStrings
         t["GH_EmuHintEden"] = "Choose eden.exe, in the emulator's folder.";
         t["GH_EmuHintCitron"] = "Choose citron-cmd.exe — not citron.exe.";
         t["GH_EmuHintYuzu"] = "Choose the emulator's main executable (yuzu.exe, suyu.exe or sudachi.exe).";
+        t["GH_EmuHintPcsx2"] = "Choose pcsx2-qt.exe, in the emulator's folder.";
+        t["GH_EmuHintPpsspp"] = "Choose PPSSPPWindows64.exe (or PPSSPPWindows.exe on the 32-bit build).";
         t["GH_EmuNoteCitron"] = "Citron only loads the ROM from the command line through citron-cmd.exe. Pointing to citron.exe makes the emulator open without the game.";
         t["GH_EmuNoteRetroArch"] = "Replace {core} with the path to the core (.dll) for the console you want to emulate.";
         t["GH_Close"] = "Close";

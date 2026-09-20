@@ -23,11 +23,7 @@ public record EmulatorPreset(
     /// Nome do arquivo que deve ser escolhido, quando não é óbvio — o Citron é iniciado pelo
     /// citron-cmd.exe, e apontar para o citron.exe faz o emulador abrir sem carregar a ROM.
     /// </summary>
-    string? ExecutableHintKey = null)
-{
-    /// <summary>Emulador de Nintendo Switch, oferecido na escolha rápida.</summary>
-    public bool IsSwitch => Platform == "Nintendo Switch";
-}
+    string? ExecutableHintKey = null);
 
 /// <summary>
 /// Catálogo de emuladores conhecidos, usado para preencher o formulário de cadastro sozinho.
@@ -83,14 +79,21 @@ public static class EmulatorPresets
         new("Dolphin", "GameCube / Wii", "iso, gcm, wbfs, rvz, ciso, gcz, wad",
             "-b -e \"{rom}\"", new[] { "dolphin", "dolphinwx" }),
 
-        new("PCSX2", "PlayStation 2", "iso, chd, cso, gz, bin, mdf",
-            "-- \"{rom}\"", new[] { "pcsx2", "pcsx2-qt", "pcsx2x64", "pcsx2-qtx64" }),
+        // PCSX2: o "--" separa os parâmetros do caminho do jogo, e o -batch encerra o emulador
+        // junto com o jogo. Sem o -batch o PCSX2 volta para a própria interface ao sair da
+        // partida, e o GameHub continuaria achando que a sessão está em andamento.
+        new("PCSX2", "PlayStation 2", "iso, chd, cso, gz, bin, mdf, iso.gz, nrg",
+            "-batch -- \"{rom}\"", new[] { "pcsx2-qt", "pcsx2-qtx64", "pcsx2", "pcsx2x64" },
+            ExecutableHintKey: "GH_EmuHintPcsx2"),
 
         new("RPCS3", "PlayStation 3", "bin, iso, pkg, elf, self",
             "--no-gui \"{rom}\"", new[] { "rpcs3" }),
 
-        new("PPSSPP", "PSP", "iso, cso, pbp, elf, chd",
-            "\"{rom}\"", new[] { "ppssppwindows", "ppsspp", "ppssppwindows64" }),
+        // PPSSPP aceita o caminho do jogo solto. O --escape-exit deixa o Esc fechar o emulador,
+        // que num setup de sofá é o que devolve o controle ao GameHub sem teclado.
+        new("PPSSPP", "PSP", "iso, cso, pbp, elf, chd, prx",
+            "\"{rom}\" --escape-exit", new[] { "ppssppwindows64", "ppssppwindows", "ppsspp" },
+            ExecutableHintKey: "GH_EmuHintPpsspp"),
 
         new("Cemu", "Wii U", "wud, wux, wua, rpx, iso",
             "-g \"{rom}\"", new[] { "cemu" }),
@@ -112,12 +115,17 @@ public static class EmulatorPresets
     };
 
     /// <summary>
-    /// Emuladores de Switch, na ordem em que aparecem na escolha rápida do cadastro. É a lista que
-    /// dispensa o usuário de saber a sintaxe de linha de comando: escolher aqui já define
+    /// Emuladores oferecidos na escolha rápida do cadastro, na ordem em que aparecem. É a lista
+    /// que dispensa o usuário de saber a sintaxe de linha de comando: escolher aqui já define
     /// extensões, argumentos e plataforma.
+    ///
+    /// Os demais do catálogo continuam sendo reconhecidos pelo executável, em "Outro emulador" —
+    /// esta lista é só o que aparece pronto para escolher.
     /// </summary>
-    public static IReadOnlyList<EmulatorPreset> Switch { get; } =
-        All.Where(p => p.IsSwitch).ToList();
+    public static IReadOnlyList<EmulatorPreset> Featured { get; } =
+        new[] { "Ryujinx", "Eden", "Citron", "Yuzu (e forks)", "PCSX2", "PPSSPP" }
+            .Select(name => All.First(p => p.Name == name))
+            .ToList();
 
     /// <summary>
     /// Procura o preset correspondente a um executável. A comparação é pelo nome do arquivo, sem

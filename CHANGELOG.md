@@ -1,5 +1,11 @@
 ﻿# Histórico de versões
 
+## 1.7.2 — 20/09/2026
+
+- **PCSX2 (PlayStation 2) e PPSSPP (PSP)** entram na lista de emuladores do cadastro, ao lado dos de Switch. Escolher um já define extensões, argumentos e plataforma, e as ROMs dos dois consoles já ganham capa pelo acervo de arte.
+- O PCSX2 é cadastrado com `-batch`: sem ele o emulador volta para a própria interface ao sair da partida, e o GameHub continuaria achando que a sessão está em andamento. O PPSSPP recebe `--escape-exit`, para o Esc fechar o jogo sem precisar de teclado extra.
+- Os demais emuladores do catálogo (Dolphin, RPCS3, RetroArch, Cemu, DuckStation e outros) continuam sendo reconhecidos pelo executável em "Outro emulador".
+
 ## 1.7.1 — 20/09/2026
 
 - **ROMs de Switch agora têm capa.** A arte vem do catálogo da eShop (nome, ícone e banner oficiais de cada título), que cobre o console inteiro — inclusive os exclusivos, que não existem em loja de PC. O catálogo é lido em fluxo, então a consulta custa poucos megabytes de memória e leva segundos na primeira ROM.

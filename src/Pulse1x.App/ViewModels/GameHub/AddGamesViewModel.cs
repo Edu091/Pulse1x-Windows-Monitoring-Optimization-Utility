@@ -164,11 +164,12 @@ public partial class AddGamesViewModel : ObservableObject
     // =====================================================================================
 
     /// <summary>
-    /// Emuladores de Switch oferecidos na escolha rápida, mais a opção "outro" para quem quiser
-    /// cadastrar um emulador de qualquer outro console à mão.
+    /// Emuladores oferecidos na escolha rápida, mais a opção "outro" para cadastrar à mão um
+    /// emulador de qualquer console — que ainda assim é reconhecido pelo executável, se estiver
+    /// no catálogo.
     /// </summary>
     public IReadOnlyList<EmulatorChoice> EmulatorChoices { get; } =
-        EmulatorPresets.Switch.Select(p => new EmulatorChoice(p))
+        EmulatorPresets.Featured.Select(p => new EmulatorChoice(p))
             .Append(new EmulatorChoice(null))
             .ToList();
 
