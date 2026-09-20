@@ -662,6 +662,12 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         finally { IsScanning = false; }
     }
 
+    /// <summary>
+    /// Placeholders já tentados nesta sessão. Uma capa que não existe em lugar nenhum não deve
+    /// custar uma busca cada vez que o hub é aberto.
+    /// </summary>
+    private bool _retriedPlaceholders;
+
     private async Task FetchArtAsync()
     {
         _artCts?.Cancel();
@@ -689,9 +695,39 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
             }
 
             if (anyChanged) _library.Save();
+
+            // Os itens que ficaram com o quadrado colorido merecem uma segunda tentativa: a capa
+            // pode não ter sido encontrada porque a internet estava fora, ou porque a versão
+            // anterior do Pulse1x ainda não sabia onde procurar. Uma vez por sessão — uma capa que
+            // realmente não existe não deve custar uma busca a cada abertura do hub.
+            if (!_retriedPlaceholders)
+            {
+                _retriedPlaceholders = true;
+                await RetryPlaceholdersAsync(token);
+            }
         }
         catch (OperationCanceledException) { }
         catch { /* arte é cosmética: uma falha aqui nunca impede o uso da biblioteca */ }
+    }
+
+    private async Task RetryPlaceholdersAsync(CancellationToken token)
+    {
+        var entries = _allCards.Select(c => c.Entry).ToList();
+        if (!entries.Any(GameArtService.NeedsRealCover)) return;
+
+        int found = await _art.RefetchMissingCoversAsync(entries, null, token);
+        if (found == 0) return;
+
+        _library.Save();
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            foreach (var card in _allCards.ToList())
+            {
+                card.ReleaseCover();
+                card.RequestCover();
+            }
+            if (SelectedGame is not null) OnSelectedGameChanged(null, SelectedGame);
+        });
     }
 
     // =====================================================================================

@@ -455,8 +455,9 @@ public class GameArtService
             if (!document.RootElement.TryGetProperty(game.LauncherAppId!, out var entry)) return null;
             if (!entry.TryGetProperty("data", out var data)) return null;
 
-            // header_image é o que praticamente todo jogo tem; a capsule pequena fica como último
-            // recurso, melhor que o quadrado colorido gerado.
+            // Jogos servidos por URL com hash costumam publicar só o header horizontal — a arte
+            // vertical de biblioteca não existe nessas pastas (confirmado no FC 26). O header é
+            // então o melhor que há, e é bem melhor que o quadrado colorido gerado.
             string? url = null;
             if (data.TryGetProperty("header_image", out var header)) url = header.GetString();
             if (url is null && data.TryGetProperty("capsule_image", out var capsule)) url = capsule.GetString();

@@ -1,5 +1,10 @@
 ﻿# Histórico de versões
 
+## 1.7.3 — 20/09/2026
+
+- Os jogos que ficaram com o **quadrado colorido no lugar da capa** agora são tentados de novo sozinhos ao abrir o GameHub, uma vez por sessão. Antes a correção existia mas dependia de acionar "Procurar capas que faltam" no menu, e quem não soubesse disso continuava vendo a capa antiga.
+- Isso alcança os jogos ilustrados antes da correção de capas da Steam — EA SPORTS FC 26, PEAK e afins, cujo placeholder tinha sido gravado por uma versão que ainda não sabia onde procurar.
+
 ## 1.7.2 — 20/09/2026
 
 - **PCSX2 (PlayStation 2) e PPSSPP (PSP)** entram na lista de emuladores do cadastro, ao lado dos de Switch. Escolher um já define extensões, argumentos e plataforma, e as ROMs dos dois consoles já ganham capa pelo acervo de arte.
