@@ -25,6 +25,14 @@ public class PlayMetricsService
     /// <summary>Registrar sessões (preferência do usuário).</summary>
     public bool Enabled { get; set; } = true;
 
+    public TelemetryCollectionOptions Options { get; private set; } = new();
+
+    public void Configure(TelemetryCollectionOptions options)
+    {
+        Options = options;
+        Changed?.Invoke();
+    }
+
     public event Action? Changed;
 
     public PlayMetricsService()
@@ -63,7 +71,41 @@ public class PlayMetricsService
     /// abrir e fechar um jogo por engano não deve sujar as estatísticas.</summary>
     public void Record(PlaySession session)
     {
-        if (!Enabled || session.Minutes < 1) return;
+        var options = Options;
+        if (!Enabled || !options.HasAny) return;
+
+        if (!options.Playtime)
+        {
+            session.Minutes = 0;
+            session.StartedAt = session.EndedAt;
+        }
+        if (!options.Fps)
+        {
+            session.AverageFps = null;
+            session.MaxFps = null;
+            session.MinFps = null;
+            session.OnePercentLowFps = null;
+        }
+        if (!options.Temperatures)
+        {
+            session.AverageCpuTemperature = null;
+            session.AverageGpuTemperature = null;
+        }
+        if (!options.HardwareUsage)
+        {
+            session.AverageCpuUsage = null;
+            session.AverageGpuUsage = null;
+        }
+        if (!options.Memory)
+        {
+            session.AverageRamUsedGb = null;
+            session.AverageRamUsagePercent = null;
+        }
+
+        bool hasTelemetry = session.AverageFps is > 0 || session.AverageCpuTemperature is > 0 ||
+                            session.AverageGpuTemperature is > 0 || session.AverageCpuUsage is > 0 ||
+                            session.AverageGpuUsage is > 0 || session.AverageRamUsedGb is > 0;
+        if (session.Minutes < 1 && !hasTelemetry) return;
 
         lock (_gate) _data.Sessions.Add(session);
         Save();
@@ -134,7 +176,20 @@ public class PlayMetricsService
             BestMaxFps = sessions.Where(s => s.MaxFps is > 0).Select(s => s.MaxFps!.Value).DefaultIfEmpty(0).Max() is var max && max > 0 ? max : null,
             WorstOnePercentLowFps = sessions.Where(s => s.OnePercentLowFps is > 0)
                 .Select(s => s.OnePercentLowFps!.Value).DefaultIfEmpty(0).Min() is var low && low > 0 ? low : null,
+            AverageOnePercentLowFps = AverageNullable(sessions.Select(s => s.OnePercentLowFps)),
+            AverageCpuTemperature = AverageNullable(sessions.Select(s => s.AverageCpuTemperature)),
+            AverageGpuTemperature = AverageNullable(sessions.Select(s => s.AverageGpuTemperature)),
+            AverageCpuUsage = AverageNullable(sessions.Select(s => s.AverageCpuUsage)),
+            AverageGpuUsage = AverageNullable(sessions.Select(s => s.AverageGpuUsage)),
+            AverageRamUsedGb = AverageNullable(sessions.Select(s => s.AverageRamUsedGb)),
+            AverageRamUsagePercent = AverageNullable(sessions.Select(s => s.AverageRamUsagePercent)),
         };
+    }
+
+    private static double? AverageNullable(IEnumerable<double?> values)
+    {
+        var available = values.Where(v => v is > 0).Select(v => v!.Value).ToList();
+        return available.Count == 0 ? null : available.Average();
     }
 
     // =====================================================================================
@@ -160,6 +215,9 @@ public class PlayMetricsService
 
     /// <summary>Minutos jogados por dia no período — alimenta o gráfico de barras da seção.</summary>
     public IReadOnlyList<(DateTime Day, double Minutes)> DailyTotals(int days = 14)
+        => DailyTotals(null, days);
+
+    public IReadOnlyList<(DateTime Day, double Minutes)> DailyTotals(string? gameId, int days = 14)
     {
         var result = new List<(DateTime, double)>();
         var start = DateTime.Now.Date.AddDays(-days + 1);
@@ -169,7 +227,9 @@ public class PlayMetricsService
             for (int i = 0; i < days; i++)
             {
                 var day = start.AddDays(i);
-                double minutes = _data.Sessions.Where(s => s.StartedAt.Date == day).Sum(s => s.Minutes);
+                double minutes = _data.Sessions
+                    .Where(s => s.StartedAt.Date == day && (gameId is null || s.GameId == gameId))
+                    .Sum(s => s.Minutes);
                 result.Add((day, minutes));
             }
         }
@@ -182,8 +242,9 @@ public class PlayMetricsService
     {
         lock (_gate)
         {
-            if (_data.Sessions.Count == 0) return null;
+            if (!_data.Sessions.Any(s => s.Minutes > 0)) return null;
             var best = _data.Sessions
+                .Where(s => s.Minutes > 0)
                 .GroupBy(s => s.StartedAt.Date)
                 .Select(g => (Day: g.Key, Minutes: g.Sum(s => s.Minutes)))
                 .OrderByDescending(x => x.Minutes)

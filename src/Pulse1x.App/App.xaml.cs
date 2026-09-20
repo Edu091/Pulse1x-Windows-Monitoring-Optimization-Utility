@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Pulse1x.App.Services;
 using Pulse1x.App.Services.GameHub;
 using Pulse1x.App.Services.Profiles;
+using Pulse1x.App.Models.GameHub;
 using Pulse1x.App.ViewModels;
 using Pulse1x.App.ViewModels.GameHub;
 using Pulse1x.App.Views;
@@ -203,10 +204,11 @@ public partial class App : Application
         var hubStatusService = new HubStatusService(_hardwareMonitorService);
         var playMetricsService = new PlayMetricsService();
         var fpsMonitorService = new FpsMonitorService();
+        var sessionTelemetryService = new SessionTelemetryService(_hardwareMonitorService, systemMetricsService);
 
         var sessionManager = new GameSessionManager(
             profileEngine, libraryService, profileStore, snapshotService, gamingModeService,
-            playMetricsService, fpsMonitorService);
+            playMetricsService, fpsMonitorService, sessionTelemetryService);
 
         // Limpeza única: o mesmo jogo detectado por duas lojas (por exemplo, um título comprado na
         // Steam que também registra entrada da EA) aparecia duplicado na biblioteca.
@@ -231,6 +233,12 @@ public partial class App : Application
         settingsViewModel.Metrics = playMetricsService;
 
         playMetricsService.Enabled = settingsService.Current.GameHub.MetricsEnabled;
+        playMetricsService.Configure(new TelemetryCollectionOptions(
+            settingsService.Current.GameHub.MetricsPlaytimeEnabled,
+            settingsService.Current.GameHub.MetricsFpsEnabled,
+            settingsService.Current.GameHub.MetricsTemperaturesEnabled,
+            settingsService.Current.GameHub.MetricsHardwareUsageEnabled,
+            settingsService.Current.GameHub.MetricsMemoryEnabled));
 
         var gameHubViewModel = new GameHubViewModel(
             libraryService, profileStore, artService, sessionManager, gamingModeService,

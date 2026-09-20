@@ -11,46 +11,90 @@
     d:DataContext="{d:DesignInstance Type=vm:StatisticsViewModel}"
     mc:Ignorable="d"
     Title="Pulse1x"
-    Height="700"
-    Width="940"
-    MinHeight="560"
-    MinWidth="780"
+    Height="800"
+    Width="1180"
+    MinHeight="680"
+    MinWidth="960"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="None"
     Background="#0A0A0C"
     WindowStartupLocation="CenterOwner">
 
-    <!-- Tema do GameHub, não o do app: esta janela pertence ao hub. -->
     <ui:FluentWindow.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:RatioToHeightConverter x:Key="RatioToHeight" />
 
         <SolidColorBrush x:Key="HubText" Color="#F2F3F5" />
-        <SolidColorBrush x:Key="HubTextDim" Color="#8B8F98" />
+        <SolidColorBrush x:Key="HubTextDim" Color="#92969F" />
         <SolidColorBrush x:Key="HubSurface" Color="#16171A" />
+        <SolidColorBrush x:Key="HubLine" Color="#24FFFFFF" />
 
-        <Style x:Key="StatCard" TargetType="Border">
+        <Style x:Key="MetricCard" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource HubSurface}" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="18,15" />
-            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Padding" Value="16,13" />
+            <Setter Property="Margin" Value="0,0,10,0" />
         </Style>
 
-        <Style x:Key="StatLabel" TargetType="TextBlock">
+        <Style x:Key="MetricLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="Foreground" Value="{StaticResource HubTextDim}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
 
-        <Style x:Key="StatValue" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="22" />
-            <Setter Property="FontWeight" Value="Bold" />
+        <Style x:Key="MetricValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource HubText}" />
             <Setter Property="Margin" Value="0,4,0,0" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
+
+        <Style x:Key="GameRow" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="13,11" />
+            <Setter Property="Margin" Value="0,0,0,3" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Row" Padding="{TemplateBinding Padding}" CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#14FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                                <Setter TargetName="Row" Property="Background" Value="#2AFFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionFocusVisual" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border BorderBrush="White" BorderThickness="3" CornerRadius="6" Margin="-4" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </ui:FluentWindow.Resources>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -58,161 +102,291 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <ui:TitleBar Title="Pulse1x" Grid.Row="0" />
 
-        <StackPanel Grid.Row="1" Margin="28,4,28,20">
-            <TextBlock Text="{Binding [GH_MenuStatistics], Source={x:Static loc:Loc.Instance}}"
-                       FontSize="24" FontWeight="Bold" Foreground="{StaticResource HubText}" />
-            <TextBlock Text="{Binding [GH_StatsSubtitle], Source={x:Static loc:Loc.Instance}}"
-                       FontSize="12.5" Foreground="{StaticResource HubTextDim}" Margin="0,3,0,0" />
-        </StackPanel>
-
-        <!-- Resumo geral -->
-        <Grid Grid.Row="2" Margin="28,0,16,20">
+        <Grid Grid.Row="1" Margin="28,2,28,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{Binding [GH_StatsProTitle], Source={x:Static loc:Loc.Instance}}"
+                           FontSize="25" FontWeight="Bold" Foreground="{StaticResource HubText}" />
+                <TextBlock Text="{Binding [GH_StatsSubtitle], Source={x:Static loc:Loc.Instance}}"
+                           FontSize="12.5" Foreground="{StaticResource HubTextDim}" Margin="0,3,0,0" />
+            </StackPanel>
+            <Border Grid.Column="1" Background="#1622C55E" BorderBrush="#5522C55E"
+                    BorderThickness="1" CornerRadius="6" Padding="10,6" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="#4ADE80"
+                               FontSize="12" VerticalAlignment="Center" Margin="0,0,7,0" />
+                    <TextBlock Text="{Binding [GH_StatsLocalOnly], Source={x:Static loc:Loc.Instance}}"
+                               Foreground="#B9F6CA" FontSize="11.5" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Margin="28,0,28,16" Padding="14,10" CornerRadius="6"
+                Background="#12FFFFFF" BorderBrush="{StaticResource HubLine}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding ImpactText}" Margin="10,0"
+                           Foreground="{StaticResource HubText}" FontSize="12" VerticalAlignment="Center" />
+                <ui:ToggleSwitch x:Name="MasterToggle" Grid.Column="2"
+                                 Content="{Binding [GH_StatsMaster], Source={x:Static loc:Loc.Instance}}"
+                                 Foreground="{StaticResource HubText}" IsChecked="{Binding MetricsEnabled}" />
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="3" Columns="4" Margin="28,0,18,16">
+            <Border Style="{StaticResource MetricCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding [GH_StatsTotal], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                    <TextBlock Text="{Binding TotalText}" Style="{StaticResource MetricValue}" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource MetricCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding [GH_StatsSessions], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                    <TextBlock Text="{Binding SessionCountText}" Style="{StaticResource MetricValue}" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource MetricCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding [GH_StatsPerDay], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                    <TextBlock Text="{Binding PerDayText}" Style="{StaticResource MetricValue}" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource MetricCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding [GH_StatsMostPlayed], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                    <TextBlock Text="{Binding MostPlayedText}" Style="{StaticResource MetricValue}" FontSize="15" />
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Grid Grid.Row="4" Margin="28,0,28,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="22" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding [GH_StatsTotal], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource StatLabel}" />
-                    <TextBlock Text="{Binding TotalText}" Style="{StaticResource StatValue}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="1" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding [GH_StatsPerDay], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource StatLabel}" />
-                    <TextBlock Text="{Binding PerDayText}" Style="{StaticResource StatValue}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="2" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding [GH_StatsPeak], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource StatLabel}" />
-                    <TextBlock Text="{Binding PeakText}" Style="{StaticResource StatValue}" FontSize="15" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="3" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding [GH_StatsMostPlayed], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource StatLabel}" />
-                    <TextBlock Text="{Binding MostPlayedText}" Style="{StaticResource StatValue}" FontSize="15" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <!-- Últimos 14 dias -->
-        <Border Grid.Row="3" Background="{StaticResource HubSurface}" CornerRadius="10"
-                Margin="28,0,28,20" Padding="18,15">
-            <StackPanel>
-                <TextBlock Text="{Binding [GH_StatsLast14], Source={x:Static loc:Loc.Instance}}"
-                           Style="{StaticResource StatLabel}" Margin="0,0,0,14" />
-                <ItemsControl ItemsSource="{Binding DailyBars}" Height="110">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Rows="1" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="3,0" ToolTip="{Binding ValueText}">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-
-                                <!-- A barra cresce de baixo para cima conforme a proporção do dia. -->
-                                <Border Grid.Row="0" VerticalAlignment="Bottom" CornerRadius="4,4,0,0"
-                                        MinHeight="3"
-                                        Background="{DynamicResource BrandAccentBrush}">
-                                    <Border.Height>
-                                        <MultiBinding Converter="{StaticResource RatioToHeight}">
-                                            <Binding Path="Ratio" />
-                                            <Binding Path="ActualHeight" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
-                                        </MultiBinding>
-                                    </Border.Height>
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Opacity" Value="0.75" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsToday}" Value="True">
-                                                    <Setter Property="Opacity" Value="1" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                </Border>
-
-                                <TextBlock Grid.Row="1" Text="{Binding Label}" FontSize="9.5"
-                                           Foreground="{StaticResource HubTextDim}"
-                                           HorizontalAlignment="Center" Margin="0,5,0,0" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
-
-        <!-- Por jogo -->
-        <Grid Grid.Row="4" Margin="28,0,28,0">
-            <Border Background="{StaticResource HubSurface}" CornerRadius="10" Padding="0,10">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Games}">
-                        <ItemsControl.ItemTemplate>
+            <Border Grid.Column="0" Background="{StaticResource HubSurface}" CornerRadius="7" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding [GH_StatsGames], Source={x:Static loc:Loc.Instance}}"
+                               Style="{StaticResource MetricLabel}" Margin="6,4,6,9" />
+                    <ListBox x:Name="GamesList" Grid.Row="1" ItemsSource="{Binding Games}"
+                             SelectedItem="{Binding SelectedGame}" ItemContainerStyle="{StaticResource GameRow}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="18,9">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="110" />
-                                        <ColumnDefinition Width="110" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-
-                                    <TextBlock Grid.Column="0" Text="{Binding GameName}" FontSize="13.5"
-                                               Foreground="{StaticResource HubText}" VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Column="1" Text="{Binding TotalText}" FontSize="12.5"
-                                               Foreground="{StaticResource HubText}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="2" Text="{Binding AverageSessionText}" FontSize="12.5"
-                                               Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="{Binding SessionCount}" FontSize="12.5"
-                                               Foreground="{StaticResource HubTextDim}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="4" FontSize="12.5" VerticalAlignment="Center"
-                                               Foreground="{StaticResource HubTextDim}"
-                                               Text="{Binding AverageFps, StringFormat={}{0:0} FPS, TargetNullValue=—}" />
+                                    <TextBlock Text="{Binding GameName}" Foreground="{StaticResource HubText}"
+                                               FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{Binding TotalText}" Foreground="{StaticResource HubTextDim}"
+                                               FontSize="11" Margin="9,0,0,0" />
                                 </Grid>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Grid.Row="1" Text="{Binding [GH_StatsEmpty], Source={x:Static loc:Loc.Instance}}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="190"
+                               Foreground="{StaticResource HubTextDim}" FontSize="12"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
             </Border>
 
-            <TextBlock Text="{Binding [GH_StatsEmpty], Source={x:Static loc:Loc.Instance}}"
-                       Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}"
-                       TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420"
-                       Foreground="{StaticResource HubTextDim}" FontSize="13"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="{Binding SelectedTitle}" FontSize="19" FontWeight="SemiBold"
+                               Foreground="{StaticResource HubText}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding SelectedPeriodText}" FontSize="11.5"
+                               Foreground="{StaticResource HubTextDim}" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,-10,14">
+                    <Border Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding [GH_StatsPlaytime], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                            <TextBlock Text="{Binding SelectedPlaytimeText}" Style="{StaticResource MetricValue}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding [GH_StatsAvgFps], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                            <TextBlock Text="{Binding SelectedFpsText}" Style="{StaticResource MetricValue}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding [GH_StatsOneLow], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                            <TextBlock Text="{Binding SelectedOnePercentLowText}" Style="{StaticResource MetricValue}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding [GH_StatsLongest], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                            <TextBlock Text="{Binding SelectedLongestSessionText}" Style="{StaticResource MetricValue}" FontSize="16" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="260" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="{StaticResource HubSurface}" CornerRadius="7" Padding="16,12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding [GH_StatsLast14], Source={x:Static loc:Loc.Instance}}"
+                                       Style="{StaticResource MetricLabel}" Margin="0,0,0,10" />
+                            <ItemsControl Grid.Row="1" ItemsSource="{Binding DailyBars}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="3,0" ToolTip="{Binding ValueText}">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" VerticalAlignment="Bottom" CornerRadius="3,3,0,0"
+                                                    MinHeight="3" Background="{DynamicResource BrandAccentBrush}">
+                                                <Border.Height>
+                                                    <MultiBinding Converter="{StaticResource RatioToHeight}">
+                                                        <Binding Path="Ratio" />
+                                                        <Binding Path="ActualHeight" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                    </MultiBinding>
+                                                </Border.Height>
+                                            </Border>
+                                            <TextBlock Grid.Row="1" Text="{Binding Label}" FontSize="8.5"
+                                                       Foreground="{StaticResource HubTextDim}"
+                                                       HorizontalAlignment="Center" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+
+                    <UniformGrid Grid.Column="2" Columns="2" Rows="3" Margin="0,0,-8,-8">
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsCpuTemp], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding SelectedCpuTemperatureText}" Style="{StaticResource MetricValue}" FontSize="16" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsGpuTemp], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding SelectedGpuTemperatureText}" Style="{StaticResource MetricValue}" FontSize="16" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsCpuUse], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding SelectedCpuUsageText}" Style="{StaticResource MetricValue}" FontSize="16" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsGpuUse], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding SelectedGpuUsageText}" Style="{StaticResource MetricValue}" FontSize="16" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsRam], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding SelectedRamText}" Style="{StaticResource MetricValue}" FontSize="14" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCard}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [GH_StatsPeak], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource MetricLabel}" />
+                                <TextBlock Text="{Binding PeakText}" Style="{StaticResource MetricValue}" FontSize="11.5" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </Grid>
+            </Grid>
         </Grid>
 
-        <Border Grid.Row="5" Padding="28,16" Margin="0,18,0,0">
+        <Border Grid.Row="5" Background="#0DFFFFFF" BorderBrush="{StaticResource HubLine}"
+                BorderThickness="1,1,1,0" Padding="28,11">
             <Grid>
-                <ui:ToggleSwitch HorizontalAlignment="Left" VerticalAlignment="Center"
-                                 Content="{Binding [GH_StatsEnabled], Source={x:Static loc:Loc.Instance}}"
-                                 Foreground="{StaticResource HubText}"
-                                 IsChecked="{Binding MetricsEnabled}" />
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Width="160" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding [GH_StatsCollection], Source={x:Static loc:Loc.Instance}}"
+                               Foreground="{StaticResource HubText}" FontWeight="SemiBold" FontSize="12.5" />
+                    <TextBlock Text="{Binding [GH_StatsNextSession], Source={x:Static loc:Loc.Instance}}"
+                               Foreground="{StaticResource HubTextDim}" FontSize="10.5" Margin="0,2,0,0" />
+                </StackPanel>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectTime], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding PlaytimeEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectFps], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding FpsEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectTemp], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding TemperaturesEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectUse], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding HardwareUsageEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                    <ui:ToggleSwitch Content="{Binding [GH_StatsCollectRam], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding MemoryEnabled}" Foreground="{StaticResource HubText}" Margin="8,0" />
+                </WrapPanel>
+            </Grid>
+        </Border>
 
+        <Border Grid.Row="6" Padding="28,12">
+            <Grid>
+                <TextBlock Text="{Binding [GH_StatsFpsEstimated], Source={x:Static loc:Loc.Instance}}"
+                           Foreground="{StaticResource HubTextDim}" FontSize="10.5"
+                           VerticalAlignment="Center" MaxWidth="650" TextWrapping="Wrap"
+                           HorizontalAlignment="Left" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <ui:Button Content="{Binding [GH_StatsClear], Source={x:Static loc:Loc.Instance}}"
-                               Command="{Binding ClearHistoryCommand}" Margin="0,0,8,0" Padding="18,7" />
-                    <ui:Button Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}" IsCancel="True"
-                               Command="{Binding CloseCommand}" Padding="22,7"
+                               Command="{Binding ClearHistoryCommand}" Margin="0,0,8,0" Padding="16,7"
+                               FocusVisualStyle="{StaticResource ActionFocusVisual}" />
+                    <ui:Button x:Name="CloseButton" Content="{Binding [GH_Close], Source={x:Static loc:Loc.Instance}}"
+                               IsCancel="True" Command="{Binding CloseCommand}" Padding="22,7"
+                               FocusVisualStyle="{StaticResource ActionFocusVisual}"
                                Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>

@@ -470,6 +470,11 @@
                             <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
                         </Button>
                         <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
+                                Click="Statistics_Click"
+                                ToolTip="{Binding [GH_MenuStatistics], Source={x:Static loc:Loc.Instance}}">
+                            <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                        </Button>
+                        <Button Style="{StaticResource HubChromeButton}" Padding="16,14"
                                 Command="{Binding ToggleFavoriteCommand}"
                                 ToolTip="{Binding [GH_Favorite], Source={x:Static loc:Loc.Instance}}">
                             <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="14" />

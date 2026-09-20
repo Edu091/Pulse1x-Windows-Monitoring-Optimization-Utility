@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.6.8 — 20/09/2026
+
+- O GameHub ganhou um painel de **Estatísticas Pro** acessível por um novo ícone ao lado das ações do jogo. A tela reúne horas jogadas, FPS médio, 1% low, temperaturas e uso médios de CPU/GPU, RAM, sessões e atividade dos últimos 14 dias.
+- A telemetria reutiliza os leitores de hardware do próprio Pulse1x, guarda apenas médias locais por sessão e nunca envia dados. Horas, FPS, temperaturas, uso de CPU/GPU e RAM podem ser desligados individualmente.
+- A coleta usa amostras espaçadas a cada três segundos e o painel informa claramente o impacto esperado conforme os sensores ativos.
+- Toda a nova tela pode ser percorrida e operada por gamepad, incluindo a lista de jogos, os interruptores de coleta, a limpeza do histórico e o fechamento.
+
 ## 1.6.7 — 20/09/2026
 
 - O cadastro de emulador não pede mais o **nome**: ele vem do emulador escolhido na lista e, em "Outro emulador", do próprio arquivo. É só um rótulo na biblioteca, e digitá-lo não mudava nada no funcionamento.

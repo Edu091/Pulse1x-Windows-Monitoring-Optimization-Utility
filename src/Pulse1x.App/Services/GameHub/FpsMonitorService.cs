@@ -42,6 +42,7 @@ public class FpsMonitorService : IDisposable
     {
         Stop();
 
+        _unavailable = false;
         _target = process;
         lock (_gate) _samples.Clear();
 
@@ -102,7 +103,9 @@ public class FpsMonitorService : IDisposable
     {
         try
         {
-            if (_target is null || _target.HasExited) { Stop(); return; }
+            // The session manager owns finalization and must be the one to call Stop(). Clearing
+            // samples here would race with WaitForExitAsync and lose the completed session summary.
+            if (_target is null || _target.HasExited) return;
             if (_counter is null) return;
 
             // O contador dá a ocupação do motor 3D, não quadros. Convertemos para uma estimativa de
@@ -118,7 +121,13 @@ public class FpsMonitorService : IDisposable
         }
         catch
         {
-            Stop();
+            _unavailable = true;
+            _timer?.Dispose();
+            _timer = null;
+            try { _counter?.Dispose(); } catch { }
+            _counter = null;
+            _target = null;
+            Current = null;
         }
     }
 

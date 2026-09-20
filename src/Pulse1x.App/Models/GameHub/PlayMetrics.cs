@@ -24,6 +24,15 @@ public class PlaySession
     /// <summary>1% low: a média dos piores 1% dos quadros — é o que se sente como engasgo.</summary>
     public double? OnePercentLowFps { get; set; }
 
+    // Local telemetry averages for the session. No raw timeline is persisted or uploaded.
+    public double? AverageCpuTemperature { get; set; }
+    public double? AverageGpuTemperature { get; set; }
+    public double? AverageCpuUsage { get; set; }
+    public double? AverageGpuUsage { get; set; }
+    public double? AverageRamUsedGb { get; set; }
+    public double? AverageRamUsagePercent { get; set; }
+    public int TelemetrySamples { get; set; }
+
     /// <summary>Perfil aplicado nesta sessão, para comparar desempenho entre perfis.</summary>
     public string? ProfileId { get; set; }
     public string? ProfileName { get; set; }
@@ -48,6 +57,14 @@ public class GameStats
     public double? AverageFps { get; set; }
     public double? BestMaxFps { get; set; }
     public double? WorstOnePercentLowFps { get; set; }
+    public double? AverageOnePercentLowFps { get; set; }
+
+    public double? AverageCpuTemperature { get; set; }
+    public double? AverageGpuTemperature { get; set; }
+    public double? AverageCpuUsage { get; set; }
+    public double? AverageGpuUsage { get; set; }
+    public double? AverageRamUsedGb { get; set; }
+    public double? AverageRamUsagePercent { get; set; }
 
     [JsonIgnore]
     public string TotalText => FormatDuration(TotalMinutes);
@@ -71,4 +88,16 @@ public class GameStats
 public class PlayMetricsData
 {
     public List<PlaySession> Sessions { get; set; } = new();
+}
+
+/// <summary>Data groups allowed while a game session is running.</summary>
+public record TelemetryCollectionOptions(
+    bool Playtime = true,
+    bool Fps = true,
+    bool Temperatures = true,
+    bool HardwareUsage = true,
+    bool Memory = true)
+{
+    public bool HasPerformanceTelemetry => Temperatures || HardwareUsage || Memory;
+    public bool HasAny => Playtime || Fps || HasPerformanceTelemetry;
 }

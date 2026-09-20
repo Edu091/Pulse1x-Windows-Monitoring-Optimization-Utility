@@ -766,12 +766,15 @@ public partial class GameHubPage : Page
 
     private void OpenStatistics()
     {
-        var window = new StatisticsWindow(new StatisticsViewModel(_metrics, _library))
+        var window = new StatisticsWindow(new StatisticsViewModel(
+            _metrics, _settings, _viewModel.SelectedGame?.Entry.Id))
         {
             Owner = Window.GetWindow(this),
         };
         window.ShowDialog();
     }
+
+    private void Statistics_Click(object sender, RoutedEventArgs e) => OpenStatistics();
 
     private void AddGames_Click(object sender, RoutedEventArgs e) => OpenAddGames();
 

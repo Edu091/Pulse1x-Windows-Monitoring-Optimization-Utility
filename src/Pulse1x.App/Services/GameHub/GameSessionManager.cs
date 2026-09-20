@@ -32,6 +32,7 @@ public class GameSessionManager
     private readonly GamingModeService _gamingMode;
     private readonly PlayMetricsService? _metrics;
     private readonly FpsMonitorService? _fps;
+    private readonly SessionTelemetryService? _telemetry;
 
     private CancellationTokenSource? _monitorCts;
 
@@ -53,7 +54,8 @@ public class GameSessionManager
         SnapshotService snapshots,
         GamingModeService gamingMode,
         PlayMetricsService? metrics = null,
-        FpsMonitorService? fps = null)
+        FpsMonitorService? fps = null,
+        SessionTelemetryService? telemetry = null)
     {
         _engine = engine;
         _library = library;
@@ -62,6 +64,7 @@ public class GameSessionManager
         _gamingMode = gamingMode;
         _metrics = metrics;
         _fps = fps;
+        _telemetry = telemetry;
     }
 
     // =====================================================================================
@@ -122,7 +125,12 @@ public class GameSessionManager
                     new Progress<ProfileStepProgress>(step => StepReported?.Invoke(step)));
 
                 // Com o processo do jogo em mãos, começa a medir o desempenho da sessão.
-                if (_metrics?.Enabled == true) _fps?.Start(main);
+                if (_metrics?.Enabled == true)
+                {
+                    var options = _metrics.Options;
+                    if (options.Fps) _fps?.Start(main);
+                    _telemetry?.Start(options);
+                }
 
                 try { await main.WaitForExitAsync(token); }
                 catch (OperationCanceledException) { return; }
@@ -168,6 +176,7 @@ public class GameSessionManager
 
         // Histórico detalhado da sessão (horas, FPS, perfil usado) para a seção de estatísticas.
         var fps = _fps?.Stop();
+        var telemetry = _telemetry?.Stop();
         _metrics?.Record(new Models.GameHub.PlaySession
         {
             GameId = session.Game.Id,
@@ -179,6 +188,13 @@ public class GameSessionManager
             MaxFps = fps?.Max,
             MinFps = fps?.Min,
             OnePercentLowFps = fps?.OnePercentLow,
+            AverageCpuTemperature = telemetry?.AverageCpuTemperature,
+            AverageGpuTemperature = telemetry?.AverageGpuTemperature,
+            AverageCpuUsage = telemetry?.AverageCpuUsage,
+            AverageGpuUsage = telemetry?.AverageGpuUsage,
+            AverageRamUsedGb = telemetry?.AverageRamUsedGb,
+            AverageRamUsagePercent = telemetry?.AverageRamUsagePercent,
+            TelemetrySamples = telemetry?.Samples ?? 0,
             ProfileId = session.Profile?.Id,
             ProfileName = session.Profile?.Name,
         });

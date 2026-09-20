@@ -42,6 +42,13 @@ public class GameHubSettings
     /// <summary>Registrar horas, FPS e demais estatísticas de uso.</summary>
     public bool MetricsEnabled { get; set; } = true;
 
+    // Each data group can be disabled independently. Results remain in the local GameHub history.
+    public bool MetricsPlaytimeEnabled { get; set; } = true;
+    public bool MetricsFpsEnabled { get; set; } = true;
+    public bool MetricsTemperaturesEnabled { get; set; } = true;
+    public bool MetricsHardwareUsageEnabled { get; set; } = true;
+    public bool MetricsMemoryEnabled { get; set; } = true;
+
     /// <summary>
     /// Launchers abertos junto com o GameHub (nomes de LauncherKind). Serve para o cliente já estar
     /// de pé quando o usuário apertar Jogar, em vez de esperar a loja subir na hora.
