@@ -146,10 +146,15 @@ public class AcerGamingAdapter : IOemVendorAdapter
     private const uint MiscSupportedProfiles = 0x0A;
     private const uint MiscPlatformProfile = 0x0B;
 
-    // Valores de perfil térmico usados pelo firmware Acer.
-    private const int Quiet = 0x00, Balanced = 0x01, Performance = 0x02, Turbo = 0x03, Eco = 0x04;
+    // Valores de perfil térmico usados pelo firmware Acer. O 0x06 aparece nos Nitro recentes
+    // (confirmado num ANV15-51, cujo bitmask de suportados é 0b1010011 — bits 0, 1, 4 e 6).
+    private const int Quiet = 0x00, Balanced = 0x01, Performance = 0x02, Turbo = 0x03, Eco = 0x04,
+                      PerformanceAlt = 0x06;
 
     private List<OemMode> _modes = new();
+
+    /// <summary>Bitmask de perfis que ESTE firmware aceita, lido na sondagem.</summary>
+    private int _supportedMask;
 
     public string VendorId => "acer";
     public string DisplayName => "Acer NitroSense / PredatorSense";
@@ -161,6 +166,7 @@ public class AcerGamingAdapter : IOemVendorAdapter
         (Quiet, "quiet", "GH_OemQuiet"),
         (Balanced, "balanced", "GH_OemBalanced"),
         (Performance, "performance", "GH_OemPerformance"),
+        (PerformanceAlt, "performance", "GH_OemPerformance"),
         (Turbo, "turbo", "GH_OemTurbo"),
     };
 
@@ -174,12 +180,18 @@ public class AcerGamingAdapter : IOemVendorAdapter
         // O perfil ativo precisa ser um valor plausível; caso contrário, desconfiamos da leitura.
         if (AllModes.All(m => m.Value != current)) return false;
 
+        _supportedMask = supportedMask;
+
         // O bitmask diz quais perfis este modelo aceita (bit N = perfil N). Alguns firmwares
         // devolvem 0 aqui; nesse caso oferecemos o conjunto completo, que é o comportamento do
         // próprio NitroSense.
+        //
+        // Um mesmo modo pode ter mais de um valor conforme a geração (Desempenho é 0x02 ou 0x06),
+        // então a lista é deduplicada pelo Id — senão "Desempenho" apareceria duas vezes.
         _modes = AllModes
             .Where(m => supportedMask == 0 || (supportedMask & (1 << m.Value)) != 0)
-            .Select(m => new OemMode(m.Id, m.LabelKey))
+            .GroupBy(m => m.Id)
+            .Select(g => new OemMode(g.Key, g.First().LabelKey))
             .ToList();
 
         return _modes.Count > 0;
@@ -193,13 +205,25 @@ public class AcerGamingAdapter : IOemVendorAdapter
 
     public bool SetMode(string modeId)
     {
-        var mode = AllModes.FirstOrDefault(m => m.Id == modeId);
-        if (mode.Id is null) return false;
+        // Entre os valores possíveis para este modo, usa o que o firmware declarou suportar —
+        // Desempenho é 0x02 numa geração e 0x06 noutra, e escrever o errado não faz nada.
+        var candidates = AllModes
+            .Where(m => m.Id == modeId)
+            .Where(m => _supportedMask == 0 || (_supportedMask & (1 << m.Value)) != 0)
+            .ToList();
 
-        if (!TrySetMisc(MiscPlatformProfile, mode.Value)) return false;
+        if (candidates.Count == 0) return false;
 
-        // Confirmação: relê e compara. Sem isso não temos como saber se o firmware aceitou.
-        return TryGetMisc(MiscPlatformProfile, out int readBack) && readBack == mode.Value;
+        foreach (var mode in candidates)
+        {
+            if (!TrySetMisc(MiscPlatformProfile, mode.Value)) continue;
+
+            // Confirmação: relê e compara. Sem isso não temos como saber se o firmware aceitou.
+            if (TryGetMisc(MiscPlatformProfile, out int readBack) && readBack == mode.Value)
+                return true;
+        }
+
+        return false;
     }
 
     // ---- WMI ----

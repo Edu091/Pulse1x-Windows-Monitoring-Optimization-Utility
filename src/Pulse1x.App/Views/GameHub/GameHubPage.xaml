@@ -114,8 +114,14 @@
             onde parou, sem precisar da capa vertical.
         -->
         <DataTemplate x:Key="HubWideCardTemplate">
+            <!--
+                FocusVisualStyle desligado: o anel global do app desenharia um segundo contorno por
+                fora do cartão, ao lado do que o próprio template já acende na borda — dois anéis
+                em volta do mesmo item pareciam duas seleções.
+            -->
             <Button Command="{Binding DataContext.SelectFromContinueCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                    CommandParameter="{Binding}" Cursor="Hand" Margin="0,0,16,0">
+                    CommandParameter="{Binding}" Cursor="Hand" Margin="0,0,16,0"
+                    FocusVisualStyle="{x:Null}">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="WideBd" Width="360" Height="202" CornerRadius="18"
@@ -198,6 +204,8 @@
             <Setter Property="Padding" Value="18,15" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -220,7 +228,10 @@
                                     <GradientStop Color="#0DFFFFFF" Offset="1" />
                                 </LinearGradientBrush>
                             </Border.BorderBrush>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <!-- Respeita o alinhamento pedido pelo botão: na lista de perfis eles
+                                 esticam, e sem isso cada item ficava com a largura do próprio texto. -->
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -986,9 +997,9 @@
                         </ItemsControl.Template>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Style="{StaticResource HubPillButton}" Margin="0,0,0,6"
+                                <Button Style="{StaticResource HubPillButton}" Margin="0,0,10,7"
                                         HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"
-                                        Padding="14,11"
+                                        Padding="15,12"
                                         Command="{Binding DataContext.ChooseProfileCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                         CommandParameter="{Binding}">
                                     <Grid>

@@ -1,5 +1,11 @@
 ﻿# Histórico de versões
 
+## 1.7.5 — 20/09/2026
+
+- **O controle dos modos do NitroSense funciona nos Nitro recentes.** O firmware desses modelos usa 0x06 para Desempenho, valor que o Pulse não conhecia — o modo existia no aparelho mas nunca aparecia na lista, e escrever o valor antigo não fazia nada. Confirmado num Nitro ANV15-51, lendo e aplicando os perfis pela mesma interface que o NitroSense usa.
+- Corrigido o **cartão com duas seleções**: o jogo em foco na faixa de destaques recebia o anel do próprio cartão e mais um do indicador global de foco, o que parecia dois itens selecionados ao mesmo tempo.
+- Os perfis na lista de escolha agora ficam **alinhados**, todos com a mesma largura, em vez de cada um acompanhar o tamanho do próprio nome.
+
 ## 1.7.4 — 20/09/2026
 
 - O GameHub foi remodelado em torno de uma **faixa de destaques** acima da biblioteca: cartões largos e arredondados que alternam entre **Recentes**, **Favoritos** e **Mais jogados**. A grade de capas abaixo ficou compacta, assumindo o papel de catálogo.
