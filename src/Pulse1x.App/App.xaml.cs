@@ -264,7 +264,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, gameHubPage, utilityPage, new Views.WinCustomPage(), settingsPage, aboutPage, donatePage);
+            latencyPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {

@@ -1,5 +1,13 @@
 ﻿# Histórico de versões
 
+## 1.9.0 — 20/09/2026
+
+- A seção **Personalização do Windows** foi removida do aplicativo. Ela exibia apenas um aviso de "em breve" desde a 1.6.2, e a navegação agora vai direto de Utilidade para Configurações.
+- **Desativar o Recall**, o recurso que fotografa a tela a cada poucos segundos para você pesquisar depois. Usa as duas políticas oficiais da Microsoft: impede novas capturas e remove o componente do sistema. Cada opção nova explica o que desliga **e o que deixa de funcionar**.
+- Novas opções de **privacidade**: ID de publicidade, experiências personalizadas, serviço de telemetria (DiagTrack e dmwappushservice), busca na web pelo Menu Iniciar, anúncios na tela de bloqueio, pedidos de feedback e histórico de atividades.
+- Novas opções de **desempenho**, cada uma nomeando o serviço que desliga: Spooler de Impressão, Registro Remoto, Acesso e Área de Trabalho Remotos, Modo Demonstração de Loja, serviço de Mapas, Biometria (Windows Hello) e entrega de atualizações em rede.
+- As que podem custar algo ganham aviso antes: o Spooler impede imprimir, a Biometria desliga o Windows Hello, e o Recall apaga as capturas já salvas ao ser desativado. Todas continuam reversíveis pelo mesmo histórico das demais otimizações.
+
 ## 1.8.1 — 20/09/2026
 
 - As **caixas de filtro da biblioteca** (plataforma, ordenação e categoria) seguiam o tema claro do Windows: fundo branco com texto claro, o que as deixava ilegíveis e destoando do resto do GameHub. Agora usam a mesma superfície de vidro dos demais botões, com a lista suspensa escura e o item selecionado destacado.

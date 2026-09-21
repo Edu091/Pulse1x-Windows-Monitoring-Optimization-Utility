@@ -853,6 +853,56 @@ internal static partial class LocalizationStrings
         ["AdvOpt_HiberfilWillBeFreed"] = "hiberfil.sys ocupa ~{0} GB que serão liberados.",
         ["AdvOpt_HibernationKeyPath"] = "Hibernação",
 
+        // Privacidade — Recall, publicidade e coleta de dados
+        ["AdvOpt_RecallTitle"] = "Desativar o Recall (capturas de tela por IA)",
+        ["AdvOpt_RecallWarning"] = "As capturas já salvas são apagadas pelo Windows ao aplicar.",
+        ["AdvOpt_RecallDesc"] = "O Recall tira fotos da tela a cada poucos segundos e as guarda para você poder pesquisar depois \"o que viu no computador\". Tudo fica no próprio PC, mas isso inclui conversas, senhas visíveis, documentos e páginas bancárias. Esta opção impede o Windows de salvar novas capturas e remove o componente do sistema, usando as duas políticas oficiais da Microsoft. Impacto: a linha do tempo do Recall deixa de existir; nenhum outro recurso do Windows depende dela.",
+
+        ["AdvOpt_AdvertisingIdTitle"] = "Desativar o ID de publicidade",
+        ["AdvOpt_AdvertisingIdDesc"] = "Cada instalação do Windows tem um identificador único que os aplicativos usam para montar um perfil seu e exibir anúncios direcionados. Desligá-lo corta esse rastreamento entre aplicativos. Impacto: você continua vendo a mesma quantidade de anúncios, só que sem relação com o que você faz no computador.",
+
+        ["AdvOpt_TailoredTitle"] = "Desativar experiências personalizadas",
+        ["AdvOpt_TailoredDesc"] = "Impede a Microsoft de usar os dados de diagnóstico do seu PC para sugerir recursos, aplicativos e ofertas dentro do Windows. Impacto: somem as dicas e recomendações patrocinadas no Menu Iniciar, nas Configurações e na tela de bloqueio.",
+
+        ["AdvOpt_DiagTrackTitle"] = "Desativar o serviço de telemetria (DiagTrack)",
+        ["AdvOpt_DiagTrackDesc"] = "O \"Connected User Experiences and Telemetry\" é o serviço que coleta e envia dados de uso à Microsoft continuamente. Esta opção também desativa o dmwappushservice, que participa do mesmo envio. Impacto: o Hub de Feedback e alguns relatórios de diagnóstico deixam de funcionar; atualizações e segurança do Windows não são afetadas.",
+
+        ["AdvOpt_WebSearchTitle"] = "Desativar a busca na web pelo Menu Iniciar",
+        ["AdvOpt_WebSearchDesc"] = "Ao digitar no Menu Iniciar, o Windows envia o que você escreve para o Bing e mistura resultados da internet com os arquivos do seu PC. Esta opção deixa a busca apenas local. Impacto: o Menu Iniciar passa a responder mais rápido e encontra só o que está na máquina.",
+
+        ["AdvOpt_LockScreenAdsTitle"] = "Desativar anúncios e dicas na tela de bloqueio",
+        ["AdvOpt_LockScreenAdsDesc"] = "O \"Windows Spotlight\" troca a imagem da tela de bloqueio e aproveita para exibir dicas, promoções de jogos e sugestões de aplicativos. Impacto: a tela de bloqueio passa a usar a imagem que você escolheu, sem textos sobrepostos.",
+
+        ["AdvOpt_FeedbackTitle"] = "Desativar pedidos de feedback",
+        ["AdvOpt_FeedbackDesc"] = "Interrompe as janelas periódicas em que o Windows pergunta o que você acha de algum recurso. Impacto: nenhum — o Hub de Feedback continua disponível caso você queira abri-lo por conta própria.",
+
+        ["AdvOpt_ActivityHistoryTitle"] = "Desativar o histórico de atividades",
+        ["AdvOpt_ActivityHistoryDesc"] = "O Windows registra os aplicativos e arquivos que você abre, e pode enviar esse histórico para a sua conta Microsoft para sincronizar entre dispositivos. Impacto: a Linha do Tempo e o \"continuar de onde parei\" em outro aparelho deixam de funcionar.",
+
+        // Desempenho — serviços que a maioria dos PCs domésticos não usa
+        ["AdvOpt_SpoolerTitle"] = "Desativar o Spooler de Impressão",
+        ["AdvOpt_SpoolerWarning"] = "Só ligue se você NÃO usa impressora nem PDF virtual.",
+        ["AdvOpt_SpoolerDesc"] = "O serviço Spooler gerencia a fila de impressão e fica ativo mesmo sem nenhuma impressora instalada. Também já foi alvo de falhas de segurança conhecidas (PrintNightmare). Impacto: nada pode ser impresso, nem em PDF, enquanto estiver desativado.",
+
+        ["AdvOpt_RemoteRegistryTitle"] = "Desativar o Registro Remoto",
+        ["AdvOpt_RemoteRegistryDesc"] = "Permite que outro computador da rede leia e altere o Registro desta máquina. Serve para administração corporativa e é um caminho de ataque conhecido em PCs domésticos. Impacto: nenhum em uso pessoal — o Registro local continua funcionando normalmente.",
+
+        ["AdvOpt_RemoteAccessTitle"] = "Desativar Acesso e Área de Trabalho Remotos",
+        ["AdvOpt_RemoteAccessDesc"] = "Desliga o roteamento de acesso remoto e os serviços da Área de Trabalho Remota, que aceitam conexões de fora. Impacto: você não poderá se conectar a este PC por Área de Trabalho Remota; conectar-se a OUTROS computadores continua funcionando, assim como TeamViewer, AnyDesk e similares.",
+
+        ["AdvOpt_RetailDemoTitle"] = "Desativar o Modo Demonstração de Loja",
+        ["AdvOpt_RetailDemoDesc"] = "Serviço usado apenas por computadores em exposição em lojas, para reiniciar a demonstração sozinho. Impacto: nenhum num PC de uso pessoal.",
+
+        ["AdvOpt_MapBrokerTitle"] = "Desativar o serviço de Mapas",
+        ["AdvOpt_MapBrokerDesc"] = "Mantém e atualiza os mapas baixados para uso offline, em segundo plano. Impacto: o aplicativo Mapas perde o acesso offline; mapas no navegador não são afetados.",
+
+        ["AdvOpt_BiometricsTitle"] = "Desativar o serviço de Biometria",
+        ["AdvOpt_BiometricsWarning"] = "Só ligue se você NÃO usa impressão digital nem reconhecimento facial.",
+        ["AdvOpt_BiometricsDesc"] = "O serviço de biometria do Windows atende leitores de digital e câmeras de reconhecimento facial do Windows Hello. Impacto: entrar pelo Hello deixa de funcionar e você volta a usar senha ou PIN.",
+
+        ["AdvOpt_DeliveryOptTitle"] = "Desativar a entrega de atualizações em rede",
+        ["AdvOpt_DeliveryOptDesc"] = "Por padrão o seu PC baixa atualizações de outros computadores e também envia partes delas para terceiros, consumindo a sua banda de subida. Esta opção faz as atualizações virem apenas dos servidores da Microsoft. Impacto: nenhuma atualização deixa de chegar; a internet fica livre do tráfego de compartilhamento.",
+
         // Hardware (CPU, GPU e RAM)
         ["AdvOpt_RequiresRestart"] = "Só passa a valer depois de reiniciar o computador.",
         ["AdvOpt_HagsTitle"] = "Agendamento de GPU por Hardware",
@@ -1925,6 +1975,56 @@ internal static partial class LocalizationStrings
         ["AdvOpt_HibernationDesc"] = "Disables hibernation using the native Windows method (powercfg /hibernate off) and removes the hiberfil.sys file, freeing disk space equivalent to part of the RAM.",
         ["AdvOpt_HiberfilWillBeFreed"] = "hiberfil.sys takes up ~{0} GB that will be freed.",
         ["AdvOpt_HibernationKeyPath"] = "Hibernation",
+
+        // Privacy — Recall, advertising and data collection
+        ["AdvOpt_RecallTitle"] = "Disable Recall (AI screen snapshots)",
+        ["AdvOpt_RecallWarning"] = "Windows deletes the snapshots already saved when this is applied.",
+        ["AdvOpt_RecallDesc"] = "Recall photographs your screen every few seconds and keeps the images so you can search for \"what you saw on your PC\". Everything stays on the machine, but that includes conversations, visible passwords, documents and banking pages. This turns off saving new snapshots and removes the component, using Microsoft's own two policies. Impact: the Recall timeline stops existing; nothing else in Windows depends on it.",
+
+        ["AdvOpt_AdvertisingIdTitle"] = "Disable the advertising ID",
+        ["AdvOpt_AdvertisingIdDesc"] = "Every Windows installation carries a unique identifier that apps use to build a profile of you and show targeted ads. Turning it off cuts that tracking across apps. Impact: you still see the same number of ads, just unrelated to what you do on the computer.",
+
+        ["AdvOpt_TailoredTitle"] = "Disable tailored experiences",
+        ["AdvOpt_TailoredDesc"] = "Stops Microsoft from using your PC's diagnostic data to suggest features, apps and offers inside Windows. Impact: sponsored tips and recommendations disappear from the Start menu, Settings and the lock screen.",
+
+        ["AdvOpt_DiagTrackTitle"] = "Disable the telemetry service (DiagTrack)",
+        ["AdvOpt_DiagTrackDesc"] = "\"Connected User Experiences and Telemetry\" is the service that continuously collects and sends usage data to Microsoft. This also disables dmwappushservice, which takes part in the same delivery. Impact: Feedback Hub and some diagnostic reports stop working; Windows updates and security are unaffected.",
+
+        ["AdvOpt_WebSearchTitle"] = "Disable web search in the Start menu",
+        ["AdvOpt_WebSearchDesc"] = "As you type in the Start menu, Windows sends what you write to Bing and mixes internet results with your own files. This keeps the search local. Impact: the Start menu responds faster and finds only what is on the machine.",
+
+        ["AdvOpt_LockScreenAdsTitle"] = "Disable lock screen ads and tips",
+        ["AdvOpt_LockScreenAdsDesc"] = "Windows Spotlight rotates the lock screen image and uses the opportunity to show tips, game promotions and app suggestions. Impact: the lock screen goes back to the image you chose, with no text over it.",
+
+        ["AdvOpt_FeedbackTitle"] = "Disable feedback requests",
+        ["AdvOpt_FeedbackDesc"] = "Stops the periodic prompts asking what you think of some feature. Impact: none — Feedback Hub is still there if you want to open it yourself.",
+
+        ["AdvOpt_ActivityHistoryTitle"] = "Disable activity history",
+        ["AdvOpt_ActivityHistoryDesc"] = "Windows records the apps and files you open, and can upload that history to your Microsoft account to sync across devices. Impact: Timeline and \"pick up where I left off\" on another device stop working.",
+
+        // Performance — services most home PCs never use
+        ["AdvOpt_SpoolerTitle"] = "Disable the Print Spooler",
+        ["AdvOpt_SpoolerWarning"] = "Only turn this on if you do NOT use a printer or print to PDF.",
+        ["AdvOpt_SpoolerDesc"] = "The Spooler service manages the print queue and stays running even with no printer installed. It has also been the target of known security flaws (PrintNightmare). Impact: nothing can be printed, not even to PDF, while it is disabled.",
+
+        ["AdvOpt_RemoteRegistryTitle"] = "Disable Remote Registry",
+        ["AdvOpt_RemoteRegistryDesc"] = "Lets another computer on the network read and change this machine's Registry. It exists for corporate administration and is a known attack path on home PCs. Impact: none for personal use — the local Registry keeps working normally.",
+
+        ["AdvOpt_RemoteAccessTitle"] = "Disable Remote Access and Remote Desktop",
+        ["AdvOpt_RemoteAccessDesc"] = "Turns off remote access routing and the Remote Desktop services, which accept incoming connections. Impact: you won't be able to connect TO this PC over Remote Desktop; connecting to OTHER computers still works, as do TeamViewer, AnyDesk and similar tools.",
+
+        ["AdvOpt_RetailDemoTitle"] = "Disable Retail Demo mode",
+        ["AdvOpt_RetailDemoDesc"] = "A service used only by display computers in shops, to reset the demo on its own. Impact: none on a personal PC.",
+
+        ["AdvOpt_MapBrokerTitle"] = "Disable the Maps service",
+        ["AdvOpt_MapBrokerDesc"] = "Keeps and updates downloaded maps for offline use, in the background. Impact: the Maps app loses offline access; maps in the browser are unaffected.",
+
+        ["AdvOpt_BiometricsTitle"] = "Disable the Biometrics service",
+        ["AdvOpt_BiometricsWarning"] = "Only turn this on if you do NOT use fingerprint or face sign-in.",
+        ["AdvOpt_BiometricsDesc"] = "The Windows biometric service drives fingerprint readers and face recognition cameras for Windows Hello. Impact: signing in with Hello stops working and you go back to a password or PIN.",
+
+        ["AdvOpt_DeliveryOptTitle"] = "Disable peer-to-peer update delivery",
+        ["AdvOpt_DeliveryOptDesc"] = "By default your PC downloads updates from other computers and also uploads parts of them to strangers, using your upstream bandwidth. This makes updates come only from Microsoft's servers. Impact: no update stops arriving; your connection is freed from the sharing traffic.",
 
         // Hardware (CPU, GPU and RAM)
         ["AdvOpt_RequiresRestart"] = "Only takes effect after restarting the computer.",

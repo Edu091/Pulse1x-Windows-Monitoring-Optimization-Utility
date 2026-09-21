@@ -20,7 +20,6 @@ public partial class MainWindow : FluentWindow
     private readonly LatencyPage _latencyPage;
     private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
-    private readonly WinCustomPage _winCustomPage;
     private readonly SettingsPage _settingsPage;
     private readonly AboutPage _aboutPage;
     private readonly DonatePage _donatePage;
@@ -44,7 +43,6 @@ public partial class MainWindow : FluentWindow
         LatencyPage latencyPage,
         Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
-        WinCustomPage winCustomPage,
         SettingsPage settingsPage,
         AboutPage aboutPage,
         DonatePage donatePage)
@@ -58,7 +56,6 @@ public partial class MainWindow : FluentWindow
         _healthPage = healthPage;
         _latencyPage = latencyPage;
         _gameHubPage = gameHubPage;
-        _winCustomPage = winCustomPage;
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
         _aboutPage = aboutPage;
@@ -67,13 +64,13 @@ public partial class MainWindow : FluentWindow
         _navButtons = new Control[]
         {
             DashboardButton, OptimizationButton, HealthButton, LatencyButton, GameHubButton,
-            UtilityButton, WinCustomButton, SettingsButton, AboutButton, DonateButton,
+            UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
         // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
         _navIndicators = new UIElement[]
         {
             DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, GameHubIndicator,
-            UtilityIndicator, WinCustomIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
+            UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
         };
 
         // Anima a entrada de cada página ao navegar (fade + leve deslize), respeitando o
@@ -202,12 +199,12 @@ public partial class MainWindow : FluentWindow
         var pages = new System.Windows.Controls.Page[]
         {
             _dashboardPage, _optimizationPage, _healthPage, _latencyPage,
-            _utilityPage, _winCustomPage, _settingsPage, _aboutPage, _donatePage,
+            _utilityPage, _settingsPage, _aboutPage, _donatePage,
         };
         var buttons = new Control[]
         {
             DashboardButton, OptimizationButton, HealthButton, LatencyButton,
-            UtilityButton, WinCustomButton, SettingsButton, AboutButton, DonateButton,
+            UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
 
         int index = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
@@ -219,11 +216,11 @@ public partial class MainWindow : FluentWindow
     {
         var pages = new System.Windows.Controls.Page[]
         {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _utilityPage, _winCustomPage, _settingsPage,
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _utilityPage, _settingsPage,
         };
         var buttons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, UtilityButton, WinCustomButton, SettingsButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, UtilityButton, SettingsButton,
         };
 
         int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
@@ -434,8 +431,6 @@ public partial class MainWindow : FluentWindow
     }
 
     private void UtilityButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_utilityPage, UtilityButton);
-
-    private void WinCustomButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_winCustomPage, WinCustomButton);
 
     /// <summary>Permite que outras páginas (ex.: Saúde) abram a categoria Otimização.</summary>
     public void NavigateToOptimization() => NavigateTo(_optimizationPage, OptimizationButton);

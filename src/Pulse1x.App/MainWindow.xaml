@@ -89,13 +89,6 @@
                         <TextBlock Text="{Binding [Nav_Utility], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
-                <ui:Button x:Name="WinCustomButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="WinCustomButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="WinCustomIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="PaintBrush24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_WinCustom], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
                 <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,8" />
                 <ui:Button x:Name="SettingsButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="SettingsButton_Click">
                     <StackPanel Orientation="Horizontal">

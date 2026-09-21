@@ -68,6 +68,9 @@ public class AdvancedOptimizationService
 
     private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
 
+    /// <summary>Políticas de IA do Windows (Recall e afins), conforme a documentação da Microsoft.</summary>
+    private const string WindowsAiPolicy = @"SOFTWARE\Policies\Microsoft\Windows\WindowsAI";
+
     public AdvancedOptimizationService(OptimizationChangeLog log)
     {
         _log = log;
@@ -237,6 +240,168 @@ public class AdvancedOptimizationService
             },
         });
 
+        // O Recall é o recurso que mais assusta quem se preocupa com privacidade: ele grava o que
+        // passa na tela. Por isso as duas políticas são aplicadas juntas — uma impede salvar novas
+        // capturas, a outra remove o componente do sistema.
+        list.Add(new AdvancedOptimization
+        {
+            Id = "recall",
+            Icon = "📸",
+            Title = Loc.S("AdvOpt_RecallTitle"),
+            Category = "Privacidade",
+            Warning = Loc.S("AdvOpt_RecallWarning"),
+            Description = Loc.S("AdvOpt_RecallDesc"),
+            // Só existe a partir do Windows 11 24H2 (build 26100).
+            IsAvailableAsync = () => Task.FromResult(Environment.OSVersion.Version.Build >= 26100),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.LocalMachine, WindowsAiPolicy, "DisableAIDataAnalysis") == 1),
+            ApplyAsync = () =>
+            {
+                SetDword("recall", RegistryHive.LocalMachine, WindowsAiPolicy, "DisableAIDataAnalysis", 1);
+                SetDword("recall", RegistryHive.CurrentUser, WindowsAiPolicy, "DisableAIDataAnalysis", 1);
+                SetDword("recall", RegistryHive.LocalMachine, WindowsAiPolicy, "AllowRecallEnablement", 0);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "advertising-id",
+            Icon = "🎯",
+            Title = Loc.S("AdvOpt_AdvertisingIdTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_AdvertisingIdDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled") == 0),
+            ApplyAsync = () =>
+            {
+                SetDword("advertising-id", RegistryHive.CurrentUser,
+                    @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled", 0, fallbackOldValue: 1);
+                SetDword("advertising-id", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo", "DisabledByGroupPolicy", 1);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "tailored-experiences",
+            Icon = "🧩",
+            Title = Loc.S("AdvOpt_TailoredTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_TailoredDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Privacy", "TailoredExperiencesWithDiagnosticDataEnabled") == 0),
+            ApplyAsync = () =>
+            {
+                SetDword("tailored-experiences", RegistryHive.CurrentUser,
+                    @"Software\Microsoft\Windows\CurrentVersion\Privacy", "TailoredExperiencesWithDiagnosticDataEnabled", 0, fallbackOldValue: 1);
+                SetDword("tailored-experiences", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\CloudContent", "DisableTailoredExperiencesWithDiagnosticData", 1);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "diagtrack-service",
+            Icon = "📶",
+            Title = Loc.S("AdvOpt_DiagTrackTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_DiagTrackDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(
+                Loc.S("AdvOpt_AffectedServices") + " DiagTrack, dmwappushservice."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("DiagTrack")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("DiagTrack") == 4),
+            ApplyAsync = async () =>
+            {
+                await DisableServiceAsync("diagtrack-service", "DiagTrack", defaultStartType: 2);
+                if (ServiceExists("dmwappushservice"))
+                    await DisableServiceAsync("diagtrack-service", "dmwappushservice", defaultStartType: 3);
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "start-web-search",
+            Icon = "🔎",
+            Title = Loc.S("AdvOpt_WebSearchTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_WebSearchDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\Windows Search", "DisableWebSearch") == 1),
+            ApplyAsync = () =>
+            {
+                SetDword("start-web-search", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\Windows Search", "DisableWebSearch", 1);
+                SetDword("start-web-search", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\Windows Search", "ConnectedSearchUseWeb", 0);
+                SetDword("start-web-search", RegistryHive.CurrentUser,
+                    @"Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0, fallbackOldValue: 1);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "lockscreen-ads",
+            Icon = "🖼️",
+            Title = Loc.S("AdvOpt_LockScreenAdsTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_LockScreenAdsDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser,
+                    @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager", "RotatingLockScreenOverlayEnabled") == 0),
+            ApplyAsync = () =>
+            {
+                const string cdm = @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "RotatingLockScreenOverlayEnabled", 0, fallbackOldValue: 1);
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "SubscribedContent-338387Enabled", 0, fallbackOldValue: 1);
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "SubscribedContent-310093Enabled", 0, fallbackOldValue: 1);
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "SubscribedContent-338393Enabled", 0, fallbackOldValue: 1);
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "SubscribedContent-353694Enabled", 0, fallbackOldValue: 1);
+                SetDword("lockscreen-ads", RegistryHive.CurrentUser, cdm, "SubscribedContent-353696Enabled", 0, fallbackOldValue: 1);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "feedback-requests",
+            Icon = "💬",
+            Title = Loc.S("AdvOpt_FeedbackTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_FeedbackDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser, @"Software\Microsoft\Siuf\Rules", "NumberOfSIUFInPeriod") == 0),
+            ApplyAsync = () =>
+            {
+                SetDword("feedback-requests", RegistryHive.CurrentUser, @"Software\Microsoft\Siuf\Rules", "NumberOfSIUFInPeriod", 0);
+                SetDword("feedback-requests", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\DataCollection", "DoNotShowFeedbackNotifications", 1);
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "activity-history",
+            Icon = "🕒",
+            Title = Loc.S("AdvOpt_ActivityHistoryTitle"),
+            Category = "Privacidade",
+            Description = Loc.S("AdvOpt_ActivityHistoryDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System", "PublishUserActivities") == 0),
+            ApplyAsync = () =>
+            {
+                const string system = @"SOFTWARE\Policies\Microsoft\Windows\System";
+                SetDword("activity-history", RegistryHive.LocalMachine, system, "PublishUserActivities", 0, fallbackOldValue: 1);
+                SetDword("activity-history", RegistryHive.LocalMachine, system, "UploadUserActivities", 0, fallbackOldValue: 1);
+                SetDword("activity-history", RegistryHive.LocalMachine, system, "EnableActivityFeed", 0, fallbackOldValue: 1);
+                return Task.CompletedTask;
+            },
+        });
+
         // ---------- DESEMPENHO ----------
 
         list.Add(new AdvancedOptimization
@@ -328,6 +493,112 @@ public class AdvancedOptimizationService
             IsAvailableAsync = () => Task.FromResult(ServiceExists("SysMain")),
             IsAppliedAsync = () => Task.FromResult(GetServiceStartType("SysMain") == 4),
             ApplyAsync = async () => await DisableServiceAsync("sysmain", "SysMain", defaultStartType: 2), // Automático é o padrão de fábrica
+        });
+
+        // Serviços que quase nenhum PC doméstico usa. Cada um diz exatamente o que desliga e o que
+        // deixa de funcionar — desativar às cegas é o que transforma "otimizar" em suporte técnico.
+        list.Add(new AdvancedOptimization
+        {
+            Id = "print-spooler",
+            Icon = "🖨️",
+            Title = Loc.S("AdvOpt_SpoolerTitle"),
+            Category = "Desempenho",
+            Warning = Loc.S("AdvOpt_SpoolerWarning"),
+            Description = Loc.S("AdvOpt_SpoolerDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " Spooler."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("Spooler")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("Spooler") == 4),
+            ApplyAsync = async () => await DisableServiceAsync("print-spooler", "Spooler", defaultStartType: 2),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "remote-registry",
+            Icon = "🔐",
+            Title = Loc.S("AdvOpt_RemoteRegistryTitle"),
+            Category = "Desempenho",
+            Description = Loc.S("AdvOpt_RemoteRegistryDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " RemoteRegistry."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("RemoteRegistry")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("RemoteRegistry") == 4),
+            ApplyAsync = async () => await DisableServiceAsync("remote-registry", "RemoteRegistry"),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "remote-access",
+            Icon = "🌐",
+            Title = Loc.S("AdvOpt_RemoteAccessTitle"),
+            Category = "Desempenho",
+            Description = Loc.S("AdvOpt_RemoteAccessDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(
+                Loc.S("AdvOpt_AffectedServices") + " RemoteAccess, SessionEnv, TermService."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("RemoteAccess")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("RemoteAccess") == 4),
+            ApplyAsync = async () =>
+            {
+                await DisableServiceAsync("remote-access", "RemoteAccess");
+                foreach (var svc in new[] { "SessionEnv", "TermService" })
+                    if (ServiceExists(svc)) await DisableServiceAsync("remote-access", svc, defaultStartType: 3);
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "retail-demo",
+            Icon = "🏬",
+            Title = Loc.S("AdvOpt_RetailDemoTitle"),
+            Category = "Desempenho",
+            Description = Loc.S("AdvOpt_RetailDemoDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " RetailDemo."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("RetailDemo")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("RetailDemo") == 4),
+            ApplyAsync = async () => await DisableServiceAsync("retail-demo", "RetailDemo"),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "map-broker",
+            Icon = "🗺️",
+            Title = Loc.S("AdvOpt_MapBrokerTitle"),
+            Category = "Desempenho",
+            Description = Loc.S("AdvOpt_MapBrokerDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " MapsBroker."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("MapsBroker")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("MapsBroker") == 4),
+            ApplyAsync = async () => await DisableServiceAsync("map-broker", "MapsBroker", defaultStartType: 2),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "biometrics",
+            Icon = "👆",
+            Title = Loc.S("AdvOpt_BiometricsTitle"),
+            Category = "Desempenho",
+            Warning = Loc.S("AdvOpt_BiometricsWarning"),
+            Description = Loc.S("AdvOpt_BiometricsDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " WbioSrvc."),
+            IsAvailableAsync = () => Task.FromResult(ServiceExists("WbioSrvc")),
+            IsAppliedAsync = () => Task.FromResult(GetServiceStartType("WbioSrvc") == 4),
+            ApplyAsync = async () => await DisableServiceAsync("biometrics", "WbioSrvc"),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "delivery-optimization",
+            Icon = "📦",
+            Title = Loc.S("AdvOpt_DeliveryOptTitle"),
+            Category = "Desempenho",
+            Description = Loc.S("AdvOpt_DeliveryOptDesc"),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode") == 0),
+            ApplyAsync = () =>
+            {
+                SetDword("delivery-optimization", RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode", 0);
+                return Task.CompletedTask;
+            },
         });
 
         list.Add(new AdvancedOptimization
@@ -589,6 +860,82 @@ public class AdvancedOptimizationService
                 break;
             case "hibernation":
                 await RunAsync("powercfg", "/hibernate on");
+                break;
+
+            // ---- Privacidade (novas) ----
+            case "recall":
+                DeleteValue(RegistryHive.LocalMachine, WindowsAiPolicy, "DisableAIDataAnalysis");
+                DeleteValue(RegistryHive.CurrentUser, WindowsAiPolicy, "DisableAIDataAnalysis");
+                DeleteValue(RegistryHive.LocalMachine, WindowsAiPolicy, "AllowRecallEnablement");
+                break;
+            case "advertising-id":
+                SetDwordRaw(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled", 1);
+                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo", "DisabledByGroupPolicy");
+                break;
+            case "tailored-experiences":
+                SetDwordRaw(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Privacy",
+                    "TailoredExperiencesWithDiagnosticDataEnabled", 1);
+                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\CloudContent",
+                    "DisableTailoredExperiencesWithDiagnosticData");
+                break;
+            case "diagtrack-service":
+                await RestoreServiceDefaultAsync("DiagTrack", 2);
+                await RestoreServiceDefaultAsync("dmwappushservice", 3);
+                break;
+            case "start-web-search":
+                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\Windows Search", "DisableWebSearch");
+                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\Windows Search", "ConnectedSearchUseWeb");
+                SetDwordRaw(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 1);
+                break;
+            case "lockscreen-ads":
+                {
+                    const string cdm = @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
+                    foreach (var v in new[]
+                    {
+                        "RotatingLockScreenOverlayEnabled", "SubscribedContent-338387Enabled",
+                        "SubscribedContent-310093Enabled", "SubscribedContent-338393Enabled",
+                        "SubscribedContent-353694Enabled", "SubscribedContent-353696Enabled",
+                    })
+                        SetDwordRaw(RegistryHive.CurrentUser, cdm, v, 1);
+                }
+                break;
+            case "feedback-requests":
+                DeleteValue(RegistryHive.CurrentUser, @"Software\Microsoft\Siuf\Rules", "NumberOfSIUFInPeriod");
+                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+                    "DoNotShowFeedbackNotifications");
+                break;
+            case "activity-history":
+                {
+                    const string system = @"SOFTWARE\Policies\Microsoft\Windows\System";
+                    foreach (var v in new[] { "PublishUserActivities", "UploadUserActivities", "EnableActivityFeed" })
+                        SetDwordRaw(RegistryHive.LocalMachine, system, v, 1);
+                }
+                break;
+
+            // ---- Serviços (novos) ----
+            case "print-spooler":
+                await RestoreServiceDefaultAsync("Spooler", 2);
+                break;
+            case "remote-registry":
+                await RestoreServiceDefaultAsync("RemoteRegistry", 3);
+                break;
+            case "remote-access":
+                await RestoreServiceDefaultAsync("RemoteAccess", 3);
+                await RestoreServiceDefaultAsync("SessionEnv", 3);
+                await RestoreServiceDefaultAsync("TermService", 3);
+                break;
+            case "retail-demo":
+                await RestoreServiceDefaultAsync("RetailDemo", 3);
+                break;
+            case "map-broker":
+                await RestoreServiceDefaultAsync("MapsBroker", 2);
+                break;
+            case "biometrics":
+                await RestoreServiceDefaultAsync("WbioSrvc", 3);
+                break;
+            case "delivery-optimization":
+                DeleteValue(RegistryHive.LocalMachine,
+                    @"SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode");
                 break;
             case "hw-gpu-scheduling":
             case "core-parking":
