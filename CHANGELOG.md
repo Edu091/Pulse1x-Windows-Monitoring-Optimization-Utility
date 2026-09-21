@@ -1,5 +1,9 @@
 ﻿# Histórico de versões
 
+## 1.8.1 — 20/09/2026
+
+- As **caixas de filtro da biblioteca** (plataforma, ordenação e categoria) seguiam o tema claro do Windows: fundo branco com texto claro, o que as deixava ilegíveis e destoando do resto do GameHub. Agora usam a mesma superfície de vidro dos demais botões, com a lista suspensa escura e o item selecionado destacado.
+
 ## 1.8.0 — 20/09/2026
 
 - **GameHub remasterizado:** ações mais limpas, bordas arredondadas com recorte real das imagens, capas estáveis e destaque widescreen mais nítido. Os cartões não crescem sobre os vizinhos ao selecionar.

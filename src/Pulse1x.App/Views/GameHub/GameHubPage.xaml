@@ -74,6 +74,129 @@
             Botão segmentado: três opções lado a lado dentro de uma mesma caixa, onde só a ativa
             recebe preenchimento. Usado para escolher o que a faixa do topo mostra.
         -->
+        <!--
+            Caixa de seleção dos filtros. O ComboBox padrão chega claro e com moldura grossa, o que
+            destoava do hub inteiro — aqui ele vira a mesma superfície de vidro dos outros botões,
+            com a lista suspensa escura. Reescrito por inteiro porque só trocar as cores do estilo
+            herdado não alcança o popup nem a seta.
+        -->
+        <Style x:Key="HubComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBd" Background="Transparent" CornerRadius="6"
+                                Padding="{TemplateBinding Padding}" Margin="4,2">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBd" Property="Background" Value="#1FFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBd" Property="Background" Value="#2EFFFFFF" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBd" Property="Background" Value="#2EFFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HubCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource HubText}" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource HubComboItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd" CornerRadius="8" BorderThickness="1" Padding="12,0">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#1FFFFFFF" Offset="0" />
+                                                    <GradientStop Color="#0FFFFFFF" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <Border.BorderBrush>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#2BFFFFFF" Offset="0" />
+                                                    <GradientStop Color="#0AFFFFFF" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Border.BorderBrush>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter Grid.Column="0" x:Name="Host" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="9" VerticalAlignment="Center" Margin="10,1,0,0"
+                                                           Foreground="{StaticResource HubTextDim}" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background">
+                                                    <Setter.Value>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Color="#33FFFFFF" Offset="0" />
+                                                            <GradientStop Color="#1AFFFFFF" Offset="1" />
+                                                        </LinearGradientBrush>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+
+                                <ContentPresenter
+                                    Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource TemplatedParent}}"
+                                    ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource TemplatedParent}}"
+                                    TextElement.Foreground="{StaticResource HubText}"
+                                    VerticalAlignment="Center" />
+                            </ToggleButton>
+
+                            <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   PopupAnimation="Fade" Focusable="False" VerticalOffset="4">
+                                <Border Background="#F2131418" CornerRadius="10" BorderThickness="1"
+                                        BorderBrush="#26FFFFFF"
+                                        MinWidth="{Binding ActualWidth, ElementName=Toggle}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Color="Black" />
+                                    </Border.Effect>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,4">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="HubSegment" TargetType="RadioButton">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
@@ -754,13 +877,16 @@
                                HorizontalAlignment="Left" Margin="12,3,0,0" />
                     </StackPanel>
                     <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center">
-                        <ComboBox Width="144" Margin="8,0,0,0" ItemsSource="{Binding LauncherFilters}"
+                        <ComboBox Style="{StaticResource HubCombo}" Width="144" Margin="8,0,0,0"
+                                  ItemsSource="{Binding LauncherFilters}"
                                   SelectedItem="{Binding SelectedLauncherFilter}" DisplayMemberPath="Label"
                                   ToolTip="{Binding [GH_AllPlatforms], Source={x:Static loc:Loc.Instance}}" />
-                        <ComboBox Width="136" Margin="8,0,0,0" ItemsSource="{Binding SortOptions}"
+                        <ComboBox Style="{StaticResource HubCombo}" Width="136" Margin="8,0,0,0"
+                                  ItemsSource="{Binding SortOptions}"
                                   SelectedItem="{Binding SelectedSort}" DisplayMemberPath="Label"
                                   ToolTip="{Binding [GH_SortName], Source={x:Static loc:Loc.Instance}}" />
-                        <ComboBox Width="150" Margin="8,0,0,0" ItemsSource="{Binding CategoryFilters}"
+                        <ComboBox Style="{StaticResource HubCombo}" Width="150" Margin="8,0,0,0"
+                                  ItemsSource="{Binding CategoryFilters}"
                                   SelectedItem="{Binding SelectedCategory}"
                                   ToolTip="{Binding [GH_AllCategories], Source={x:Static loc:Loc.Instance}}" />
                     </WrapPanel>
