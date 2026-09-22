@@ -12,6 +12,7 @@ using Pulse1x.App.Models.GameHub;
 using Pulse1x.App.Services;
 using Pulse1x.App.Services.GameHub;
 using Pulse1x.App.ViewModels.GameHub;
+using Pulse1x.App.Views;
 using Pulse1x.App.Views.GameHub;
 
 namespace Pulse1x.Hub.Tests;
@@ -147,6 +148,19 @@ internal static class HubVisualTests
             });
         }
         page.DetachGamepad();
+
+        var inputLab = new InputLabPage(gamepad);
+        window.Content = inputLab;
+        foreach (var size in new[] { (1180, 780), (900, 600) })
+        {
+            suite.Run($"UI: Input Lab renders at {size.Item1}x{size.Item2}", () =>
+            {
+                window.Width = size.Item1; window.Height = size.Item2;
+                Pump(300);
+                SaveImage(inputLab, Path.Combine(artifacts, $"input-lab-{size.Item1}x{size.Item2}.png"));
+                TestSuite.Equal(true, inputLab.ActualWidth <= window.ActualWidth);
+            });
+        }
         window.Close();
         application.Shutdown();
     }

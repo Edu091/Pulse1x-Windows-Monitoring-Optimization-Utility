@@ -165,11 +165,13 @@ public partial class App : Application
 
         // Categoria Latência: leitura de rede/Wi-Fi (somente leitura) + otimizações reversíveis,
         // com log de reversão próprio (network-changes.json) para "Desfazer Todas as Alterações".
+        var gamepadService = new GamepadService();
         var networkLatencyService = new NetworkLatencyService();
         var networkOptimizationService = new NetworkOptimizationService(new OptimizationChangeLog("network-changes.json"));
         var serverStatusService = new ServerStatusService();
         var latencyViewModel = new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService, serverStatusService);
         var latencyPage = new LatencyPage(latencyViewModel);
+        var inputLabPage = new InputLabPage(gamepadService);
 
         // Categoria Utilidade: Central Pós-Formatação — instala apps/componentes de fonte oficial
         // (winget) e aplica configurações recomendadas, com detecção inteligente do hardware.
@@ -200,7 +202,6 @@ public partial class App : Application
             powerPlanService, oemVendorService, audioService, displayService, timerResolutionService,
             processControlService, memoryOptimizationService, networkOptimizationService, snapshotService);
 
-        var gamepadService = new GamepadService();
         var hubStatusService = new HubStatusService(_hardwareMonitorService, systemMetricsService);
         var playMetricsService = new PlayMetricsService();
         var fpsMonitorService = new FpsMonitorService();
@@ -264,7 +265,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
+            latencyPage, inputLabPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {

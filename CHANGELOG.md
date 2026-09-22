@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.10.0 — 22/09/2026
+
+- A aba **Latência** agora começa pelo **Input Lab**, uma nova tela que detecta teclado e gamepads Xbox, PlayStation ou genéricos e acompanha os eventos de entrada em tempo real.
+- O Input Lab mede **polling estimado, intervalo médio, último intervalo e jitter**, mostra as últimas 64 amostras em um gráfico e permite zerar a leitura sem sair da tela. A própria interface esclarece que a taxa é a observada pelo Windows, não a frequência USB declarada pelo fabricante.
+- Ao medir um gamepad, a leitura sobe temporariamente de 16 ms para 1 ms e volta ao modo econômico assim que a tela é fechada. Teclado e controle mantêm históricos independentes, sem misturar resultados.
+- As artes de fundo do **GameHub** ganharam um desfoque leve, preservando as capas da biblioteca sem efeito. Ao entrar no hub, o banner começa um pouco mais difuso e encontra o foco suavemente, respeitando as preferências globais de blur e animação.
+
 ## 1.9.0 — 20/09/2026
 
 - A seção **Personalização do Windows** foi removida do aplicativo. Ela exibia apenas um aviso de "em breve" desde a 1.6.2, e a navegação agora vai direto de Utilidade para Configurações.

@@ -10,7 +10,8 @@ This STA console harness references the real app, reports PASS/FAIL and returns 
 nonzero exit code on failure. `dotnet test` does not execute this console harness.
 Tests cover two-press activation, timing boundaries, focus routing and modal
 restoration, Xbox/PlayStation/generic action equivalence, reconnect/resume with
-held buttons, virtual input echoes, stick/trigger hysteresis and SDL native loading.
+held buttons, virtual input echoes, stick/trigger hysteresis, SDL native loading,
+and the Input Lab polling/interval/jitter calculations.
 
 For the optional WPF integration checks using locally cached game artwork:
 
@@ -23,7 +24,8 @@ actual page without running the app startup, redirects fixture persistence to
 `artifacts/hub-verification`, disables scanning/online artwork/launcher startup,
 and replaces the launch command with a counter. Real games are never launched.
 It checks selection borders, both card launch paths, PlayStation hints and the
-profile modal, and writes nonblank render checks at 1600x900, 1180x780 and 900x600.
+profile modal, and writes nonblank GameHub render checks at 1600x900, 1180x780
+and 900x600. It also renders the Input Lab at 1180x780 and 900x600.
 
 Physical USB/Bluetooth controller testing remains separate from these simulated
 input checks. Hidden controllers exposed only as virtual Xbox devices cannot be

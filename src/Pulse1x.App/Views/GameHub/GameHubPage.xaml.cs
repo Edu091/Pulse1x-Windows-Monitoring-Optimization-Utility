@@ -549,6 +549,20 @@ public partial class GameHubPage : Page
 
         HeroContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
 
+        // A arte de fundo começa um pouco mais difusa e encontra o foco suavemente. Se o usuário
+        // zerou a intensidade global de blur, preservamos essa escolha e não criamos o efeito.
+        double targetBlur = HeroBlur.Radius;
+        if (targetBlur > 0.1)
+        {
+            HeroBlur.BeginAnimation(System.Windows.Media.Effects.BlurEffect.RadiusProperty,
+                new DoubleAnimation(targetBlur + 10, targetBlur,
+                    AnimationSettings.Scale(new Duration(TimeSpan.FromMilliseconds(650))))
+                {
+                    EasingFunction = ease,
+                    FillBehavior = FillBehavior.Stop,
+                });
+        }
+
         var slide = new TranslateTransform();
         LibraryList.RenderTransform = slide;
         slide.BeginAnimation(TranslateTransform.YProperty,

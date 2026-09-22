@@ -28,6 +28,10 @@ public record GamepadSnapshot(
     bool View, bool Start,
     float LeftStickX = 0, float LeftStickY = 0);
 
+/// <summary>Alteração observada no estado do controle, usada por ferramentas de diagnóstico.</summary>
+public sealed record GamepadInputSample(
+    double TimestampMilliseconds, ControllerIdentity Controller, GamepadSnapshot Snapshot);
+
 /// <summary>
 /// Polls only while the hub is active. Construct, activate and dispose on the WPF dispatcher.
 /// All events and property notifications are raised on that dispatcher.
@@ -49,6 +53,7 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
     public event Action<GamepadAction>? Action;
     public event Action<bool>? ConnectionChanged;
     public event Action<ControllerIdentity?>? ActiveControllerChanged;
+    public event Action<GamepadInputSample>? InputSampled;
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ControllerIdentity? ActiveController { get; private set; }
@@ -79,6 +84,16 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
         else _timer.Stop();
     }
 
+    /// <summary>
+    /// Aumenta temporariamente a frequência de leitura para ferramentas de medição. O modo normal
+    /// continua em 16 ms para não gastar CPU enquanto o usuário apenas navega pelo aplicativo.
+    /// </summary>
+    public void SetMeasurementMode(bool enabled)
+    {
+        if (_disposed) return;
+        _timer.Interval = TimeSpan.FromMilliseconds(enabled ? 1 : 16);
+    }
+
     private void OnTick(object? sender, EventArgs e) => Tick();
 
     internal void Tick()
@@ -107,6 +122,8 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
             // Capture this before callbacks: actions can suspend the hub or open a modal dispatcher.
             var previous = _previous;
             _previous = snapshot;
+            if (previous is not null && snapshot != previous)
+                InputSampled?.Invoke(new(_milliseconds(), reading.Identity, snapshot));
             var direction = ResolveDirection(snapshot);
             foreach (var candidate in Enum.GetValues<GamepadDirection>())
             {

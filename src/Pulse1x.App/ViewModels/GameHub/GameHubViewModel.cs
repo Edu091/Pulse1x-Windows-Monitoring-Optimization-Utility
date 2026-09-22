@@ -1178,7 +1178,7 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         SelectedGame?.Entry is { } entry &&
         !string.IsNullOrEmpty(entry.HeroPath) &&
         !string.Equals(entry.HeroPath, entry.CoverPath, StringComparison.OrdinalIgnoreCase)
-            ? 0 : 18;
+            ? 12 : 24;
 
     public void Dispose()
     {

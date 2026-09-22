@@ -18,6 +18,7 @@ public partial class MainWindow : FluentWindow
     private readonly OptimizationPage _optimizationPage;
     private readonly HealthPage _healthPage;
     private readonly LatencyPage _latencyPage;
+    private readonly InputLabPage _inputLabPage;
     private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
     private readonly SettingsPage _settingsPage;
@@ -41,6 +42,7 @@ public partial class MainWindow : FluentWindow
         OptimizationPage optimizationPage,
         HealthPage healthPage,
         LatencyPage latencyPage,
+        InputLabPage inputLabPage,
         Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
         SettingsPage settingsPage,
@@ -55,11 +57,15 @@ public partial class MainWindow : FluentWindow
         _optimizationPage = optimizationPage;
         _healthPage = healthPage;
         _latencyPage = latencyPage;
+        _inputLabPage = inputLabPage;
         _gameHubPage = gameHubPage;
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
         _aboutPage = aboutPage;
         _donatePage = donatePage;
+
+        _latencyPage.InputLabRequested += NavigateToInputLab;
+        _inputLabPage.BackRequested += NavigateToLatency;
 
         _navButtons = new Control[]
         {
@@ -132,7 +138,7 @@ public partial class MainWindow : FluentWindow
 
     private void OnGlobalGamepadNavigate(GamepadDirection direction)
     {
-        if (_inGameHub) return;   // a página do hub trata a entrada
+        if (_inGameHub || ReferenceEquals(ContentFrame.Content, _inputLabPage)) return;
 
         // Vale também para os diálogos: o foco é global, então a navegação segue a janela ativa.
         GamepadFocusService.EnsureFocusInActiveWindow();
@@ -141,7 +147,7 @@ public partial class MainWindow : FluentWindow
 
     private void OnGlobalGamepadAction(GamepadAction action)
     {
-        if (_inGameHub) return;
+        if (_inGameHub || ReferenceEquals(ContentFrame.Content, _inputLabPage)) return;
 
         // Com um diálogo aberto, A aciona o que está em foco e B fecha a janela.
         if (GamepadFocusService.IsDialogActive())
@@ -196,6 +202,12 @@ public partial class MainWindow : FluentWindow
     {
         if (NavPanel.Visibility != Visibility.Visible) return;
 
+        if (ReferenceEquals(ContentFrame.Content, _inputLabPage))
+        {
+            LatencyButton.Focus();
+            return;
+        }
+
         var pages = new System.Windows.Controls.Page[]
         {
             _dashboardPage, _optimizationPage, _healthPage, _latencyPage,
@@ -224,6 +236,7 @@ public partial class MainWindow : FluentWindow
         };
 
         int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
+        if (ReferenceEquals(ContentFrame.Content, _inputLabPage)) current = 3;
         if (current < 0) current = 0;
 
         int next = (current + delta + pages.Length) % pages.Length;
@@ -351,6 +364,14 @@ public partial class MainWindow : FluentWindow
     private void HealthButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_healthPage, HealthButton);
 
     private void LatencyButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_latencyPage, LatencyButton);
+
+    public void NavigateToInputLab()
+    {
+        ContentFrame.Navigate(_inputLabPage);
+        SetActiveNav(LatencyButton);
+    }
+
+    public void NavigateToLatency() => NavigateTo(_latencyPage, LatencyButton);
 
     private void GameHubButton_Click(object sender, RoutedEventArgs e) => EnterGameHub();
 

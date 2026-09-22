@@ -87,6 +87,31 @@ internal static class ControllerTests
             TestSuite.Equal(true, trigger.Read(0.5f));
             TestSuite.Equal(false, trigger.Read(0.1f));
         });
+        suite.Run("Controller: measurement samples only report state changes", () =>
+        {
+            var backend = new FakeBackend();
+            long now = 0;
+            using var service = new GamepadService(backend, () => now);
+            var samples = new List<GamepadInputSample>();
+            service.InputSampled += samples.Add;
+            service.SetActive(true);
+
+            backend.Readings = new[] { Reading("x", ControllerFamily.Xbox, ControllerSelector.Neutral) };
+            service.Tick();
+            now = 4;
+            backend.Readings = new[] { Reading("x", ControllerFamily.Xbox,
+                ControllerSelector.Neutral with { LeftStickX = 0.7f }) };
+            service.Tick();
+            now = 8;
+            service.Tick();
+            now = 12;
+            backend.Readings = new[] { Reading("x", ControllerFamily.Xbox, ControllerSelector.Neutral) };
+            service.Tick();
+
+            TestSuite.Equal(2, samples.Count);
+            TestSuite.Equal(4d, samples[0].TimestampMilliseconds);
+            TestSuite.Equal(12d, samples[1].TimestampMilliseconds);
+        });
         suite.Run("Controller: SDL native library loads and enumerates", () =>
         {
             using var sdl = new SdlGamepadProvider();
