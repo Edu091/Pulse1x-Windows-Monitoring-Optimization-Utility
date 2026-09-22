@@ -42,6 +42,7 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
     private readonly IControllerBackend _backend;
     private readonly ControllerSelector _selector = new();
     private readonly Func<long> _milliseconds;
+    private readonly Func<double> _sampleMilliseconds;
     private GamepadSnapshot? _previous;
     private readonly Dictionary<GamepadDirection, long> _heldSince = new();
     private readonly Dictionary<GamepadDirection, long> _lastRepeat = new();
@@ -63,12 +64,16 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
     public string? ActiveProviderName => ActiveController?.Provider;
     public bool IsConnected => ActiveController is not null;
 
-    public GamepadService() : this(new FallbackControllerBackend(), () => Environment.TickCount64) { }
+    public GamepadService() : this(
+        new FallbackControllerBackend(),
+        () => Environment.TickCount64,
+        () => Stopwatch.GetTimestamp() * 1000d / Stopwatch.Frequency) { }
 
-    internal GamepadService(IControllerBackend backend, Func<long> milliseconds)
+    internal GamepadService(IControllerBackend backend, Func<long> milliseconds, Func<double>? sampleMilliseconds = null)
     {
         _backend = backend;
         _milliseconds = milliseconds;
+        _sampleMilliseconds = sampleMilliseconds ?? (() => milliseconds());
         _timer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(16) };
         _timer.Tick += OnTick;
     }
@@ -123,7 +128,7 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
             var previous = _previous;
             _previous = snapshot;
             if (previous is not null && snapshot != previous)
-                InputSampled?.Invoke(new(_milliseconds(), reading.Identity, snapshot));
+                InputSampled?.Invoke(new(_sampleMilliseconds(), reading.Identity, snapshot));
             var direction = ResolveDirection(snapshot);
             foreach (var candidate in Enum.GetValues<GamepadDirection>())
             {

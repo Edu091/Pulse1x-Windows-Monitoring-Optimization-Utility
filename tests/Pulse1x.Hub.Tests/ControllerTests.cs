@@ -112,6 +112,25 @@ internal static class ControllerTests
             TestSuite.Equal(4d, samples[0].TimestampMilliseconds);
             TestSuite.Equal(12d, samples[1].TimestampMilliseconds);
         });
+        suite.Run("Controller: measurement preserves sub-millisecond timestamps", () =>
+        {
+            var backend = new FakeBackend();
+            double sampleTime = 0;
+            using var service = new GamepadService(backend, () => 0, () => sampleTime);
+            var samples = new List<GamepadInputSample>();
+            service.InputSampled += samples.Add;
+            service.SetActive(true);
+
+            backend.Readings = new[] { Reading("x", ControllerFamily.Xbox, ControllerSelector.Neutral) };
+            service.Tick();
+            sampleTime = 0.125;
+            backend.Readings = new[] { Reading("x", ControllerFamily.Xbox,
+                ControllerSelector.Neutral with { LeftStickX = 0.7f }) };
+            service.Tick();
+
+            TestSuite.Equal(1, samples.Count);
+            TestSuite.Equal(0.125d, samples[0].TimestampMilliseconds);
+        });
         suite.Run("Controller: SDL native library loads and enumerates", () =>
         {
             using var sdl = new SdlGamepadProvider();

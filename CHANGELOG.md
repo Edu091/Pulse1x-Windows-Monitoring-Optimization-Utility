@@ -1,5 +1,13 @@
 ﻿# Histórico de versões
 
+## 1.11.0 — 22/09/2026
+
+- O **Input Lab** agora mede o mouse por Raw Input, sem a compactação do `WM_MOUSEMOVE`, e sustenta leituras de vários kHz. A suíte valida explicitamente uma sequência de **8.000 Hz / 0,125 ms**.
+- A medição de teclado foi corrigida para aceitar intervalos abaixo de 0,2 ms e passou a distinguir a **taxa real de eventos** da frequência USB nominal. O Windows entrega transições de tecla ao aplicativo, não os polls vazios de um teclado de 8 kHz, evitando exibir um número artificial.
+- Novo **teclado virtual completo**: cada tecla acende ao pressionar o teclado físico, incluindo Shift, Ctrl e Alt dos dois lados, e volta ao estado normal ao soltar.
+- O gamepad passou a usar relógio de alta resolução nos cálculos de intervalo e jitter. A tela mantém históricos separados para teclado, mouse e controle, com rótulos e explicações próprios para cada método.
+- Corrigidos os textos escuros no cartão do Input Lab e fixado o fundo temático da nova tela, mantendo letras e métricas legíveis no modo escuro.
+
 ## 1.10.0 — 22/09/2026
 
 - A aba **Latência** agora começa pelo **Input Lab**, uma nova tela que detecta teclado e gamepads Xbox, PlayStation ou genéricos e acompanha os eventos de entrada em tempo real.

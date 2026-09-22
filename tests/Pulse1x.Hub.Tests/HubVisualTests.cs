@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -151,6 +152,36 @@ internal static class HubVisualTests
 
         var inputLab = new InputLabPage(gamepad);
         window.Content = inputLab;
+        Pump(100);
+        suite.Run("UI: Input Lab virtual keyboard follows raw key transitions", () =>
+        {
+            var key = Descendants<Border>(inputLab).Single(border => border.Tag is ushort value && value == 0x41);
+            var accent = (SolidColorBrush)inputLab.FindResource("BrandAccentBrush");
+            Call(inputLab, "OnRawInput", new List<RawInputSample>
+            {
+                new(RawInputKind.Keyboard, 1, "Test keyboard", VirtualKey: 0x41),
+            });
+            TestSuite.Equal(accent.Color, ((SolidColorBrush)key.Background).Color);
+            Call(inputLab, "OnRawInput", new List<RawInputSample>
+            {
+                new(RawInputKind.Keyboard, 2, "Test keyboard", VirtualKey: 0x41, IsKeyUp: true),
+            });
+            TestSuite.Equal(false, ((SolidColorBrush)key.Background).Color == accent.Color);
+        });
+        suite.Run("UI: Input Lab mouse preserves an 8 kHz raw event stream", () =>
+        {
+            var mouseTab = (ToggleButton)inputLab.FindName("MouseTab");
+            Call(inputLab, "MouseTab_Click", mouseTab, new RoutedEventArgs());
+            Call(inputLab, "OnRawInput", new List<RawInputSample>
+            {
+                new(RawInputKind.Mouse, 100, "Test mouse", DeltaX: 1),
+                new(RawInputKind.Mouse, 100.125, "Test mouse", DeltaX: 1),
+                new(RawInputKind.Mouse, 100.250, "Test mouse", DeltaX: 1),
+            });
+            Call(inputLab, "Refresh");
+            TestSuite.Equal("8000", ((TextBlock)inputLab.FindName("RateText")).Text);
+            TestSuite.Equal("0.125", ((TextBlock)inputLab.FindName("AverageText")).Text.Replace(',', '.'));
+        });
         foreach (var size in new[] { (1180, 780), (900, 600) })
         {
             suite.Run($"UI: Input Lab renders at {size.Item1}x{size.Item2}", () =>

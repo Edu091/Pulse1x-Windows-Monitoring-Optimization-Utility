@@ -5,6 +5,8 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     Title="Input Lab"
+    Background="{DynamicResource ApplicationBackgroundBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Focusable="True"
     PreviewKeyDown="Page_PreviewKeyDown"
     PreviewKeyUp="Page_PreviewKeyUp">
@@ -47,6 +49,15 @@
             <Setter Property="Margin" Value="4" />
             <Setter Property="MinHeight" Value="92" />
         </Style>
+
+        <Style x:Key="VirtualKey" TargetType="Border">
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Padding" Value="3" />
+        </Style>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
@@ -83,6 +94,12 @@
                             <TextBlock Text="{Binding [InputLab_Keyboard], Source={x:Static loc:Loc.Instance}}" />
                         </StackPanel>
                     </ToggleButton>
+                    <ToggleButton x:Name="MouseTab" Style="{StaticResource DeviceTab}" Click="MouseTab_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="CursorClick24" FontSize="16" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding [InputLab_Mouse], Source={x:Static loc:Loc.Instance}}" />
+                        </StackPanel>
+                    </ToggleButton>
                     <ToggleButton x:Name="GamepadTab" Style="{StaticResource DeviceTab}" Click="GamepadTab_Click">
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Games24" FontSize="16" Margin="0,0,8,0" />
@@ -103,6 +120,8 @@
                     <Grid>
                         <ui:SymbolIcon x:Name="KeyboardDeviceIcon" Symbol="Keyboard24" FontSize="22"
                                        Foreground="{DynamicResource BrandAccentBrush}" />
+                        <ui:SymbolIcon x:Name="MouseDeviceIcon" Symbol="CursorClick24" FontSize="22"
+                                       Foreground="{DynamicResource BrandAccentBrush}" Visibility="Collapsed" />
                         <ui:SymbolIcon x:Name="GamepadDeviceIcon" Symbol="Games24" FontSize="22"
                                        Foreground="{DynamicResource BrandAccentBrush}" Visibility="Collapsed" />
                     </Grid>
@@ -120,7 +139,7 @@
             <UniformGrid Columns="4" Margin="0,0,0,14">
                 <Border Style="{StaticResource MetricCard}">
                     <StackPanel>
-                        <TextBlock Text="{Binding [InputLab_Rate], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.62" TextWrapping="Wrap" />
+                        <TextBlock x:Name="RateTitleText" FontSize="11" Opacity="0.62" TextWrapping="Wrap" />
                         <TextBlock x:Name="RateText" Text="--" FontSize="25" FontWeight="SemiBold" Margin="0,7,0,0" />
                         <TextBlock Text="Hz" FontSize="11" Opacity="0.55" />
                     </StackPanel>
@@ -147,6 +166,21 @@
                     </StackPanel>
                 </Border>
             </UniformGrid>
+
+            <Border x:Name="KeyboardVisualizer" CornerRadius="8" BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                    Padding="12,10" Margin="4,0,4,14">
+                <StackPanel>
+                    <Grid Margin="2,0,2,8">
+                        <TextBlock Text="{Binding [InputLab_VirtualKeyboard], Source={x:Static loc:Loc.Instance}}"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding [InputLab_VirtualKeyboardHint], Source={x:Static loc:Loc.Instance}}"
+                                   FontSize="11" Opacity="0.58" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel x:Name="KeyboardRows" />
+                </StackPanel>
+            </Border>
 
             <Border CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     Background="{DynamicResource ControlFillColorDefaultBrush}" Padding="16" Margin="4,0,4,14">
@@ -182,8 +216,7 @@
                                    FontSize="18" Margin="0,1,10,0" VerticalAlignment="Top" />
                     <StackPanel Grid.Column="1">
                         <TextBlock x:Name="InputHintText" TextWrapping="Wrap" FontSize="12.5" />
-                        <TextBlock Text="{Binding [InputLab_AccuracyNote], Source={x:Static loc:Loc.Instance}}"
-                                   TextWrapping="Wrap" FontSize="11" Opacity="0.58" Margin="0,5,0,0" />
+                        <TextBlock x:Name="AccuracyText" TextWrapping="Wrap" FontSize="11" Opacity="0.58" Margin="0,5,0,0" />
                     </StackPanel>
                 </Grid>
             </Border>

@@ -198,6 +198,7 @@
             <!-- Input Lab vem primeiro: mede a latencia da entrada antes das ferramentas de rede. -->
             <Button Click="InputLab_Click" Margin="6,0,6,16" Padding="0" BorderThickness="0"
                     Background="Transparent" HorizontalContentAlignment="Stretch" Cursor="Hand"
+                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                     FocusVisualStyle="{x:Null}">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
@@ -217,8 +218,10 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding [InputLab_Title], Source={x:Static loc:Loc.Instance}}"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                FontSize="16" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding [InputLab_EntryDescription], Source={x:Static loc:Loc.Instance}}"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                FontSize="12" Opacity="0.62" TextWrapping="Wrap" Margin="0,2,12,0" />
                                 </StackPanel>
                                 <ui:SymbolIcon Grid.Column="2" Symbol="ChevronRight24" FontSize="18"

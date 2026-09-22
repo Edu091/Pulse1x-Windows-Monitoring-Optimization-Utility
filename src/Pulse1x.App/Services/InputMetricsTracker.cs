@@ -17,8 +17,10 @@ public sealed record InputMetricsSnapshot(
 public sealed class InputMetricsTracker
 {
     private const double BurstTimeoutMilliseconds = 350;
-    private const double MinimumIntervalMilliseconds = 0.2;
-    private const int MaximumIntervals = 240;
+    // 8 kHz = 0,125 ms. O limite só elimina timestamps duplicados/ruído impossível, sem cortar
+    // dispositivos modernos de 2, 4 ou 8 kHz.
+    private const double MinimumIntervalMilliseconds = 0.025;
+    private const int MaximumIntervals = 512;
 
     private readonly Queue<double> _intervals = new();
     private double? _lastTimestamp;

@@ -34,6 +34,29 @@ internal static class InputMetricsTrackerTests
             TestSuite.Equal(250d, tracker.Snapshot.PollingRate);
         });
 
+        suite.Run("Input metrics: 8 kHz intervals are preserved", () =>
+        {
+            var tracker = new InputMetricsTracker();
+            for (int i = 0; i <= 64; i++) tracker.Record(i * 0.125);
+            var result = tracker.Snapshot;
+            TestSuite.Equal(64, result.SampleCount);
+            TestSuite.Equal(8000d, Math.Round(result.PollingRate));
+            TestSuite.Equal(0.125d, Math.Round(result.AverageInterval, 3));
+            TestSuite.Equal(0d, Math.Round(result.Jitter, 6));
+        });
+
+        suite.Run("Raw input: buffered timestamps retain aggregate frequency", () =>
+        {
+            var timestamps = RawInputService.SpreadTimestamps(10, 11, 8);
+            TestSuite.Equal(8, timestamps.Length);
+            TestSuite.Equal(10.125d, timestamps[0]);
+            TestSuite.Equal(11d, timestamps[^1]);
+            var tracker = new InputMetricsTracker();
+            tracker.Record(10);
+            foreach (double timestamp in timestamps) tracker.Record(timestamp);
+            TestSuite.Equal(8000d, Math.Round(tracker.Snapshot.PollingRate));
+        });
+
         suite.Run("Input metrics: reset discards timestamps and samples", () =>
         {
             var tracker = new InputMetricsTracker();

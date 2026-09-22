@@ -11,7 +11,7 @@ nonzero exit code on failure. `dotnet test` does not execute this console harnes
 Tests cover two-press activation, timing boundaries, focus routing and modal
 restoration, Xbox/PlayStation/generic action equivalence, reconnect/resume with
 held buttons, virtual input echoes, stick/trigger hysteresis, SDL native loading,
-and the Input Lab polling/interval/jitter calculations.
+and the Input Lab polling/interval/jitter calculations, including 8 kHz input.
 
 For the optional WPF integration checks using locally cached game artwork:
 
@@ -26,6 +26,8 @@ and replaces the launch command with a counter. Real games are never launched.
 It checks selection borders, both card launch paths, PlayStation hints and the
 profile modal, and writes nonblank GameHub render checks at 1600x900, 1180x780
 and 900x600. It also renders the Input Lab at 1180x780 and 900x600.
+The Input Lab checks exercise mouse readings at 8 kHz and physical-key
+press/release highlighting on the virtual keyboard.
 
 Physical USB/Bluetooth controller testing remains separate from these simulated
 input checks. Hidden controllers exposed only as virtual Xbox devices cannot be
