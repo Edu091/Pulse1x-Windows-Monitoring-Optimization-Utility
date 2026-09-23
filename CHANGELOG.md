@@ -1,5 +1,11 @@
 ﻿# Histórico de versões
 
+## 1.11.1 — 22/09/2026
+
+- O Input Lab agora nomeia corretamente as medicoes de teclado e gamepad como **transicoes de tecla** e **mudancas de estado**. Elas nao representam o polling USB declarado, pois o Windows e SDL/XInput nao entregam relatorios inalterados ao aplicativo.
+- A explicacao do teclado informa a diferenca relevante para o **GK68 HE Mix**: ate **8.000 Hz** conectado por USB e ate **1.000 Hz** em 2,4 GHz. A medicao de Raw Input do mouse permanece como polling real durante movimento.
+- Atualizada a descricao do controle para evitar leituras baixas enganosas, incluindo o GameSir T3 Pro: a tela agora deixa claro que mudancas de estado nao equivalem a cada relatorio HID.
+
 ## 1.11.0 — 22/09/2026
 
 - O **Input Lab** agora mede o mouse por Raw Input, sem a compactação do `WM_MOUSEMOVE`, e sustenta leituras de vários kHz. A suíte valida explicitamente uma sequência de **8.000 Hz / 0,125 ms**.
