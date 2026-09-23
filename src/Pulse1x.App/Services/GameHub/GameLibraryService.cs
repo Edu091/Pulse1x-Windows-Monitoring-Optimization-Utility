@@ -46,7 +46,15 @@ public class GameLibraryService
             if (File.Exists(_filePath))
             {
                 var data = JsonSerializer.Deserialize<GameLibraryData>(File.ReadAllText(_filePath));
-                if (data is not null) { _data = data; return; }
+                if (data is not null)
+                {
+                    data.Games ??= new List<GameEntry>();
+                    data.Emulators ??= new List<EmulatorEntry>();
+                    data.Categories ??= new List<string>();
+                    data.CustomScanFolders ??= new List<string>();
+                    _data = data;
+                    return;
+                }
             }
         }
         catch
@@ -61,7 +69,7 @@ public class GameLibraryService
     {
         lock (_gate)
         {
-            try { File.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
+            try { AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
             catch { /* disco cheio/sem permissão: o estado em memória continua válido nesta sessão */ }
         }
         Changed?.Invoke();

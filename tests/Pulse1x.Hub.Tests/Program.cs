@@ -21,6 +21,7 @@ internal static class Program
         HubInputRouterTests.Register(suite);
         ControllerTests.Register(suite);
         InputMetricsTrackerTests.Register(suite);
+        PersistenceTests.Register(suite);
         if (args.Contains("--ui")) HubVisualTests.Run(suite);
         return suite.Finish();
     }

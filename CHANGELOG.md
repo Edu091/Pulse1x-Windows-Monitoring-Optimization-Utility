@@ -1,5 +1,14 @@
 ﻿# Histórico de versões
 
+## 1.12.2 — 22/09/2026
+
+- Corrigido o cálculo de tráfego entre **Dashboard** e **Latência**: cada seção agora possui seu próprio amostrador, impedindo leituras zeradas ou subestimadas quando ambas atualizavam o mesmo contador.
+- Dashboard e Otimização pausam seus monitores ao sair da página. Ao voltar, a janela de amostragem é reiniciada para não diluir a velocidade de rede pelo tempo em que a tela ficou oculta.
+- Corrigida a navegação global por controle depois de sair do GameHub. O serviço compartilhado não é mais desligado pela página, preserva seu estado ao minimizar/restaurar e continua suspenso durante uma partida.
+- Configurações antigas, incompletas ou com valores inválidos agora são reparadas ao carregar. Intervalos, volume, aparência, listas e preferências nulas deixam de causar falhas na inicialização.
+- Configurações, biblioteca, perfis, métricas, snapshots de sessão e históricos de reversão passaram a usar gravação atômica, reduzindo o risco de arquivos truncados após interrupção ou desligamento.
+- Atualizações simultâneas da nota de latência foram bloqueadas e falhas transitórias da central de servidores não escapam mais do temporizador. Auditoria concluída com **94 testes**, build sem avisos e nenhuma dependência vulnerável.
+
 ## 1.12.1 — 22/09/2026
 
 - Corrigida a precisão temporal do Input Lab: lotes de Raw Input agora mantêm relógios separados por dispositivo, impedindo que teclado, mouse ou touchpad alterem os intervalos uns dos outros.

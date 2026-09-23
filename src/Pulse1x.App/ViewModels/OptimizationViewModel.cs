@@ -58,7 +58,19 @@ public partial class OptimizationViewModel : ObservableObject, IDisposable
             if (!IsOptimizing)
                 RefreshRamStats();
         };
-        _timer.Start();
+    }
+
+    public void SetActive(bool active)
+    {
+        if (active)
+        {
+            RefreshRamStats();
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
     }
 
     private void RefreshRamStats()

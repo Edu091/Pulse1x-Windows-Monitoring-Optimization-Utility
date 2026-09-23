@@ -39,7 +39,12 @@ public class ProfileStoreService
             if (File.Exists(_filePath))
             {
                 var data = JsonSerializer.Deserialize<ProfileLibraryData>(File.ReadAllText(_filePath));
-                if (data is not null) { _data = data; return; }
+                if (data is not null)
+                {
+                    data.Profiles ??= new List<GameProfile>();
+                    _data = data;
+                    return;
+                }
             }
         }
         catch { }
@@ -50,7 +55,7 @@ public class ProfileStoreService
     {
         lock (_gate)
         {
-            try { File.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
+            try { AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
             catch { }
         }
         Changed?.Invoke();

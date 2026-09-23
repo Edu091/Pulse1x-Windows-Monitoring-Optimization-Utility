@@ -319,7 +319,9 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     public void SetActive(bool active)
     {
         _isPageActive = active;
-        _gamepad.SetActive(active && !_gamingMode.IsActive);
+        // The service is shared with global app navigation. Leaving the hub must hand it back,
+        // not turn it off; only an active game session suspends controller polling.
+        _gamepad.SetActive(!_gamingMode.IsActive);
 
         if (active)
         {
@@ -979,7 +981,7 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
             IsSessionRunning = false;
             SessionStatus = Loc.F("GH_SessionEnded", session.Game.Name,
                 (int)session.Duration.TotalMinutes);
-            _gamepad.SetActive(_isPageActive);
+            _gamepad.SetActive(true);
 
             var card = _allCards.FirstOrDefault(c => c.Id == session.Game.Id);
             card?.Refresh();

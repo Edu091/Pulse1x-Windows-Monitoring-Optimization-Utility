@@ -63,6 +63,7 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
     public string? ActiveControllerName => ActiveController?.Name;
     public string? ActiveProviderName => ActiveController?.Provider;
     public bool IsConnected => ActiveController is not null;
+    public bool IsActive => _active;
 
     public GamepadService() : this(
         new FallbackControllerBackend(),

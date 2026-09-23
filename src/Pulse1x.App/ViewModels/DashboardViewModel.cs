@@ -28,6 +28,8 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private readonly SettingsService _settingsService;
     private readonly DispatcherTimer _timer;
     private DateTime _lastNetworkSampleTime = DateTime.Now;
+    private bool _pageActive;
+    private bool _gamingMode;
 
     private InfoItemViewModel? _memoryInfoItem;
     private InfoItemViewModel? _storageInfoItem;
@@ -95,7 +97,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
             Interval = TimeSpan.FromMilliseconds(_settingsService.Current.UpdateIntervalMs)
         };
         _timer.Tick += (_, _) => Refresh();
-        _timer.Start();
 
         Refresh();
     }
@@ -106,14 +107,26 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Liga/desliga a leitura contínua de hardware. Usado pelo Modo Gaming do GameHub: enquanto um
-    /// jogo estiver aberto, não faz sentido o Pulse1x continuar consultando sensores a cada segundo
-    /// para atualizar uma janela que ninguém está olhando.
+    /// Registra a visibilidade da página. A coleta só roda quando o Dashboard está visível e não há
+    /// uma partida em andamento.
     /// </summary>
     public void SetActive(bool active)
     {
-        if (active)
+        _pageActive = active;
+        ApplyActiveState();
+    }
+
+    public void SetGamingMode(bool active)
+    {
+        _gamingMode = active;
+        ApplyActiveState();
+    }
+
+    private void ApplyActiveState()
+    {
+        if (_pageActive && !_gamingMode)
         {
+            _lastNetworkSampleTime = DateTime.Now;
             _timer.Start();
             Refresh();
         }

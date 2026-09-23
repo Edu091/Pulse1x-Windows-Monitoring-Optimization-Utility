@@ -14,6 +14,7 @@ internal static class ControllerTests
             var events = new List<GamepadAction>();
             service.Action += events.Add;
             service.SetActive(true);
+            TestSuite.Equal(true, service.IsActive);
             void Tick(GamepadSnapshot snapshot)
             {
                 backend.Readings = new[] { Reading("x", ControllerFamily.Xbox, snapshot) };
@@ -27,6 +28,7 @@ internal static class ControllerTests
             Tick(ControllerSelector.Neutral with { Accept = true });
             TestSuite.SequenceEqual(new[] { GamepadAction.Accept }, events);
             service.SetActive(false);
+            TestSuite.Equal(false, service.IsActive);
             service.SetActive(true);
             Tick(ControllerSelector.Neutral with { Accept = true });
             TestSuite.Equal(1, events.Count);

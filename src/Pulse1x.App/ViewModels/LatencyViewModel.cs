@@ -65,6 +65,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool toolsExpanded;
     private DateTime _lastSample = DateTime.Now;
     private bool _refreshing;
+    private bool _scoreRefreshing;
 
     // ---- Painel em tempo real ----
     [ObservableProperty] private string pingText = "--";
@@ -177,6 +178,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         ServerStatus.SetActive(active);
         if (active)
         {
+            _lastSample = DateTime.Now;
             _timer.Start();
             _ = RefreshLiveAsync();
             // Jitter, perda e nota precisam de uma rajada de pings — calcula uma vez ao abrir a
@@ -264,9 +266,22 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task RefreshScoreAsync()
     {
-        var wifi = await _net.ReadWifiAsync();
-        var ping = await _net.PingAsync(_net.PreferredPingTarget(), count: 8, timeoutMs: 1000);
-        ApplyScore(ping, wifi);
+        if (_scoreRefreshing) return;
+        _scoreRefreshing = true;
+        try
+        {
+            var wifi = await _net.ReadWifiAsync();
+            var ping = await _net.PingAsync(_net.PreferredPingTarget(), count: 8, timeoutMs: 1000);
+            ApplyScore(ping, wifi);
+        }
+        catch
+        {
+            // Volatile network reads are retried the next time the section is activated.
+        }
+        finally
+        {
+            _scoreRefreshing = false;
+        }
     }
 
     private void ApplyScore(PingStats ping, WifiInfo wifi)

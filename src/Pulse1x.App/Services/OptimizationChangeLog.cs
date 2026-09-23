@@ -101,7 +101,7 @@ public class OptimizationChangeLog
         try
         {
             var json = JsonSerializer.Serialize(_changes, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
+            AtomicFile.WriteAllText(_filePath, json);
         }
         catch
         {

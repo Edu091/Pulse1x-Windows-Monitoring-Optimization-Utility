@@ -16,7 +16,7 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.12.1</Version>
+    <Version>1.12.2</Version>
   </PropertyGroup>
 
   <!-- O histórico de versões viaja dentro do executável, para a seção Sobre exibi-lo sem

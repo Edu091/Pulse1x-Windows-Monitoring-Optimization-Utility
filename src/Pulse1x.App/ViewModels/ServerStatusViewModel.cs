@@ -94,6 +94,11 @@ public partial class ServerStatusViewModel : ObservableObject, IDisposable
             LastUpdateText = DateTime.Now.ToString("HH:mm:ss");
             RecountServices();
         }
+        catch
+        {
+            // External status endpoints can fail independently. Keep the latest known state and
+            // retry on the next cycle instead of leaking an exception from the timer callback.
+        }
         finally { IsRefreshing = false; }
     }
 

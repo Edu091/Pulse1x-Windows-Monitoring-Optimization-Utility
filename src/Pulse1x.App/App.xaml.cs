@@ -169,7 +169,10 @@ public partial class App : Application
         var networkLatencyService = new NetworkLatencyService();
         var networkOptimizationService = new NetworkOptimizationService(new OptimizationChangeLog("network-changes.json"));
         var serverStatusService = new ServerStatusService();
-        var latencyViewModel = new LatencyViewModel(networkLatencyService, networkOptimizationService, systemMetricsService, serverStatusService);
+        // Network sampling keeps state between reads. Latency gets its own sampler so it cannot
+        // consume the Dashboard sample and distort throughput in both sections.
+        var latencyMetricsService = new SystemMetricsService();
+        var latencyViewModel = new LatencyViewModel(networkLatencyService, networkOptimizationService, latencyMetricsService, serverStatusService);
         var latencyPage = new LatencyPage(latencyViewModel);
         var inputLabPage = new InputLabPage(gamepadService);
 
@@ -260,7 +263,7 @@ public partial class App : Application
         // de atualizar. É um único sinal, consumido por quem gasta recursos.
         gamingModeService.StateChanged += active =>
         {
-            dashboardViewModel.SetActive(!active);
+            dashboardViewModel.SetGamingMode(active);
             latencyViewModel.SetGamingMode(active);
         };
 

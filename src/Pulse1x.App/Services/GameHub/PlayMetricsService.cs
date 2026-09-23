@@ -50,7 +50,12 @@ public class PlayMetricsService
             if (File.Exists(_filePath))
             {
                 var data = JsonSerializer.Deserialize<PlayMetricsData>(File.ReadAllText(_filePath));
-                if (data is not null) { _data = data; return; }
+                if (data is not null)
+                {
+                    data.Sessions ??= new List<PlaySession>();
+                    _data = data;
+                    return;
+                }
             }
         }
         catch { }
@@ -61,7 +66,7 @@ public class PlayMetricsService
     {
         lock (_gate)
         {
-            try { File.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
+            try { AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(_data, JsonOptions)); }
             catch { }
         }
         Changed?.Invoke();

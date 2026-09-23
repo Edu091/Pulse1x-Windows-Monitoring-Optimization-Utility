@@ -21,6 +21,7 @@ public partial class DashboardPage : Page
 
         viewModel.Sections.CollectionChanged += (_, _) => ApplySectionOrder();
         ApplySectionOrder();
+        IsVisibleChanged += (_, e) => _viewModel?.SetActive((bool)e.NewValue);
     }
 
     // Ao clicar em qualquer card de métrica, abre a página de detalhes do componente

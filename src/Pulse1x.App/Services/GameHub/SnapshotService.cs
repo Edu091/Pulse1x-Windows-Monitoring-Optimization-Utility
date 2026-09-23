@@ -27,7 +27,7 @@ public class SnapshotService
     /// <summary>Grava (ou regrava) o snapshot da sessão em andamento.</summary>
     public void Persist(SystemSnapshot snapshot)
     {
-        try { File.WriteAllText(_filePath, JsonSerializer.Serialize(snapshot, JsonOptions)); }
+        try { AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(snapshot, JsonOptions)); }
         catch { /* sem disco/permissão: a restauração em memória ainda funciona nesta sessão */ }
     }
 

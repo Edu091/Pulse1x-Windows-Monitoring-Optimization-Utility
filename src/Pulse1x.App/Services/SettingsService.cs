@@ -44,11 +44,16 @@ public class SettingsService
 
     public AppSettings Current { get; private set; }
 
-    public SettingsService()
+    public SettingsService() : this(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pulse1x", "settings.json"))
     {
-        var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pulse1x");
-        Directory.CreateDirectory(appDataDir);
-        _settingsFilePath = Path.Combine(appDataDir, "settings.json");
+    }
+
+    public SettingsService(string settingsFilePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(settingsFilePath);
+        _settingsFilePath = Path.GetFullPath(settingsFilePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(_settingsFilePath)!);
         Current = Load();
     }
 
@@ -60,7 +65,7 @@ public class SettingsService
             {
                 var json = File.ReadAllText(_settingsFilePath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json);
-                if (settings != null) return settings;
+                if (settings != null) return Normalize(settings);
             }
         }
         catch
@@ -71,10 +76,54 @@ public class SettingsService
         return new AppSettings();
     }
 
+    private static AppSettings Normalize(AppSettings settings)
+    {
+        settings.UpdateIntervalMs = Math.Clamp(settings.UpdateIntervalMs, 250, 10_000);
+        settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "pt";
+        settings.DashboardSectionOrder ??= new List<string>();
+        settings.DashboardSectionVisibility ??= new Dictionary<string, bool>();
+        settings.Appearance ??= new AppearanceSettings();
+        settings.GameHub ??= new Models.GameHub.GameHubSettings();
+        settings.OemCommands ??= new Profiles.OemCustomCommands();
+
+        settings.GameHub.SoundVolume = Math.Clamp(settings.GameHub.SoundVolume, 0, 1);
+        settings.GameHub.CustomSounds ??= new Dictionary<string, string>();
+        settings.GameHub.AutoStartLaunchers ??= new List<string>();
+        settings.GameHub.ControllerGlyphs = settings.GameHub.ControllerGlyphs is "Xbox" or "PlayStation"
+            ? settings.GameHub.ControllerGlyphs
+            : "Auto";
+        if (!Enum.IsDefined(settings.GameHub.CardSize))
+            settings.GameHub.CardSize = Models.GameHub.CardSize.Medium;
+
+        var appearance = settings.Appearance;
+        var defaults = new AppearanceSettings();
+        appearance.PrimaryColor = string.IsNullOrWhiteSpace(appearance.PrimaryColor) ? defaults.PrimaryColor : appearance.PrimaryColor;
+        appearance.SecondaryColor = string.IsNullOrWhiteSpace(appearance.SecondaryColor) ? defaults.SecondaryColor : appearance.SecondaryColor;
+        appearance.AccentColor = string.IsNullOrWhiteSpace(appearance.AccentColor) ? defaults.AccentColor : appearance.AccentColor;
+        appearance.BackgroundColor = string.IsNullOrWhiteSpace(appearance.BackgroundColor) ? defaults.BackgroundColor : appearance.BackgroundColor;
+        appearance.GradientStart = string.IsNullOrWhiteSpace(appearance.GradientStart) ? defaults.GradientStart : appearance.GradientStart;
+        appearance.GradientEnd = string.IsNullOrWhiteSpace(appearance.GradientEnd) ? defaults.GradientEnd : appearance.GradientEnd;
+        appearance.Transparency = ClampFinite(appearance.Transparency, 0, 1, defaults.Transparency);
+        appearance.BlurIntensity = ClampFinite(appearance.BlurIntensity, 0, 1, defaults.BlurIntensity);
+        appearance.AnimationIntensity = ClampFinite(appearance.AnimationIntensity, 0, 1, defaults.AnimationIntensity);
+        appearance.BackgroundOpacity = ClampFinite(appearance.BackgroundOpacity, 0, 1, defaults.BackgroundOpacity);
+        appearance.BackgroundBlur = ClampFinite(appearance.BackgroundBlur, 0, 80, defaults.BackgroundBlur);
+        appearance.BackgroundDarken = ClampFinite(appearance.BackgroundDarken, 0, 1, defaults.BackgroundDarken);
+        appearance.BackgroundSaturation = ClampFinite(appearance.BackgroundSaturation, 0, 2, defaults.BackgroundSaturation);
+        if (!Enum.IsDefined(appearance.Background)) appearance.Background = defaults.Background;
+        if (!Enum.IsDefined(appearance.BackgroundFit)) appearance.BackgroundFit = defaults.BackgroundFit;
+
+        settings.OemCommands.Commands ??= new Dictionary<string, string>();
+        return settings;
+    }
+
+    private static double ClampFinite(double value, double minimum, double maximum, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, minimum, maximum) : fallback;
+
     public void Save()
     {
         var json = JsonSerializer.Serialize(Current, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(_settingsFilePath, json);
+        AtomicFile.WriteAllText(_settingsFilePath, json);
     }
 
     public void SetStartWithWindows(bool enabled)

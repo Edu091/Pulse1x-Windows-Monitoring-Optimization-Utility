@@ -383,6 +383,7 @@ public partial class MainWindow : FluentWindow
     private WindowState _stateBeforeHub = WindowState.Normal;
     private bool _inGameHub;
     private bool _gamepadSuspendedForMinimize;
+    private bool _gamepadWasActiveBeforeMinimize;
 
     /// <summary>
     /// Entra no GameHub. Quando o modo imersivo está ligado (padrão), a navegação lateral do
@@ -475,6 +476,7 @@ public partial class MainWindow : FluentWindow
         {
             // O DispatcherTimer do controle pode ser pausado pelo Windows ao minimizar. Paramos
             // a leitura de propósito (limpando botões/analógico presos) e a religamos ao voltar.
+            _gamepadWasActiveBeforeMinimize = _gamepad?.IsActive == true;
             _gamepad?.SetActive(false);
             _gamepadSuspendedForMinimize = true;
 
@@ -486,7 +488,7 @@ public partial class MainWindow : FluentWindow
         if (_gamepadSuspendedForMinimize)
         {
             _gamepadSuspendedForMinimize = false;
-            _gamepad?.SetActive(true);
+            _gamepad?.SetActive(_gamepadWasActiveBeforeMinimize);
 
             // Restaurar a janela também pode ter removido o foco visual. Devolvemos-o à zona
             // atual do hub (grade, menu ou teclado) antes da próxima entrada do controle.
