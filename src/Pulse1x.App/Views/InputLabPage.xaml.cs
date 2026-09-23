@@ -30,7 +30,10 @@ public partial class InputLabPage : Page
     private ControllerIdentity? _controllerIdentity;
     private string? _keyboardName;
     private string? _mouseName;
+    private string? _keyboardDeviceId;
+    private string? _mouseDeviceId;
     private string? _lastKeyboardKey;
+    private InputPollingEstimate? _keyboardPollingEstimate;
     private int _lastMouseX;
     private int _lastMouseY;
 
@@ -64,6 +67,7 @@ public partial class InputLabPage : Page
             _gamepad.ActiveControllerChanged += OnControllerChanged;
             _gamepad.Action += OnGamepadAction;
             _gamepad.SetMeasurementMode(true);
+            _gamepad.SetActive(true);
             _controllerIdentity = _gamepad.ActiveController;
             _uiTimer.Start();
             Dispatcher.BeginInvoke(new Action(() =>
@@ -101,6 +105,12 @@ public partial class InputLabPage : Page
         {
             if (sample.Kind == RawInputKind.Mouse)
             {
+                string deviceId = DeviceId(sample);
+                if (_mouseDeviceId != deviceId)
+                {
+                    _mouse.Reset();
+                    _mouseDeviceId = deviceId;
+                }
                 _mouseDetected = true;
                 _mouseName = sample.DeviceName;
                 _lastMouseX = sample.DeltaX;
@@ -109,14 +119,26 @@ public partial class InputLabPage : Page
                 continue;
             }
 
+            string keyboardDeviceId = DeviceId(sample);
+            if (_keyboardDeviceId != keyboardDeviceId)
+            {
+                _keyboard.Reset();
+                _keyboardDeviceId = keyboardDeviceId;
+                _keyboardPollingEstimate = null;
+                ClearVirtualKeyboard();
+            }
             _keyboardDetected = true;
             _keyboardName = sample.DeviceName;
+            _keyboardPollingEstimate ??= InputPollingEstimator.EstimateKeyboard(sample.DeviceName, sample.DevicePath);
             ushort virtualKey = NormalizeVirtualKey(sample.VirtualKey);
             _lastKeyboardKey = KeyLabel(virtualKey);
             _keyboard.Record(sample.TimestampMilliseconds);
             SetVirtualKey(virtualKey, !sample.IsKeyUp);
         }
     }
+
+    private static string DeviceId(RawInputSample sample) =>
+        string.IsNullOrWhiteSpace(sample.DevicePath) ? sample.DeviceName : sample.DevicePath;
 
     private void OnGamepadSampled(GamepadInputSample sample)
     {
@@ -188,6 +210,7 @@ public partial class InputLabPage : Page
                 RateTitleText.Text = Loc.S("InputLab_RawPolling");
                 break;
             case DeviceKind.Gamepad:
+                _controllerIdentity = _gamepad.ActiveController;
                 connected = _controllerIdentity is not null;
                 DeviceNameText.Text = _controllerIdentity?.Name ?? Loc.S("InputLab_NoGamepad");
                 DeviceDetailText.Text = _controllerIdentity is null
@@ -205,7 +228,9 @@ public partial class InputLabPage : Page
                     : Loc.F("InputLab_LastKey", _lastKeyboardKey);
                 InputHintText.Text = Loc.S("InputLab_KeyboardHint");
                 AccuracyText.Text = Loc.S("InputLab_KeyboardAccuracy");
-                RateTitleText.Text = Loc.S("InputLab_EventRate");
+                RateTitleText.Text = Loc.S(_keyboardPollingEstimate is null
+                    ? "InputLab_EventRate"
+                    : "InputLab_EstimatedPolling");
                 break;
         }
 
@@ -213,7 +238,9 @@ public partial class InputLabPage : Page
         StatusText.Text = Loc.S(connected ? (_selectedDevice == DeviceKind.Gamepad ? "InputLab_Connected" : "InputLab_Detected") : "InputLab_Waiting");
 
         var snapshot = Tracker.Snapshot;
-        RateText.Text = Format(snapshot.PollingRate, "0");
+        RateText.Text = _selectedDevice == DeviceKind.Keyboard && _keyboardPollingEstimate is not null
+            ? $"~{_keyboardPollingEstimate.Hertz.ToString("N0", CultureInfo.CurrentCulture)}"
+            : Format(snapshot.PollingRate, "0");
         AverageText.Text = Format(snapshot.AverageInterval, snapshot.AverageInterval < 1 ? "0.000" : "0.00");
         CurrentText.Text = Format(snapshot.CurrentInterval, snapshot.CurrentInterval < 1 ? "0.000" : "0.00");
         JitterText.Text = Format(snapshot.Jitter, snapshot.Jitter < 1 ? "0.000" : "0.00");

@@ -18,7 +18,8 @@ public sealed record RawInputSample(
     bool IsKeyUp = false,
     int DeltaX = 0,
     int DeltaY = 0,
-    ushort MouseButtonFlags = 0);
+    ushort MouseButtonFlags = 0,
+    string DevicePath = "");
 
 /// <summary>
 /// Captura teclado e mouse diretamente por WM_INPUT. O serviço também drena eventos acumulados
@@ -33,7 +34,7 @@ public sealed class RawInputService : IDisposable
     private const uint RimTypeKeyboard = 1;
     private const uint RidevRemove = 0x00000001;
 
-    private readonly Dictionary<IntPtr, string> _deviceNames = new();
+    private readonly Dictionary<IntPtr, RawInputDeviceDescriptor> _devices = new();
     private HwndSource? _source;
     private IntPtr _buffer;
     private int _bufferSize = 64 * 64;
@@ -84,7 +85,7 @@ public sealed class RawInputService : IDisposable
             Marshal.FreeHGlobal(_buffer);
             _buffer = IntPtr.Zero;
         }
-        _deviceNames.Clear();
+        _devices.Clear();
         _lastBatchTimestamp = null;
     }
 
@@ -161,35 +162,37 @@ public sealed class RawInputService : IDisposable
     {
         var header = Marshal.PtrToStructure<RawInputHeader>(block);
         IntPtr data = IntPtr.Add(block, Marshal.SizeOf<RawInputHeader>());
-        string deviceName = ResolveDeviceName(header.Device, header.Type);
+        var device = ResolveDevice(header.Device, header.Type);
 
         if (header.Type == RimTypeMouse)
         {
             var mouse = Marshal.PtrToStructure<RawMouse>(data);
-            samples.Add(PendingSample.Mouse(deviceName, mouse.LastX, mouse.LastY, mouse.Buttons.ButtonFlags));
+            samples.Add(PendingSample.Mouse(device.Name, device.Path, mouse.LastX, mouse.LastY, mouse.Buttons.ButtonFlags));
         }
         else if (header.Type == RimTypeKeyboard)
         {
             var keyboard = Marshal.PtrToStructure<RawKeyboard>(data);
             bool keyUp = (keyboard.Flags & 0x0001) != 0;
-            samples.Add(PendingSample.Keyboard(deviceName, keyboard.VirtualKey, keyboard.MakeCode, keyUp));
+            samples.Add(PendingSample.Keyboard(device.Name, device.Path, keyboard.VirtualKey, keyboard.MakeCode, keyUp));
         }
     }
 
-    private string ResolveDeviceName(IntPtr device, uint type)
+    private RawInputDeviceDescriptor ResolveDevice(IntPtr device, uint type)
     {
-        if (_deviceNames.TryGetValue(device, out string? cached)) return cached;
+        if (_devices.TryGetValue(device, out var cached)) return cached;
         string fallback = type == RimTypeMouse ? "Mouse HID" : "Teclado HID";
         uint length = 0;
         _ = GetRawInputDeviceInfo(device, RidiDeviceName, null, ref length);
-        if (length == 0) return _deviceNames[device] = fallback;
+        if (length == 0) return _devices[device] = new(fallback, "");
 
         var path = new StringBuilder((int)length);
         if (GetRawInputDeviceInfo(device, RidiDeviceName, path, ref length) == uint.MaxValue)
-            return _deviceNames[device] = fallback;
+            return _devices[device] = new(fallback, "");
 
-        string? product = ReadHidProduct(path.ToString());
-        return _deviceNames[device] = string.IsNullOrWhiteSpace(product) ? fallback : product.Trim();
+        string devicePath = path.ToString();
+        string? product = ReadHidProduct(devicePath);
+        string name = string.IsNullOrWhiteSpace(product) ? fallback : product.Trim();
+        return _devices[device] = new(name, devicePath);
     }
 
     private static string? ReadHidProduct(string path)
@@ -225,16 +228,18 @@ public sealed class RawInputService : IDisposable
 
     public void Dispose() => Stop();
 
+    private sealed record RawInputDeviceDescriptor(string Name, string Path);
+
     private sealed record PendingSample(
-        RawInputKind Kind, string DeviceName, ushort VirtualKey, ushort ScanCode, bool IsKeyUp,
+        RawInputKind Kind, string DeviceName, string DevicePath, ushort VirtualKey, ushort ScanCode, bool IsKeyUp,
         int DeltaX, int DeltaY, ushort MouseButtonFlags)
     {
-        internal static PendingSample Mouse(string name, int x, int y, ushort buttons) =>
-            new(RawInputKind.Mouse, name, 0, 0, false, x, y, buttons);
-        internal static PendingSample Keyboard(string name, ushort key, ushort scan, bool up) =>
-            new(RawInputKind.Keyboard, name, key, scan, up, 0, 0, 0);
+        internal static PendingSample Mouse(string name, string path, int x, int y, ushort buttons) =>
+            new(RawInputKind.Mouse, name, path, 0, 0, false, x, y, buttons);
+        internal static PendingSample Keyboard(string name, string path, ushort key, ushort scan, bool up) =>
+            new(RawInputKind.Keyboard, name, path, key, scan, up, 0, 0, 0);
         internal RawInputSample WithTimestamp(double timestamp) =>
-            new(Kind, timestamp, DeviceName, VirtualKey, ScanCode, IsKeyUp, DeltaX, DeltaY, MouseButtonFlags);
+            new(Kind, timestamp, DeviceName, VirtualKey, ScanCode, IsKeyUp, DeltaX, DeltaY, MouseButtonFlags, DevicePath);
     }
 
     [StructLayout(LayoutKind.Sequential)]

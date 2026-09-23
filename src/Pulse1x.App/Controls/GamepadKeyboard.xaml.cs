@@ -178,7 +178,7 @@ public partial class GamepadKeyboard : UserControl
 
     /// <summary>O foco está dentro deste teclado?</summary>
     public bool HasFocusInside =>
-        Keyboard.FocusedElement is DependencyObject focused && IsAncestorOf(focused);
+        Keyboard.FocusedElement is DependencyObject focused && IsWithinKeyboard(focused);
 
     /// <summary>
     /// Move dentro da malha do teclado sem delegar para a navegação espacial global do WPF.
@@ -187,7 +187,7 @@ public partial class GamepadKeyboard : UserControl
     public bool Move(GamepadDirection direction)
     {
         var focused = Keyboard.FocusedElement as Button;
-        if (focused is null || !IsAncestorOf(focused))
+        if (focused is null || !IsWithinKeyboard(focused))
         {
             FocusFirstKey();
             return true;
@@ -222,7 +222,7 @@ public partial class GamepadKeyboard : UserControl
             candidate.TranslatePoint(new Point(candidate.ActualWidth / 2, 0), this).X - fromCenter))!;
     }
 
-    private bool IsAncestorOf(DependencyObject node)
+    private bool IsWithinKeyboard(DependencyObject node)
     {
         while (node is not null)
         {

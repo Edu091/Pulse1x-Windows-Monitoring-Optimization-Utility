@@ -168,6 +168,17 @@ internal static class HubVisualTests
             });
             TestSuite.Equal(false, ((SolidColorBrush)key.Background).Color == accent.Color);
         });
+        suite.Run("UI: Input Lab shows the GK68 Mix HE nominal polling estimate", () =>
+        {
+            Call(inputLab, "OnRawInput", new List<RawInputSample>
+            {
+                new(RawInputKind.Keyboard, 3, "2.4G Wireless Keyboard", VirtualKey: 0x41,
+                    DevicePath: @"\\?\HID#VID_3151&PID_5038&MI_00"),
+            });
+            Call(inputLab, "Refresh");
+            string rate = ((TextBlock)inputLab.FindName("RateText")).Text;
+            TestSuite.Equal("8000", rate.Replace("~", "").Replace(".", "").Replace(",", ""));
+        });
         suite.Run("UI: Input Lab mouse preserves an 8 kHz raw event stream", () =>
         {
             var mouseTab = (ToggleButton)inputLab.FindName("MouseTab");

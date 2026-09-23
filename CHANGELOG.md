@@ -1,5 +1,13 @@
 ﻿# Histórico de versões
 
+## 1.12.0 — 22/09/2026
+
+- O **GameSir T3 Pro** agora é detectado mesmo quando o SDL inicializa sem mapear o controle: o Pulse1x usa XInput como fallback e volta automaticamente para a identidade mais completa do SDL quando disponível.
+- O Input Lab reconhece o receptor 2,4 GHz do **GK68 Mix HE** e mostra o polling nominal estimado de **~8.000 Hz**, separado das transições de tecla realmente entregues pelo Windows. Corrigida a informação anterior de 1.000 Hz para esse modelo.
+- Mouse e teclado agora mantêm o histórico isolado por dispositivo HID. Touchpad, teclado secundário ou interfaces diferentes não contaminam mais polling, intervalo e jitter.
+- Corrigidas falhas que podiam encerrar a interface durante consultas WMI ou atualizações do painel. A dependência do ícone da bandeja voltou para uma versão nativa de .NET 8, eliminando a carga de um assembly legado do .NET Framework.
+- A auditoria completa passou com **88 testes**, incluindo renderização em três resoluções, seleção única, duplo clique, controles Xbox/PlayStation, T3 Pro físico, polling de 8 kHz e teclado virtual.
+
 ## 1.11.1 — 22/09/2026
 
 - O Input Lab agora nomeia corretamente as medicoes de teclado e gamepad como **transicoes de tecla** e **mudancas de estado**. Elas nao representam o polling USB declarado, pois o Windows e SDL/XInput nao entregam relatorios inalterados ao aplicativo.

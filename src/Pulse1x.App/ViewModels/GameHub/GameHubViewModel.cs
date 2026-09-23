@@ -268,15 +268,6 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
     public event Action? ManageEmulatorsRequested;
     public event Action<GameEntry, ArtKind>? ChangeArtRequested;
 
-    /// <summary>Botão View: abrir o menu lateral do hub.</summary>
-    public event Action? MenuRequested;
-
-    /// <summary>Gatilho esquerdo: abrir a busca com o teclado virtual.</summary>
-    public event Action? KeyboardRequested;
-
-    /// <summary>O controle pediu para sair da grade e navegar pelo cromo (botões do topo).</summary>
-    public event Action<GamepadDirection>? FocusEscapeRequested;
-
     public GameHubViewModel(
         GameLibraryService library,
         ProfileStoreService profiles,

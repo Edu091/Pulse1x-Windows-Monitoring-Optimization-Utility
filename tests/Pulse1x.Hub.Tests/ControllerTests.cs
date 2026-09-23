@@ -138,6 +138,29 @@ internal static class ControllerTests
             foreach (var reading in sdl.PollControllers())
                 Console.WriteLine($"  Detected: {reading.Identity.Name} ({reading.Identity.Family})");
         });
+        suite.Run("Controller: XInput fallback is used when SDL maps no devices", () =>
+        {
+            var preferred = new FakeBackend();
+            var fallback = new FakeBackend
+            {
+                Readings = new[] { Reading("gamesir", ControllerFamily.Xbox, ControllerSelector.Neutral) },
+            };
+            using var backend = new FallbackControllerBackend(preferred, fallback);
+            TestSuite.Equal("gamesir", backend.PollControllers().Single().Identity.Id);
+        });
+        suite.Run("Controller: SDL identity wins when both backends can read", () =>
+        {
+            var preferred = new FakeBackend
+            {
+                Readings = new[] { Reading("sdl", ControllerFamily.Xbox, ControllerSelector.Neutral) },
+            };
+            var fallback = new FakeBackend
+            {
+                Readings = new[] { Reading("xinput", ControllerFamily.Xbox, ControllerSelector.Neutral) },
+            };
+            using var backend = new FallbackControllerBackend(preferred, fallback);
+            TestSuite.Equal("sdl", backend.PollControllers().Single().Identity.Id);
+        });
     }
 
     private static ControllerReading Reading(string id, ControllerFamily family, GamepadSnapshot snapshot) =>

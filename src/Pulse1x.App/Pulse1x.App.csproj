@@ -16,7 +16,7 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.11.1</Version>
+    <Version>1.12.0</Version>
   </PropertyGroup>
 
   <!-- O histórico de versões viaja dentro do executável, para a seção Sobre exibi-lo sem
@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.3.2" />
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="LiveChartsCore" Version="2.0.4" />
     <PackageReference Include="SDL3-CS.Windows" Version="3.4.16" />

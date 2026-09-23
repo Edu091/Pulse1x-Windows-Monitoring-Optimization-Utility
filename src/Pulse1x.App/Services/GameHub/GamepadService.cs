@@ -211,26 +211,46 @@ public class GamepadService : IDisposable, INotifyPropertyChanged
     }
 }
 
-/// <summary>SDL owns every device when available; never poll XInput alongside it.</summary>
+/// <summary>Prefers SDL for rich identity data, but falls back to XInput when SDL cannot map a device.</summary>
 internal sealed class FallbackControllerBackend : IControllerBackend
 {
-    private IControllerBackend? _backend;
+    private IControllerBackend? _preferred;
+    private IControllerBackend? _fallback;
+    private bool _initialized;
+
+    internal FallbackControllerBackend() { }
+
+    internal FallbackControllerBackend(IControllerBackend preferred, IControllerBackend fallback)
+    {
+        _preferred = preferred;
+        _fallback = fallback;
+        _initialized = true;
+    }
 
     public IReadOnlyList<ControllerReading> PollControllers()
     {
-        if (_backend is null)
+        if (!_initialized)
         {
             var sdl = new SdlGamepadProvider();
-            if (sdl.TryInitialize()) _backend = sdl;
+            if (sdl.TryInitialize()) _preferred = sdl;
             else
             {
                 Debug.WriteLine($"SDL controller support unavailable: {sdl.Error}. Using XInput.");
                 sdl.Dispose();
-                _backend = new XInputProvider();
             }
+            _fallback = new XInputProvider();
+            _initialized = true;
         }
-        return _backend.PollControllers();
+
+        var readings = _preferred?.PollControllers() ?? Array.Empty<ControllerReading>();
+        return readings.Count > 0
+            ? readings
+            : _fallback?.PollControllers() ?? Array.Empty<ControllerReading>();
     }
 
-    public void Dispose() => _backend?.Dispose();
+    public void Dispose()
+    {
+        _preferred?.Dispose();
+        if (!ReferenceEquals(_preferred, _fallback)) _fallback?.Dispose();
+    }
 }

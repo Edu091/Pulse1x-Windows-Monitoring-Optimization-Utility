@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Pulse1x.App.Localization;
 using Pulse1x.App.Models;
 using Pulse1x.App.Services;
 
@@ -24,16 +25,25 @@ public partial class ComponentDetailViewModel : ObservableObject
     private async void Load(string kind, string id)
     {
         IsLoading = true;
+        try
+        {
+            // A coleta usa WMI (lenta); roda em background e retorna à thread de UI.
+            var details = await System.Threading.Tasks.Task.Run(() => _detailsService.GetDetails(kind, id));
 
-        // A coleta usa WMI (lenta); roda em background e retorna à thread de UI.
-        var details = await System.Threading.Tasks.Task.Run(() => _detailsService.GetDetails(kind, id));
-
-        Title = details.Title;
-        Subtitle = details.Subtitle;
-        Groups.Clear();
-        foreach (var group in details.Groups)
-            Groups.Add(group);
-
-        IsLoading = false;
+            Title = details.Title;
+            Subtitle = details.Subtitle;
+            Groups.Clear();
+            foreach (var group in details.Groups)
+                Groups.Add(group);
+        }
+        catch (Exception ex)
+        {
+            Groups.Clear();
+            Subtitle = Loc.F("ComponentDetails_LoadFailed", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }

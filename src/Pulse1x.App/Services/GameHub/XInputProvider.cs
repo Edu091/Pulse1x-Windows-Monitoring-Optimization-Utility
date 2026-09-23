@@ -15,7 +15,7 @@ public sealed class XInputProvider : IGamepadProvider, IControllerBackend
     public GamepadSnapshot? Poll() => PollControllers().FirstOrDefault()?.Snapshot;
     IReadOnlyList<ControllerReading> IControllerBackend.PollControllers() => PollControllers();
 
-    private IReadOnlyList<ControllerReading> PollControllers()
+    internal IReadOnlyList<ControllerReading> PollControllers()
     {
         if (_disposed) return Array.Empty<ControllerReading>();
         var result = new List<ControllerReading>();

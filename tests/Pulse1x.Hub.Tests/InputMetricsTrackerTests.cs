@@ -66,5 +66,18 @@ internal static class InputMetricsTrackerTests
             tracker.Record(100);
             TestSuite.Equal(0, tracker.Snapshot.SampleCount);
         });
+        suite.Run("Input polling: recognizes the GK68 Mix HE 2.4 GHz receiver", () =>
+        {
+            var estimate = InputPollingEstimator.EstimateKeyboard(
+                "2.4G Wireless Keyboard",
+                @"\\?\HID#VID_3151&PID_5038&MI_00");
+            TestSuite.Equal(8000d, estimate!.Hertz);
+            TestSuite.Equal("GK68 Mix HE 2.4 GHz", estimate.Profile);
+        });
+        suite.Run("Input polling: does not invent a rate for an unknown keyboard", () =>
+        {
+            TestSuite.Equal<InputPollingEstimate?>(null,
+                InputPollingEstimator.EstimateKeyboard("USB Keyboard", @"\\?\HID#VID_0001&PID_0002"));
+        });
     }
 }
