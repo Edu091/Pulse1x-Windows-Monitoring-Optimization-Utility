@@ -34,6 +34,18 @@ internal static class InputMetricsTrackerTests
             TestSuite.Equal(250d, tracker.Snapshot.PollingRate);
         });
 
+        suite.Run("Input metrics: stale values disappear while the device is idle", () =>
+        {
+            double now = 0;
+            var tracker = new InputMetricsTracker(() => now);
+            tracker.Record(0);
+            tracker.Record(1);
+            TestSuite.Equal(1000d, tracker.Snapshot.PollingRate);
+            now = 351;
+            TestSuite.Equal(0, tracker.Snapshot.SampleCount);
+            TestSuite.Equal(0d, tracker.Snapshot.PollingRate);
+        });
+
         suite.Run("Input metrics: 8 kHz intervals are preserved", () =>
         {
             var tracker = new InputMetricsTracker();
@@ -55,6 +67,21 @@ internal static class InputMetricsTrackerTests
             tracker.Record(10);
             foreach (double timestamp in timestamps) tracker.Record(timestamp);
             TestSuite.Equal(8000d, Math.Round(tracker.Snapshot.PollingRate));
+        });
+
+        suite.Run("Raw input: buffered timestamps are isolated by HID device", () =>
+        {
+            IDictionary<string, double> previous = new Dictionary<string, double>
+            {
+                ["mouse"] = 10,
+                ["keyboard"] = 0,
+            };
+            var timestamps = RawInputService.SpreadTimestampsByDevice(
+                previous, 11, new[] { "mouse", "keyboard", "mouse", "keyboard" });
+            TestSuite.Equal(10.5d, timestamps[0]);
+            TestSuite.Equal(5.5d, timestamps[1]);
+            TestSuite.Equal(11d, timestamps[2]);
+            TestSuite.Equal(11d, timestamps[3]);
         });
 
         suite.Run("Input metrics: reset discards timestamps and samples", () =>

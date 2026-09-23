@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.12.1 — 22/09/2026
+
+- Corrigida a precisão temporal do Input Lab: lotes de Raw Input agora mantêm relógios separados por dispositivo, impedindo que teclado, mouse ou touchpad alterem os intervalos uns dos outros.
+- Medições de intervalo, taxa e jitter expiram após 350 ms sem atividade. Valores antigos não permanecem mais na tela como se o dispositivo ainda estivesse enviando dados.
+- O estado do **GameSir T3 Pro** ficou mais claro: o Input Lab diferencia controle conectado de receptor 2,4 GHz presente. Se apenas o dongle estiver ativo, orienta ligar ou refazer o pareamento em vez de informar genericamente que não existe gamepad.
+- Revisadas as fórmulas de polling, intervalo e jitter, os fluxos principais, traduções, dependências e logs de falha. A suíte passou com **91 testes**, build sem avisos e nenhuma dependência vulnerável.
+
 ## 1.12.0 — 22/09/2026
 
 - O **GameSir T3 Pro** agora é detectado mesmo quando o SDL inicializa sem mapear o controle: o Pulse1x usa XInput como fallback e volta automaticamente para a identidade mais completa do SDL quando disponível.

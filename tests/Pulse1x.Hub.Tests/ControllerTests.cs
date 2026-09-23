@@ -161,6 +161,13 @@ internal static class ControllerTests
             using var backend = new FallbackControllerBackend(preferred, fallback);
             TestSuite.Equal("sdl", backend.PollControllers().Single().Identity.Id);
         });
+        suite.Run("Controller: identifies the GameSir T3 Pro receiver hardware id", () =>
+        {
+            TestSuite.Equal("GameSir T3 Pro 2.4 GHz",
+                GamepadReceiverDetector.NameForHardwareId(@"USB\VID_3537&PID_103E\CAA1CEFA"));
+            TestSuite.Equal<string?>(null,
+                GamepadReceiverDetector.NameForHardwareId(@"USB\VID_0001&PID_0002\UNKNOWN"));
+        });
     }
 
     private static ControllerReading Reading(string id, ControllerFamily family, GamepadSnapshot snapshot) =>

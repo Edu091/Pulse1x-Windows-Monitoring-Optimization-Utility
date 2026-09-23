@@ -28,6 +28,8 @@ public partial class InputLabPage : Page
     private bool _keyboardDetected;
     private bool _mouseDetected;
     private ControllerIdentity? _controllerIdentity;
+    private string? _gamepadReceiverName;
+    private long _nextReceiverScan;
     private string? _keyboardName;
     private string? _mouseName;
     private string? _keyboardDeviceId;
@@ -211,11 +213,20 @@ public partial class InputLabPage : Page
                 break;
             case DeviceKind.Gamepad:
                 _controllerIdentity = _gamepad.ActiveController;
+                if (_controllerIdentity is null && Environment.TickCount64 >= _nextReceiverScan)
+                {
+                    _gamepadReceiverName = GamepadReceiverDetector.DetectKnownReceiver();
+                    _nextReceiverScan = Environment.TickCount64 + 2000;
+                }
                 connected = _controllerIdentity is not null;
-                DeviceNameText.Text = _controllerIdentity?.Name ?? Loc.S("InputLab_NoGamepad");
-                DeviceDetailText.Text = _controllerIdentity is null
-                    ? Loc.S("InputLab_MoveGamepad")
-                    : Loc.F("InputLab_GamepadDetail", _controllerIdentity.Family, _controllerIdentity.Provider);
+                DeviceNameText.Text = _controllerIdentity?.Name
+                    ?? _gamepadReceiverName
+                    ?? Loc.S("InputLab_NoGamepad");
+                DeviceDetailText.Text = _controllerIdentity is not null
+                    ? Loc.F("InputLab_GamepadDetail", _controllerIdentity.Family, _controllerIdentity.Provider)
+                    : _gamepadReceiverName is not null
+                        ? Loc.S("InputLab_ReceiverWaiting")
+                        : Loc.S("InputLab_MoveGamepad");
                 InputHintText.Text = Loc.S("InputLab_GamepadHint");
                 AccuracyText.Text = Loc.S("InputLab_GamepadAccuracy");
                 RateTitleText.Text = Loc.S("InputLab_ObservedPolling");
@@ -235,7 +246,12 @@ public partial class InputLabPage : Page
         }
 
         StatusDot.Fill = new SolidColorBrush(connected ? Color.FromRgb(34, 197, 94) : Color.FromRgb(122, 127, 135));
-        StatusText.Text = Loc.S(connected ? (_selectedDevice == DeviceKind.Gamepad ? "InputLab_Connected" : "InputLab_Detected") : "InputLab_Waiting");
+        string statusKey = connected
+            ? (_selectedDevice == DeviceKind.Gamepad ? "InputLab_Connected" : "InputLab_Detected")
+            : _selectedDevice == DeviceKind.Gamepad && _gamepadReceiverName is not null
+                ? "InputLab_ReceiverDetected"
+                : "InputLab_Waiting";
+        StatusText.Text = Loc.S(statusKey);
 
         var snapshot = Tracker.Snapshot;
         RateText.Text = _selectedDevice == DeviceKind.Keyboard && _keyboardPollingEstimate is not null

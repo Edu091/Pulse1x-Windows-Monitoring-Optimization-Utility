@@ -23,12 +23,20 @@ public sealed class InputMetricsTracker
     private const int MaximumIntervals = 512;
 
     private readonly Queue<double> _intervals = new();
+    private readonly Func<double> _clock;
     private double? _lastTimestamp;
+    private double? _lastActivityMilliseconds;
 
     public InputMetricsSnapshot Snapshot => BuildSnapshot();
 
+    public InputMetricsTracker() : this(
+        () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000d / System.Diagnostics.Stopwatch.Frequency) { }
+
+    internal InputMetricsTracker(Func<double> clock) => _clock = clock;
+
     public void Record(double timestampMilliseconds)
     {
+        _lastActivityMilliseconds = _clock();
         if (_lastTimestamp is not double previous)
         {
             _lastTimestamp = timestampMilliseconds;
@@ -54,11 +62,13 @@ public sealed class InputMetricsTracker
     {
         _intervals.Clear();
         _lastTimestamp = null;
+        _lastActivityMilliseconds = null;
     }
 
     private InputMetricsSnapshot BuildSnapshot()
     {
-        if (_intervals.Count == 0)
+        if (_intervals.Count == 0 ||
+            (_lastActivityMilliseconds is double activity && _clock() - activity > BurstTimeoutMilliseconds))
             return new(0, 0, 0, 0, 0, Array.Empty<double>());
 
         var values = _intervals.ToArray();

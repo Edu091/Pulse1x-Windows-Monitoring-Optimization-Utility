@@ -38,7 +38,7 @@ public sealed class RawInputService : IDisposable
     private HwndSource? _source;
     private IntPtr _buffer;
     private int _bufferSize = 64 * 64;
-    private double? _lastBatchTimestamp;
+    private readonly Dictionary<string, double> _lastBatchTimestamps = new(StringComparer.OrdinalIgnoreCase);
     private bool _active;
 
     public event Action<IReadOnlyList<RawInputSample>>? SamplesReceived;
@@ -86,7 +86,7 @@ public sealed class RawInputService : IDisposable
             _buffer = IntPtr.Zero;
         }
         _devices.Clear();
-        _lastBatchTimestamp = null;
+        _lastBatchTimestamps.Clear();
     }
 
     private static void UnregisterDevices()
@@ -109,8 +109,8 @@ public sealed class RawInputService : IDisposable
         if (pending.Count == 0) return IntPtr.Zero;
 
         double now = Stopwatch.GetTimestamp() * 1000d / Stopwatch.Frequency;
-        var timestamps = SpreadTimestamps(_lastBatchTimestamp, now, pending.Count);
-        _lastBatchTimestamp = now;
+        var timestamps = SpreadTimestampsByDevice(
+            _lastBatchTimestamps, now, pending.Select(sample => sample.DeviceKey).ToArray());
         var samples = new RawInputSample[pending.Count];
         for (int i = 0; i < pending.Count; i++) samples[i] = pending[i].WithTimestamp(timestamps[i]);
         SamplesReceived?.Invoke(samples);
@@ -226,6 +226,25 @@ public sealed class RawInputService : IDisposable
         return result;
     }
 
+    internal static double[] SpreadTimestampsByDevice(
+        IDictionary<string, double> previousByDevice,
+        double now,
+        IReadOnlyList<string> deviceKeys)
+    {
+        var result = new double[deviceKeys.Count];
+        foreach (var group in deviceKeys.Select((key, index) => (key, index)).GroupBy(item => item.key))
+        {
+            var indices = group.Select(item => item.index).ToArray();
+            double? previous = previousByDevice.TryGetValue(group.Key, out double timestamp)
+                ? timestamp
+                : null;
+            var timestamps = SpreadTimestamps(previous, now, indices.Length);
+            for (int i = 0; i < indices.Length; i++) result[indices[i]] = timestamps[i];
+            previousByDevice[group.Key] = now;
+        }
+        return result;
+    }
+
     public void Dispose() => Stop();
 
     private sealed record RawInputDeviceDescriptor(string Name, string Path);
@@ -234,6 +253,8 @@ public sealed class RawInputService : IDisposable
         RawInputKind Kind, string DeviceName, string DevicePath, ushort VirtualKey, ushort ScanCode, bool IsKeyUp,
         int DeltaX, int DeltaY, ushort MouseButtonFlags)
     {
+        internal string DeviceKey => $"{Kind}:{(string.IsNullOrWhiteSpace(DevicePath) ? DeviceName : DevicePath)}";
+
         internal static PendingSample Mouse(string name, string path, int x, int y, ushort buttons) =>
             new(RawInputKind.Mouse, name, path, 0, 0, false, x, y, buttons);
         internal static PendingSample Keyboard(string name, string path, ushort key, ushort scan, bool up) =>
