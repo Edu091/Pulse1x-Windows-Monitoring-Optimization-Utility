@@ -52,6 +52,20 @@ public class SystemSnapshot
     /// <summary>Resolução do timer (ms) antes da alteração; a restauração apenas libera o pedido.</summary>
     public double? TimerResolutionMs { get; set; }
 
+    /// <summary>Ids das entradas do log de rede (network-changes.json) criadas POR ESTA sessão —
+    /// suspensão seletiva de USB, economia do Wi-Fi e perfis TCP. Só elas são desfeitas no fim:
+    /// alterações que o usuário fez na categoria Latência, antes ou fora da sessão, ficam como estão.</summary>
+    public List<string> NetworkChangeIds { get; set; } = new();
+
+    /// <summary>Preenchido (e gravado) antes de uma etapa de rede e limpo depois que os Ids foram
+    /// anotados. Se o app cair no meio da etapa, a recuperação usa o horário para achar as entradas
+    /// que chegaram ao log mas não ao snapshot.</summary>
+    public DateTime? NetworkTrackingStartedAt { get; set; }
+
+    /// <summary>Plano ativo quando as etapas de rede rodaram. O powercfg delas grava no plano
+    /// atual, então a reversão precisa acontecer com esse mesmo plano ativo.</summary>
+    public string? NetworkChangesPlanGuid { get; set; }
+
     // ---- Processos ----
     /// <summary>Apps que o perfil fechou, com o caminho para reabrir.</summary>
     public List<ClosedProcessInfo> ClosedProcesses { get; set; } = new();
@@ -70,6 +84,7 @@ public class SystemSnapshot
         Volume is not null || Muted is not null || DefaultOutputDeviceId is not null ||
         DefaultInputDeviceId is not null || Brightness is not null || RefreshRate is not null ||
         Hdr is not null || TimerResolutionMs is not null ||
+        NetworkChangeIds.Count > 0 || NetworkTrackingStartedAt is not null ||
         ClosedProcesses.Count > 0 || StartedProcessIds.Count > 0;
 }
 

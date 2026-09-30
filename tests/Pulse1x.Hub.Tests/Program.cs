@@ -23,6 +23,7 @@ internal static class Program
         InputMetricsTrackerTests.Register(suite);
         PersistenceTests.Register(suite);
         OptimizationTests.Register(suite);
+        SessionRestoreTests.Register(suite);
         if (args.Contains("--ui")) HubVisualTests.Run(suite);
         return suite.Finish();
     }

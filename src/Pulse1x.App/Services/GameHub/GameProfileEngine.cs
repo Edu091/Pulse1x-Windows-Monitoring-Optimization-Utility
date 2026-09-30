@@ -132,7 +132,7 @@ public class GameProfileEngine
                         break;
 
                     case ProfileStepKind.LatencyTweaks:
-                        await ApplyLatencyAsync(profile, progress);
+                        await ApplyLatencyAsync(profile, snapshot, progress);
                         break;
 
                     case ProfileStepKind.MemoryOptimize:
@@ -140,7 +140,7 @@ public class GameProfileEngine
                         break;
 
                     case ProfileStepKind.NetworkProfile:
-                        await ApplyNetworkAsync(profile, progress);
+                        await ApplyNetworkAsync(profile, snapshot, progress);
                         break;
 
                     case ProfileStepKind.CloseProcesses:
@@ -365,30 +365,34 @@ public class GameProfileEngine
         Report(progress, ProfileStepKind.TimerResolution, "GH_StepTimer", ok, $"{target.Value:0.##} ms");
     }
 
-    private async Task ApplyLatencyAsync(GameProfile profile, IProgress<ProfileStepProgress>? progress)
+    private async Task ApplyLatencyAsync(GameProfile profile, SystemSnapshot snapshot, IProgress<ProfileStepProgress>? progress)
     {
         if (!profile.Latency.IsActive) return;
 
         bool auto = profile.Latency.Mode == SettingMode.Auto;
         bool any = false;
 
-        // Estas ferramentas são as mesmas da categoria Latência e já se registram no log de
-        // reversão network-changes.json — "Desfazer Todas as Alterações" continua desfazendo.
-        if (auto || profile.Latency.DisableUsbSelectiveSuspend)
+        // Estas ferramentas são as mesmas da categoria Latência e se registram no log de reversão
+        // network-changes.json. As entradas criadas aqui vão para o snapshot e são desfeitas quando
+        // o jogo fecha — antes ficavam para sempre, até o usuário lembrar de "Desfazer Tudo".
+        await TrackNetworkChangesAsync(snapshot, async () =>
         {
-            await _network.DisableSelectiveSuspendAsync();
-            any = true;
-        }
-        if (auto || profile.Latency.DisableWifiPowerSaving)
-        {
-            await _network.DisableWifiPowerSavingAsync();
-            any = true;
-        }
-        if (profile.Latency.LowLatencyProfile)
-        {
-            await _network.ApplyCompetitiveProfileAsync();
-            any = true;
-        }
+            if (auto || profile.Latency.DisableUsbSelectiveSuspend)
+            {
+                await _network.DisableSelectiveSuspendAsync();
+                any = true;
+            }
+            if (auto || profile.Latency.DisableWifiPowerSaving)
+            {
+                await _network.DisableWifiPowerSavingAsync();
+                any = true;
+            }
+            if (profile.Latency.LowLatencyProfile)
+            {
+                await _network.ApplyCompetitiveProfileAsync();
+                any = true;
+            }
+        });
 
         if (any) Report(progress, ProfileStepKind.LatencyTweaks, "GH_StepLatency", true);
     }
@@ -402,21 +406,84 @@ public class GameProfileEngine
         Report(progress, ProfileStepKind.MemoryOptimize, "GH_StepMemory", result.Success, $"{result.FreedMb:0} MB");
     }
 
-    private async Task ApplyNetworkAsync(GameProfile profile, IProgress<ProfileStepProgress>? progress)
+    private async Task ApplyNetworkAsync(GameProfile profile, SystemSnapshot snapshot, IProgress<ProfileStepProgress>? progress)
     {
         if (!profile.Network.IsActive) return;
 
         if (profile.Network.FlushDnsBefore) await _network.FlushDnsAsync();
 
         var kind = profile.Network.Mode == SettingMode.Auto ? NetworkProfileKind.Competitive : profile.Network.Kind;
-        var result = kind switch
+        var result = new OpResult(false, "Lat_OpFailed");
+        await TrackNetworkChangesAsync(snapshot, async () =>
         {
-            NetworkProfileKind.Competitive => await _network.ApplyCompetitiveProfileAsync(),
-            NetworkProfileKind.Stability => await _network.ApplyStabilityProfileAsync(),
-            _ => await _network.ApplyAllAsync(),
-        };
+            result = kind switch
+            {
+                NetworkProfileKind.Competitive => await _network.ApplyCompetitiveProfileAsync(),
+                NetworkProfileKind.Stability => await _network.ApplyStabilityProfileAsync(),
+                _ => await _network.ApplyAllAsync(),
+            };
+        });
 
         Report(progress, ProfileStepKind.NetworkProfile, "GH_StepNetwork", result.Success, kind.ToString());
+    }
+
+    /// <summary>
+    /// Roda uma etapa de rede anotando no snapshot exatamente as entradas do log que ela criou
+    /// (diferença entre os Ids antes e depois). Assim a restauração desfaz só o que a sessão fez:
+    /// se o usuário já tinha aplicado o mesmo ajuste pela categoria Latência, o serviço não cria
+    /// entrada nova (o valor já está no alvo, ou o registro já existe) e nada dele é tocado no fim.
+    /// </summary>
+    private async Task TrackNetworkChangesAsync(SystemSnapshot snapshot, Func<Task> apply)
+    {
+        var before = _network.ChangeLog.GetAll().Select(c => c.Id).ToHashSet();
+
+        // O powercfg das etapas grava no plano ATIVO; guardamos qual era para desfazer no mesmo.
+        snapshot.NetworkChangesPlanGuid ??= (await _power.GetActivePlanAsync())?.Guid;
+        snapshot.NetworkTrackingStartedAt = DateTime.Now;
+        _snapshots.Persist(snapshot);
+
+        try { await apply(); }
+        finally
+        {
+            snapshot.NetworkChangeIds.AddRange(NewChangeIds(before, _network.ChangeLog.GetAll()));
+            snapshot.NetworkTrackingStartedAt = null;
+            _snapshots.Persist(snapshot);
+        }
+    }
+
+    /// <summary>Ids das entradas que não existiam em <paramref name="before"/>, na ordem do log.</summary>
+    public static List<string> NewChangeIds(IReadOnlySet<string> before, IEnumerable<OptimizationChange> after) =>
+        after.Where(c => !before.Contains(c.Id)).Select(c => c.Id).ToList();
+
+    /// <summary>Duração máxima de uma etapa de rede; limita a busca por horário após uma queda.</summary>
+    public static readonly TimeSpan NetworkStepWindow = TimeSpan.FromMinutes(2);
+
+    /// <summary>
+    /// Entradas a desfazer no fim da sessão: as anotadas no snapshot e, se o app caiu no meio de
+    /// uma etapa de rede, as registradas dentro da janela daquela etapa. As já revertidas (pelo
+    /// "Desfazer Tudo" durante o jogo, por exemplo) ficam de fora. Mais recentes primeiro, para
+    /// que duas mudanças no mesmo alvo terminem no valor mais antigo.
+    /// </summary>
+    public static List<OptimizationChange> SessionChangesToRevert(
+        IEnumerable<OptimizationChange> log, IReadOnlyCollection<string> ids, DateTime? trackingStartedAt)
+    {
+        var wanted = ids.ToHashSet();
+        return log
+            .Where(c => !c.Reverted)
+            .Where(c => wanted.Contains(c.Id)
+                        || (trackingStartedAt is DateTime start
+                            && c.Timestamp >= start && c.Timestamp <= start + NetworkStepWindow))
+            .OrderByDescending(c => c.Timestamp)
+            .ToList();
+    }
+
+    private async Task RevertNetworkChangesAsync(SystemSnapshot snapshot)
+    {
+        var changes = SessionChangesToRevert(
+            _network.ChangeLog.GetAll(), snapshot.NetworkChangeIds, snapshot.NetworkTrackingStartedAt);
+
+        foreach (var change in changes)
+            await TryAsync(() => _network.RevertChangeAsync(change));
     }
 
     private async Task ApplyCloseProcessesAsync(GameProfile profile, SystemSnapshot snapshot, IProgress<ProfileStepProgress>? progress)
@@ -522,6 +589,14 @@ public class GameProfileEngine
             if (snapshot.OemModeId is { Length: > 0 } mode) _oem.SetMode(mode);
         });
 
+        // Os índices de energia das etapas de rede foram gravados no plano ativo naquele momento.
+        // Se era o do jogo (o perfil trocou de plano antes), desfazemos agora, com ele ainda ativo;
+        // se era o original (etapas de rede antes da troca), desfazemos depois que ele voltar.
+        bool networkOnOriginalPlan = snapshot.PowerPlanGuid is { Length: > 0 }
+            && string.Equals(snapshot.NetworkChangesPlanGuid, snapshot.PowerPlanGuid, StringComparison.OrdinalIgnoreCase);
+        if (!networkOnOriginalPlan)
+            await TryAsync(() => RevertNetworkChangesAsync(snapshot));
+
         // As configurações avançadas voltam para o plano de onde foram LIDAS (o do jogo, se o
         // perfil trocou de plano antes). Snapshots antigos, sem esse campo, usam o plano original.
         if (snapshot.PowerSettings.Count > 0)
@@ -530,6 +605,9 @@ public class GameProfileEngine
 
         if (snapshot.PowerPlanGuid is { Length: > 0 } plan)
             await TryAsync(() => _power.SetActivePlanAsync(plan));
+
+        if (networkOnOriginalPlan)
+            await TryAsync(() => RevertNetworkChangesAsync(snapshot));
 
         Try(() =>
         {

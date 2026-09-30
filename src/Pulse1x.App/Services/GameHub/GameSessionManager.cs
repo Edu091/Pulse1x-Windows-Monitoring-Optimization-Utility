@@ -11,6 +11,11 @@ public class GameSession
     public required SystemSnapshot Snapshot { get; init; }
     public DateTime StartedAt { get; } = DateTime.Now;
     public Process? MainProcess { get; set; }
+
+    /// <summary>Nome do último processo principal, lido enquanto ele ainda estava vivo — depois que
+    /// sai, <see cref="Process.ProcessName"/> de um processo iniciado por nós lança exceção.</summary>
+    public string? MainProcessName { get; set; }
+
     public TimeSpan Duration => DateTime.Now - StartedAt;
 }
 
@@ -120,7 +125,7 @@ public class GameSessionManager
 
             if (main is not null)
             {
-                session.MainProcess = main;
+                var since = Track(session, main);
                 _engine.AttachToProcess(session.Profile, main,
                     new Progress<ProfileStepProgress>(step => StepReported?.Invoke(step)));
 
@@ -136,18 +141,23 @@ public class GameSessionManager
                 // assim que o jogo de verdade abre. Antes a sessão acabava ali, no meio da partida:
                 // o perfil era desfeito e o tempo jogado virava segundos. Quando o observado sai,
                 // procuramos por alguns segundos um sucessor na pasta do jogo antes de encerrar.
+                // Só vale para quem viveu pouco: um intermediário sai logo depois de abrir o jogo;
+                // um jogo que rodou a partida inteira e fechou encerra a sessão na hora, sem
+                // atrasar a restauração do perfil em 15 s a cada saída normal.
                 var current = main;
                 for (int hop = 0; hop < 5; hop++)
                 {
                     try { await current.WaitForExitAsync(token); }
                     catch (OperationCanceledException) { return; }
 
+                    if (!ShouldLookForSuccessor(DateTime.Now - since)) break;
+
                     var next = await _engine.Processes.DetectMainProcessAsync(
                         session.Game, launched: null, TimeSpan.FromSeconds(15), token);
                     if (next is null || next.Id == current.Id) break;
 
                     current = next;
-                    session.MainProcess = next;
+                    since = Track(session, next);
                     _engine.AttachToProcess(session.Profile, next,
                         new Progress<ProfileStepProgress>(step => StepReported?.Invoke(step)));
                     if (_metrics?.Enabled == true && _metrics.Options.Fps) _fps?.Start(next);
@@ -172,6 +182,26 @@ public class GameSessionManager
             await EndAsync(session);
     }
 
+    /// <summary>Até quanto tempo de vida um processo que saiu ainda pode ser só um intermediário
+    /// (start_protected_game.exe do EAC, "Launcher.exe"), que fecha pouco depois de abrir o jogo.</summary>
+    public static readonly TimeSpan BootstrapperMaxLifetime = TimeSpan.FromMinutes(5);
+
+    /// <summary>Vale procurar um sucessor quando o processo observado viveu pouco.</summary>
+    public static bool ShouldLookForSuccessor(TimeSpan lifetime) => lifetime < BootstrapperMaxLifetime;
+
+    /// <summary>
+    /// Passa a observar <paramref name="process"/>: guarda o nome (ainda vivo) e devolve desde
+    /// quando ele existe — o início real do processo quando dá para ler, senão agora.
+    /// </summary>
+    private static DateTime Track(GameSession session, Process process)
+    {
+        session.MainProcess = process;
+        try { session.MainProcessName = process.ProcessName; } catch { }
+
+        try { return process.StartTime; }
+        catch { return DateTime.Now; }
+    }
+
     /// <summary>Encerra a sessão manualmente (botão "Parar" na interface).</summary>
     public async Task StopAsync()
     {
@@ -187,10 +217,9 @@ public class GameSessionManager
         if (Current != session) return;
         Current = null;
 
-        string? processName = null;
-        try { processName = session.MainProcess?.ProcessName; } catch { }
-
-        _library.RecordSession(session.Game.Id, session.Duration, processName);
+        // O nome anotado ao observar o ÚLTIMO processo principal — o jogo, não o intermediário que
+        // o abriu. Ler MainProcess.ProcessName aqui falhava para processos já encerrados.
+        _library.RecordSession(session.Game.Id, session.Duration, session.MainProcessName);
 
         // Histórico detalhado da sessão (horas, FPS, perfil usado) para a seção de estatísticas.
         var fps = _fps?.Stop();
