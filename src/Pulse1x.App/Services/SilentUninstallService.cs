@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using Pulse1x.App.Localization;
 using System.Text.RegularExpressions;
 
 namespace Pulse1x.App.Services;
@@ -48,7 +49,7 @@ public class SilentUninstallService
         }
 
         if (string.IsNullOrWhiteSpace(uninstallString))
-            return new UninstallResult(UninstallOutcome.Failed, "Nenhum desinstalador registrado.");
+            return new UninstallResult(UninstallOutcome.Failed, Loc.S("Uninst_NoUninstaller"));
 
         var (exe, rawArgs) = SplitCommand(uninstallString);
         string? silentArgs = SilentArgumentsFor(exe, rawArgs);
@@ -114,7 +115,7 @@ public class SilentUninstallService
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            if (process is null) return new UninstallResult(UninstallOutcome.Failed, "Não foi possível iniciar o desinstalador.");
+            if (process is null) return new UninstallResult(UninstallOutcome.Failed, Loc.S("Uninst_StartFailed"));
 
             using var cts = new CancellationTokenSource(timeoutMs);
             try
@@ -130,7 +131,7 @@ public class SilentUninstallService
             // 1605 do MSI = o produto já não está instalado, o que para nós também é sucesso.
             return process.ExitCode is 0 or 3010 or 1605
                 ? new UninstallResult(UninstallOutcome.SilentSuccess)
-                : new UninstallResult(UninstallOutcome.Failed, $"O desinstalador retornou o código {process.ExitCode}.");
+                : new UninstallResult(UninstallOutcome.Failed, Loc.F("Uninst_ExitCode", process.ExitCode));
         }
         catch (Exception ex)
         {

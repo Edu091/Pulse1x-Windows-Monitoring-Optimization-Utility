@@ -17,6 +17,8 @@ internal static partial class LocalizationStrings
         AddGameHub3English();
         AddOptimizationPortuguese();
         AddOptimizationEnglish();
+        AddAuditPortuguese();
+        AddAuditEnglish();
     }
 
     private static void AddGameHubPortuguese()

@@ -69,7 +69,7 @@ public partial class GameEditorViewModel : ObservableObject
     {
         string? file = PickFileRequested?.Invoke(
             Loc.S("GH_PickExecutable"),
-            "Executáveis (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|Todos os arquivos (*.*)|*.*");
+            Loc.S("Filter_ExeShortcuts"));
         if (file is null) return;
 
         // Um atalho é resolvido para o programa real: assim a detecção do processo e a arte
@@ -225,7 +225,7 @@ public partial class EmulatorEditorViewModel : ObservableObject
     [RelayCommand]
     private void BrowseExecutable()
     {
-        string? file = PickFileRequested?.Invoke(Loc.S("GH_PickEmulator"), "Executáveis (*.exe)|*.exe|Todos os arquivos (*.*)|*.*");
+        string? file = PickFileRequested?.Invoke(Loc.S("GH_PickEmulator"), Loc.S("Filter_Exe"));
         if (file is null) return;
         Executable = file;
         if (string.IsNullOrWhiteSpace(Directory)) Directory = Path.GetDirectoryName(file) ?? "";

@@ -415,7 +415,7 @@ public partial class AddGamesViewModel : ObservableObject
     {
         string? file = PickFileRequested?.Invoke(
             Loc.S("GH_PickExecutable"),
-            "Executáveis e atalhos (*.exe;*.lnk;*.url;*.bat;*.cmd)|*.exe;*.lnk;*.url;*.bat;*.cmd|Todos os arquivos (*.*)|*.*");
+            Loc.S("Filter_ExeShortcutsUrl"));
         if (file is null) return;
 
         // Um atalho é resolvido para o programa real, para a detecção do processo e a arte
@@ -457,7 +457,7 @@ public partial class AddGamesViewModel : ObservableObject
     private void BrowseEmulator()
     {
         string? file = PickFileRequested?.Invoke(Loc.S("GH_PickEmulator"),
-            "Executáveis (*.exe)|*.exe|Todos os arquivos (*.*)|*.*");
+            Loc.S("Filter_Exe"));
         if (file is null) return;
         EmulatorExecutable = file;
         if (string.IsNullOrWhiteSpace(EmulatorName)) EmulatorName = Path.GetFileNameWithoutExtension(file);

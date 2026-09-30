@@ -26,6 +26,7 @@ public partial class BloatwareItemViewModel : ObservableObject
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string statusMessage = "";
     [ObservableProperty] private bool currentlyEnabled;
+    [ObservableProperty] private bool isIgnored;
 
     public BloatwareItemViewModel(BloatwareItem item, BloatwareDetectorService service, Action onChanged)
     {
@@ -33,6 +34,7 @@ public partial class BloatwareItemViewModel : ObservableObject
         _service = service;
         _onChanged = onChanged;
         currentlyEnabled = item.CurrentlyEnabled;
+        isIgnored = service.IsIgnored(item.Key);
     }
 
     // ---- Identificação ----
@@ -100,8 +102,10 @@ public partial class BloatwareItemViewModel : ObservableObject
     public bool ShowUninstall => _item.CanUninstall && CurrentlyEnabled;
     public bool IsCritical => _item.IsCritical;
     public bool HasStatus => StatusMessage.Length > 0;
+    public bool ShowIgnore => !IsIgnored;
 
     partial void OnIsBusyChanged(bool value) => Notify();
+    partial void OnIsIgnoredChanged(bool value) => OnPropertyChanged(nameof(ShowIgnore));
     partial void OnCurrentlyEnabledChanged(bool value) => Notify();
     partial void OnStatusMessageChanged(string value) => OnPropertyChanged(nameof(HasStatus));
 
@@ -225,6 +229,17 @@ public partial class BloatwareItemViewModel : ObservableObject
     private void Ignore()
     {
         _service.SetIgnored(Key, true);
+        IsIgnored = true;
+        _onChanged();
+    }
+
+    // Caminho de volta do "Ignorar": o item só aparece com "Mostrar itens ignorados" ligado, e
+    // desfazer grava a preferência no mesmo arquivo, para valer também nas próximas sessões.
+    [RelayCommand]
+    private void Unignore()
+    {
+        _service.SetIgnored(Key, false);
+        IsIgnored = false;
         _onChanged();
     }
 

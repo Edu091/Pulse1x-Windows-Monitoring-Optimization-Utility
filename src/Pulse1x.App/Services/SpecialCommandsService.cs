@@ -5,6 +5,7 @@ using System.Management;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using Pulse1x.App.Localization;
 
 namespace Pulse1x.App.Services;
 
@@ -113,7 +114,7 @@ public class SpecialCommandsService
         }
 
         return guid is null
-            ? new CommandResult(1, "Não foi possível ativar o plano Alto Desempenho.")
+            ? new CommandResult(1, Loc.S("Cmd_HighPerfFailed"))
             : await RunProcessAsync("powercfg", $"/setactive {guid}");
     }
 
@@ -154,7 +155,7 @@ public class SpecialCommandsService
         }
 
         if (guid is null)
-            return new CommandResult(1, "Não foi possível criar o plano Ultimate Performance.");
+            return new CommandResult(1, Loc.S("Cmd_UltimateFailed"));
 
         return await RunProcessAsync("powercfg", $"/setactive {guid}");
     }
@@ -200,7 +201,8 @@ public class SpecialCommandsService
     public string CreateGodMode()
     {
         string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        string path = Path.Combine(desktop, "Painel de Controle Total.{ED7BA470-8E54-465E-825C-99712043E01C}");
+        // O nome antes do "." é só o rótulo exibido na Área de Trabalho; o CLSID é o que importa.
+        string path = Path.Combine(desktop, Loc.S("Cmd_GodModeFolder") + ".{ED7BA470-8E54-465E-825C-99712043E01C}");
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
         return path;
@@ -226,20 +228,20 @@ public class SpecialCommandsService
             var ipv4 = props.UnicastAddresses.FirstOrDefault(u => u.Address.AddressFamily == AddressFamily.InterNetwork);
             var dns = props.DnsAddresses.Where(d => d.AddressFamily == AddressFamily.InterNetwork).Select(d => d.ToString());
 
-            sb.AppendLine($"Adaptador em uso: {nic.Name}");
-            sb.AppendLine($"Descrição: {nic.Description}");
-            sb.AppendLine($"Tipo: {nic.NetworkInterfaceType}");
-            sb.AppendLine($"Endereço IP: {ipv4?.Address}");
-            sb.AppendLine($"Máscara de sub-rede: {ipv4?.IPv4Mask}");
+            sb.AppendLine(Loc.F("Cmd_NetAdapter", nic.Name));
+            sb.AppendLine(Loc.F("Cmd_NetDescription", nic.Description));
+            sb.AppendLine(Loc.F("Cmd_NetType", nic.NetworkInterfaceType));
+            sb.AppendLine(Loc.F("Cmd_NetIp", ipv4?.Address));
+            sb.AppendLine(Loc.F("Cmd_NetMask", ipv4?.IPv4Mask));
             sb.AppendLine($"Gateway: {gateway.Address}");
             sb.AppendLine($"DNS: {string.Join(", ", dns)}");
-            sb.AppendLine($"Velocidade da conexão: {nic.Speed / 1_000_000} Mbps");
-            sb.AppendLine($"Endereço físico (MAC): {FormatMac(nic.GetPhysicalAddress().ToString())}");
+            sb.AppendLine(Loc.F("Cmd_NetSpeed", nic.Speed / 1_000_000));
+            sb.AppendLine(Loc.F("Cmd_NetMac", FormatMac(nic.GetPhysicalAddress().ToString())));
             sb.AppendLine();
         }
 
         string result = sb.ToString().TrimEnd();
-        return result.Length > 0 ? result : "Nenhuma conexão de rede ativa foi encontrada.";
+        return result.Length > 0 ? result : Loc.S("Cmd_NetNone");
     }
 
     private static string FormatMac(string raw)
@@ -268,31 +270,31 @@ public class SpecialCommandsService
     public string BuildReportText()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== RELATÓRIO DO SISTEMA — Pulse1x ===");
-        sb.AppendLine($"Gerado em: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+        sb.AppendLine(Loc.S("Cmd_ReportHeader"));
+        sb.AppendLine(Loc.F("Cmd_ReportGenerated", DateTime.Now.ToString(Loc.S("Cmd_ReportDateFormat"), System.Globalization.CultureInfo.InvariantCulture)));
         sb.AppendLine();
 
-        sb.AppendLine("[ SISTEMA ]");
-        sb.AppendLine($"Computador: {Environment.MachineName}");
-        sb.AppendLine($"Usuário: {Environment.UserName}");
-        sb.AppendLine($"Sistema operacional: {GetOsName()}");
-        sb.AppendLine($"Versão: {Environment.OSVersion.Version}");
-        sb.AppendLine($"Arquitetura: {(Environment.Is64BitOperatingSystem ? "64 bits" : "32 bits")}");
-        sb.AppendLine($"Processador: {GetCpuName()}");
-        sb.AppendLine($"Memória RAM total: {GetTotalRamGb():0.0} GB");
-        sb.AppendLine($"Tempo ligado: {FormatUptime()}");
+        sb.AppendLine(Loc.S("Cmd_ReportSystem"));
+        sb.AppendLine(Loc.F("Cmd_ReportComputer", Environment.MachineName));
+        sb.AppendLine(Loc.F("Cmd_ReportUser", Environment.UserName));
+        sb.AppendLine(Loc.F("Cmd_ReportOs", GetOsName()));
+        sb.AppendLine(Loc.F("Cmd_ReportVersion", Environment.OSVersion.Version));
+        sb.AppendLine(Loc.F("Cmd_ReportArch", Environment.Is64BitOperatingSystem ? "64 bits" : "32 bits"));
+        sb.AppendLine(Loc.F("Cmd_ReportCpu", GetCpuName()));
+        sb.AppendLine(Loc.F("Cmd_ReportRam", $"{GetTotalRamGb():0.0}"));
+        sb.AppendLine(Loc.F("Cmd_ReportUptime", FormatUptime()));
         sb.AppendLine();
 
-        sb.AppendLine("[ ARMAZENAMENTO ]");
+        sb.AppendLine(Loc.S("Cmd_ReportStorage"));
         foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
         {
             double totalGb = d.TotalSize / 1073741824d;
             double freeGb = d.TotalFreeSpace / 1073741824d;
-            sb.AppendLine($"{d.Name}  {freeGb:0.0} GB livres de {totalGb:0.0} GB  ({d.DriveFormat})");
+            sb.AppendLine(Loc.F("Cmd_ReportDrive", d.Name, $"{freeGb:0.0}", $"{totalGb:0.0}", d.DriveFormat));
         }
         sb.AppendLine();
 
-        sb.AppendLine("[ REDE ]");
+        sb.AppendLine(Loc.S("Cmd_ReportNetwork"));
         sb.AppendLine(GetNetworkInfo());
 
         return sb.ToString();
@@ -301,11 +303,13 @@ public class SpecialCommandsService
     public string BuildReportHtml()
     {
         string body = System.Net.WebUtility.HtmlEncode(BuildReportText());
-        return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Relatório do Sistema — Pulse1x</title>" +
+        string title = System.Net.WebUtility.HtmlEncode(Loc.S("Cmd_ReportTitle"));
+        string lang = Loc.Instance.LanguageCode == "en" ? "en" : "pt-BR";
+        return $"<!DOCTYPE html><html lang='{lang}'><head><meta charset='utf-8'><title>{title}</title>" +
                "<style>body{font-family:Segoe UI,Arial,sans-serif;background:#f5f5f5;color:#222;padding:24px;}" +
                "pre{background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;white-space:pre-wrap;" +
                "font-size:13px;line-height:1.5;}h1{font-size:20px;}</style></head><body>" +
-               "<h1>Relatório do Sistema — Pulse1x</h1><pre>" + body + "</pre></body></html>";
+               $"<h1>{title}</h1><pre>" + body + "</pre></body></html>";
     }
 
     private static string GetOsName()
@@ -323,9 +327,9 @@ public class SpecialCommandsService
         try
         {
             using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
-            return (key?.GetValue("ProcessorNameString") as string)?.Trim() ?? "Desconhecido";
+            return (key?.GetValue("ProcessorNameString") as string)?.Trim() ?? Loc.S("Cmd_Unknown");
         }
-        catch { return "Desconhecido"; }
+        catch { return Loc.S("Cmd_Unknown"); }
     }
 
     private static double GetTotalRamGb()

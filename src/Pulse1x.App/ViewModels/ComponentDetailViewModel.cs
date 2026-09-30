@@ -10,7 +10,7 @@ public partial class ComponentDetailViewModel : ObservableObject
 {
     private readonly HardwareDetailsService _detailsService;
 
-    [ObservableProperty] private string title = "Detalhes";
+    [ObservableProperty] private string title = Loc.S("Hw_Details");
     [ObservableProperty] private string subtitle = "";
     [ObservableProperty] private bool isLoading = true;
 

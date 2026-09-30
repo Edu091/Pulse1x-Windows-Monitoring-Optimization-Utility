@@ -197,7 +197,12 @@
                                                            IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
                                                            Visibility="{Binding ShowUninstall, Converter={StaticResource BoolToVis}}" />
                                                 <ui:Button Content="{Binding [Opt_Ignore], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
-                                                           Command="{Binding IgnoreCommand}" />
+                                                           Command="{Binding IgnoreCommand}"
+                                                           Visibility="{Binding ShowIgnore, Converter={StaticResource BoolToVis}}" />
+                                                <!-- Só aparece para itens ignorados, ou seja, com "Mostrar itens ignorados" ligado -->
+                                                <ui:Button Content="{Binding [Bloat_Unignore], Source={x:Static loc:Loc.Instance}}" FontSize="12" Padding="12,5" Margin="0,0,6,4"
+                                                           Command="{Binding UnignoreCommand}"
+                                                           Visibility="{Binding IsIgnored, Converter={StaticResource BoolToVis}}" />
                                                 <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}"
                                                               Style="{DynamicResource GhostToggle}" Background="Transparent" Padding="10,5" Margin="0,0,0,4">
                                                     <TextBlock Text="{Binding [Opt_MoreInfo], Source={x:Static loc:Loc.Instance}}" FontSize="12" />

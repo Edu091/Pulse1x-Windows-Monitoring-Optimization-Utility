@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
+using Pulse1x.App.Localization;
 
 namespace Pulse1x.App.Services;
 
@@ -368,7 +369,42 @@ public class BloatwareDetectorService
             }
             catch { }
         }
+
+        AddDisabledStartupItems(result);
         return result;
+    }
+
+    // Desativar um item de inicialização apaga o valor da chave Run, então a varredura seguinte não
+    // o encontra mais e o botão "Reativar" sumiria junto. Os dados para recriá-lo estão no histórico:
+    // cada desativação ainda não revertida vira um item "desativado" na lista, que pode ser reativado.
+    private void AddDisabledStartupItems(List<BloatwareItem> result)
+    {
+        var disabled = _log.GetAllActive()
+            .Where(c => c.OptimizationId.StartsWith("startup:", StringComparison.Ordinal)
+                        && c.Kind == ChangeKind.Registry && c.NewValue is null)
+            .GroupBy(c => c.OptimizationId)
+            .Select(g => g.First()); // GetAllActive já vem do mais recente para o mais antigo
+
+        foreach (var change in disabled)
+        {
+            // O programa pode ter se recolocado na inicialização: aí o item real já está na lista.
+            if (result.Any(r => r.Key == change.OptimizationId)) continue;
+
+            string data = change.OldValue ?? "";
+            // Sem assinatura (base curada mudou) não há análise para exibir; a reversão continua
+            // disponível no Histórico das Otimizações Avançadas, que usa o mesmo registro.
+            var sig = MatchStartup(change.ValueName, data);
+            if (sig is null) continue;
+
+            result.Add(BuildItem(change.OptimizationId, BloatKind.StartupItem, change.ValueName, sig, it =>
+            {
+                it.StartupHive = change.Hive;
+                it.StartupKeyPath = change.KeyPath;
+                it.StartupValueName = change.ValueName;
+                it.StartupValueData = data;
+                it.CurrentlyEnabled = false;
+            }));
+        }
     }
 
     // ===================== Ações (sempre por clique explícito) =====================
@@ -407,15 +443,17 @@ public class BloatwareDetectorService
             case BloatKind.ScheduledTask when item.TaskPath is not null:
                 {
                     var r = await RunAsync("schtasks", $"/Change /TN \"{item.TaskPath}\" /Disable");
-                    if (r.code != 0) throw new InvalidOperationException("Não foi possível desativar a tarefa. Execute o Pulse1x como Administrador.");
+                    if (r.code != 0) throw new InvalidOperationException(Loc.S("Bloat_TaskDisableFailed"));
                     _log.Record(new OptimizationChange
                     {
                         OptimizationId = item.Key,
                         OptimizationTitle = item.Name,
                         Kind = ChangeKind.Task,
                         KeyPath = item.TaskPath,
-                        OldValue = "Habilitada",
-                        NewValue = "Desabilitada",
+                        // Mesmos textos usados pelas Otimizações Avançadas para tarefas (só exibição;
+                        // a reversão de tarefa não depende deles).
+                        OldValue = Loc.S("AdvOpt_Enabled"),
+                        NewValue = Loc.S("AdvOpt_Disabled"),
                     });
                     item.CurrentlyEnabled = false;
                 }

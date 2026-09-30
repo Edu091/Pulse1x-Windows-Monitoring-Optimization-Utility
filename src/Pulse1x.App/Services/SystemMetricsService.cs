@@ -1,4 +1,5 @@
 using System.IO;
+using Pulse1x.App.Localization;
 using System.Management;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -70,11 +71,11 @@ public class SystemMetricsService : ISystemMetricsService
             string name = drive.Name.TrimEnd('\\', '/');
             string typeText = drive.DriveType switch
             {
-                DriveType.Network => "Rede",
-                DriveType.Removable => "Externo (removível)",
-                DriveType.Fixed when usbLetters.Contains(name) => "Externo (USB)",
-                DriveType.Fixed => "Interno",
-                _ => "Outro"
+                DriveType.Network => Loc.S("Hw_Network"),
+                DriveType.Removable => Loc.S("Disk_ExternalRemovable"),
+                DriveType.Fixed when usbLetters.Contains(name) => Loc.S("Disk_ExternalUsb"),
+                DriveType.Fixed => Loc.S("Disk_Internal"),
+                _ => Loc.S("Disk_Other")
             };
 
             readings.Add(new DiskReading(name, label, typeText, usedGb, freeGb, totalGb, percent));

@@ -1,4 +1,5 @@
 using System.Text;
+using Pulse1x.App.Localization;
 using Pulse1x.App.Models;
 
 namespace Pulse1x.App.Services;
@@ -9,13 +10,13 @@ public static class HealthReportExporter
     public static string BuildText(HealthReport r)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== DIAGNÓSTICO INTELIGENTE — Pulse1x ===");
-        sb.AppendLine($"Gerado em: {r.GeneratedAtText}");
+        sb.AppendLine(Loc.S("HealthReport_Header"));
+        sb.AppendLine(Loc.F("Cmd_ReportGenerated", r.GeneratedAtText));
         sb.AppendLine();
-        sb.AppendLine($"SAÚDE GERAL DO PC: {r.OverallScoreText}  ({r.OverallRatingLabel})");
+        sb.AppendLine(Loc.F("HealthReport_Overall", r.OverallScoreText, r.OverallRatingLabel));
         sb.AppendLine();
 
-        sb.AppendLine("[ NOTAS POR COMPONENTE ]");
+        sb.AppendLine(Loc.S("HealthReport_Scores"));
         foreach (var comp in r.Components)
             sb.AppendLine($"  {comp.Name,-22} {comp.ScoreText,8}  ({comp.RatingLabel})");
         sb.AppendLine();
@@ -25,22 +26,22 @@ public static class HealthReportExporter
             sb.AppendLine($"[ {comp.Name.ToUpperInvariant()} — {comp.ScoreText} ]");
             foreach (var m in comp.Metrics)
                 sb.AppendLine($"  - {m.Label}: {m.Value}");
-            sb.AppendLine($"  Estado: {comp.Summary}");
+            sb.AppendLine("  " + Loc.F("HealthReport_State", comp.Summary));
             sb.AppendLine();
         }
 
-        sb.AppendLine("[ PROBLEMAS DETECTADOS ]");
-        if (r.Problems.Count == 0) sb.AppendLine("  Nenhum problema relevante encontrado.");
+        sb.AppendLine(Loc.S("HealthReport_Problems"));
+        if (r.Problems.Count == 0) sb.AppendLine("  " + Loc.S("HealthReport_NoProblems"));
         else foreach (var p in r.Problems)
             sb.AppendLine($"  ⚠ [{p.SeverityLabel}] {p.Description}");
         sb.AppendLine();
 
-        sb.AppendLine("[ RECOMENDAÇÕES ]");
+        sb.AppendLine(Loc.S("HealthReport_Recommendations"));
         foreach (var rec in r.Recommendations)
             sb.AppendLine($"  ✓ {rec.Text}");
         sb.AppendLine();
 
-        sb.AppendLine("[ RISCOS ]");
+        sb.AppendLine(Loc.S("HealthReport_Risks"));
         foreach (var risk in r.Risks)
             sb.AppendLine($"  {risk.Name}: {risk.LevelLabel}");
         sb.AppendLine();

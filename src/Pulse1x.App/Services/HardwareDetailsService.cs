@@ -1,6 +1,7 @@
 using System.IO;
 using System.Management;
 using System.Net.NetworkInformation;
+using Pulse1x.App.Localization;
 using Pulse1x.App.Models;
 
 namespace Pulse1x.App.Services;
@@ -8,7 +9,9 @@ namespace Pulse1x.App.Services;
 /// <summary>
 /// Coleta informações DETALHADAS (estáticas) de cada componente via WMI, sob demanda
 /// quando o usuário abre a página de detalhes. Tudo é envolto em try/catch para nunca
-/// derrubar a UI caso uma classe WMI esteja indisponível.
+/// derrubar a UI caso uma classe WMI esteja indisponível. Os rótulos saem de
+/// <see cref="Loc"/> no momento da coleta; como nada é guardado em cache (cada abertura da
+/// página chama <see cref="GetDetails"/> de novo), a troca de idioma vale na próxima abertura.
 /// </summary>
 public class HardwareDetailsService
 {
@@ -26,7 +29,7 @@ public class HardwareDetailsService
         "ram" => GetRamDetails(),
         "disk" => GetDiskDetails(id),
         "net" => GetNetworkDetails(),
-        _ => new ComponentDetails("Detalhes", "", Array.Empty<DetailGroup>())
+        _ => new ComponentDetails(Loc.S("Hw_Details"), "", Array.Empty<DetailGroup>())
     };
 
     // ===================================================================== CPU
@@ -44,20 +47,20 @@ public class HardwareDetailsService
 
                 var items = new List<DetailItem>
                 {
-                    new("Modelo", Str(o, "Name")),
-                    new("Fabricante", Str(o, "Manufacturer")),
-                    new("Descrição", Str(o, "Description")),
-                    new("Soquete", Str(o, "SocketDesignation")),
-                    new("Núcleos físicos", Str(o, "NumberOfCores")),
-                    new("Threads (lógicos)", Str(o, "NumberOfLogicalProcessors")),
-                    new("Clock máximo", Mhz(o, "MaxClockSpeed")),
+                    new(Loc.S("Hw_Model"), Str(o, "Name")),
+                    new(Loc.S("Hw_Manufacturer"), Str(o, "Manufacturer")),
+                    new(Loc.S("Hw_Description"), Str(o, "Description")),
+                    new(Loc.S("Hw_Socket"), Str(o, "SocketDesignation")),
+                    new(Loc.S("Hw_PhysicalCores"), Str(o, "NumberOfCores")),
+                    new(Loc.S("Hw_Threads"), Str(o, "NumberOfLogicalProcessors")),
+                    new(Loc.S("Hw_MaxClock"), Mhz(o, "MaxClockSpeed")),
                     new("Cache L2", CacheSize(o, "L2CacheSize", level: 4)),
                     new("Cache L3", CacheSize(o, "L3CacheSize", level: 5)),
-                    new("Arquitetura", AddressWidth(o)),
-                    new("Virtualização", Bool(o, "VirtualizationFirmwareEnabled")),
-                    new("ID do processador", Str(o, "ProcessorId")),
+                    new(Loc.S("Hw_Architecture"), AddressWidth(o)),
+                    new(Loc.S("Hw_Virtualization"), Bool(o, "VirtualizationFirmwareEnabled")),
+                    new(Loc.S("Hw_ProcessorId"), Str(o, "ProcessorId")),
                 };
-                groups.Add(new DetailGroup("Especificações", Clean(items)));
+                groups.Add(new DetailGroup(Loc.S("Hw_Specs"), Clean(items)));
                 break;
             }
         }
@@ -69,15 +72,15 @@ public class HardwareDetailsService
             var live = _hardware.ReadCpu();
             var liveItems = new List<DetailItem>
             {
-                new("Uso atual", $"{live.UsagePercent:0.#}%"),
-                new("Temperatura", live.TemperatureCelsius is { } t ? $"{t:0.#} °C{(live.TemperatureIsApproximate ? " (aprox.)" : "")}" : "N/D"),
-                new("Frequência (ao vivo)", live.ClockMHz is { } c ? $"{c / 1000:0.##} GHz" : "N/D"),
+                new(Loc.S("Hw_CurrentUsage"), $"{live.UsagePercent:0.#}%"),
+                new(Loc.S("Hw_Temperature"), live.TemperatureCelsius is { } t ? $"{t:0.#} °C{(live.TemperatureIsApproximate ? Loc.S("Hw_Approx") : "")}" : Loc.S("Hw_NA")),
+                new(Loc.S("Hw_LiveFrequency"), live.ClockMHz is { } c ? $"{c / 1000:0.##} GHz" : Loc.S("Hw_NA")),
             };
-            groups.Add(new DetailGroup("Em tempo real", liveItems));
+            groups.Add(new DetailGroup(Loc.S("Hw_RealTime"), liveItems));
         }
         catch { /* ignora */ }
 
-        return new ComponentDetails("Processador", subtitle, groups);
+        return new ComponentDetails(Loc.S("Hw_Cpu"), subtitle, groups);
     }
 
     // ===================================================================== RAM
@@ -102,20 +105,20 @@ public class HardwareDetailsService
                 string locator = Str(o, "DeviceLocator");
                 string bank = Str(o, "BankLabel");
                 string header = !string.IsNullOrEmpty(bank) && !string.IsNullOrEmpty(locator)
-                    ? $"Módulo {modules} — {locator} ({bank})"
-                    : $"Módulo {modules}" + (locator != "" ? $" — {locator}" : "");
+                    ? Loc.F("Hw_ModuleFull", modules, locator, bank)
+                    : Loc.F("Hw_Module", modules) + (locator != "" ? $" — {locator}" : "");
 
                 var items = new List<DetailItem>
                 {
-                    new("Capacidade", cap > 0 ? Bytes(cap) : ""),
-                    new("Tipo", memType),
-                    new("Fabricante", CleanManufacturer(Str(o, "Manufacturer"))),
-                    new("Modelo (part number)", Str(o, "PartNumber").Trim()),
-                    new("Velocidade nominal", Mhz(o, "Speed")),
-                    new("Velocidade configurada", Mhz(o, "ConfiguredClockSpeed")),
-                    new("Formato", FormFactor(o)),
-                    new("Voltagem configurada", Millivolts(o, "ConfiguredVoltage")),
-                    new("Número de série", Str(o, "SerialNumber").Trim()),
+                    new(Loc.S("Hw_Capacity"), cap > 0 ? Bytes(cap) : ""),
+                    new(Loc.S("Hw_Type"), memType),
+                    new(Loc.S("Hw_Manufacturer"), CleanManufacturer(Str(o, "Manufacturer"))),
+                    new(Loc.S("Hw_PartNumber"), Str(o, "PartNumber").Trim()),
+                    new(Loc.S("Hw_RatedSpeed"), Mhz(o, "Speed")),
+                    new(Loc.S("Hw_ConfiguredSpeed"), Mhz(o, "ConfiguredClockSpeed")),
+                    new(Loc.S("Hw_FormFactor"), FormFactor(o)),
+                    new(Loc.S("Hw_ConfiguredVoltage"), Millivolts(o, "ConfiguredVoltage")),
+                    new(Loc.S("Hw_SerialNumber"), Str(o, "SerialNumber").Trim()),
                 };
                 groups.Add(new DetailGroup(header, Clean(items)));
             }
@@ -124,13 +127,13 @@ public class HardwareDetailsService
 
         var summary = new List<DetailItem>
         {
-            new("Capacidade total", totalBytes > 0 ? Bytes(totalBytes) : "N/D"),
-            new("Módulos instalados", modules > 0 ? modules.ToString() : "N/D"),
-            new("Tipo", type != "" ? type : "N/D"),
+            new(Loc.S("Hw_TotalCapacity"), totalBytes > 0 ? Bytes(totalBytes) : Loc.S("Hw_NA")),
+            new(Loc.S("Hw_ModulesInstalled"), modules > 0 ? modules.ToString() : Loc.S("Hw_NA")),
+            new(Loc.S("Hw_Type"), type != "" ? type : Loc.S("Hw_NA")),
         };
-        groups.Insert(0, new DetailGroup("Resumo", summary));
+        groups.Insert(0, new DetailGroup(Loc.S("Hw_Summary"), summary));
 
-        return new ComponentDetails("Memória RAM", type != "" ? $"{Bytes(totalBytes)} {type}" : Bytes(totalBytes), groups);
+        return new ComponentDetails(Loc.S("Hw_Ram"), type != "" ? $"{Bytes(totalBytes)} {type}" : Bytes(totalBytes), groups);
     }
 
     // ===================================================================== GPU
@@ -164,16 +167,16 @@ public class HardwareDetailsService
 
                 var items = new List<DetailItem>
                 {
-                    new("Modelo", Str(gpu, "Name")),
-                    new("Fabricante", Str(gpu, "AdapterCompatibility")),
-                    new("Processador de vídeo", Str(gpu, "VideoProcessor")),
-                    new("Memória dedicada", VramText(gpu)),
-                    new("Resolução atual", resolution),
-                    new("Taxa de atualização", Hz(gpu, "CurrentRefreshRate")),
-                    new("Versão do driver", Str(gpu, "DriverVersion")),
-                    new("Data do driver", DriverDate(gpu)),
+                    new(Loc.S("Hw_Model"), Str(gpu, "Name")),
+                    new(Loc.S("Hw_Manufacturer"), Str(gpu, "AdapterCompatibility")),
+                    new(Loc.S("Hw_VideoProcessor"), Str(gpu, "VideoProcessor")),
+                    new(Loc.S("Hw_DedicatedMemory"), VramText(gpu)),
+                    new(Loc.S("Hw_CurrentResolution"), resolution),
+                    new(Loc.S("Hw_RefreshRate"), Hz(gpu, "CurrentRefreshRate")),
+                    new(Loc.S("Hw_DriverVersion"), Str(gpu, "DriverVersion")),
+                    new(Loc.S("Hw_DriverDate"), DriverDate(gpu)),
                 };
-                groups.Add(new DetailGroup("Especificações", Clean(items)));
+                groups.Add(new DetailGroup(Loc.S("Hw_Specs"), Clean(items)));
             }
         }
         catch { /* ignora */ }
@@ -187,16 +190,16 @@ public class HardwareDetailsService
             {
                 var liveItems = new List<DetailItem>
                 {
-                    new("Uso atual", $"{live.UsagePercent:0.#}%"),
-                    new("Temperatura", live.TemperatureCelsius is { } t ? $"{t:0.#} °C" : "N/D"),
-                    new("Clock (ao vivo)", live.ClockMHz is { } c ? $"{c:0} MHz" : "N/D"),
+                    new(Loc.S("Hw_CurrentUsage"), $"{live.UsagePercent:0.#}%"),
+                    new(Loc.S("Hw_Temperature"), live.TemperatureCelsius is { } t ? $"{t:0.#} °C" : Loc.S("Hw_NA")),
+                    new(Loc.S("Hw_LiveClock"), live.ClockMHz is { } c ? $"{c:0} MHz" : Loc.S("Hw_NA")),
                 };
-                groups.Add(new DetailGroup("Em tempo real", liveItems));
+                groups.Add(new DetailGroup(Loc.S("Hw_RealTime"), liveItems));
             }
         }
         catch { /* ignora */ }
 
-        return new ComponentDetails("Placa de vídeo", subtitle, groups);
+        return new ComponentDetails(Loc.S("Hw_Gpu"), subtitle, groups);
     }
 
     // ==================================================================== DISCO
@@ -214,15 +217,15 @@ public class HardwareDetailsService
                 subtitle = string.IsNullOrWhiteSpace(di.VolumeLabel) ? driveLetter : $"{di.VolumeLabel} ({driveLetter})";
                 var volItems = new List<DetailItem>
                 {
-                    new("Letra", driveLetter),
-                    new("Rótulo", di.VolumeLabel),
-                    new("Sistema de arquivos", di.DriveFormat),
-                    new("Tipo de unidade", DriveTypeText(di.DriveType)),
-                    new("Capacidade total", Bytes((ulong)di.TotalSize)),
-                    new("Espaço livre", Bytes((ulong)di.AvailableFreeSpace)),
-                    new("Espaço usado", Bytes((ulong)(di.TotalSize - di.AvailableFreeSpace))),
+                    new(Loc.S("Hw_Letter"), driveLetter),
+                    new(Loc.S("Hw_Label"), di.VolumeLabel),
+                    new(Loc.S("Hw_FileSystem"), di.DriveFormat),
+                    new(Loc.S("Hw_DriveType"), DriveTypeText(di.DriveType)),
+                    new(Loc.S("Hw_TotalCapacity"), Bytes((ulong)di.TotalSize)),
+                    new(Loc.S("Hw_FreeSpace"), Bytes((ulong)di.AvailableFreeSpace)),
+                    new(Loc.S("Hw_UsedSpace"), Bytes((ulong)(di.TotalSize - di.AvailableFreeSpace))),
                 };
-                groups.Add(new DetailGroup("Volume", Clean(volItems)));
+                groups.Add(new DetailGroup(Loc.S("Hw_Volume"), Clean(volItems)));
             }
         }
         catch { /* ignora */ }
@@ -242,16 +245,16 @@ public class HardwareDetailsService
                     string index = Str(disk, "Index");
                     var items = new List<DetailItem>
                     {
-                        new("Modelo", Str(disk, "Model")),
-                        new("Interface", Str(disk, "InterfaceType")),
-                        new("Mídia", MediaTypeText(disk, index)),
-                        new("Barramento", BusType(index)),
-                        new("Capacidade", Bytes(ULong(disk, "Size"))),
-                        new("Partições", Str(disk, "Partitions")),
+                        new(Loc.S("Hw_Model"), Str(disk, "Model")),
+                        new(Loc.S("Hw_Interface"), Str(disk, "InterfaceType")),
+                        new(Loc.S("Hw_Media"), MediaTypeText(disk, index)),
+                        new(Loc.S("Hw_Bus"), BusType(index)),
+                        new(Loc.S("Hw_Capacity"), Bytes(ULong(disk, "Size"))),
+                        new(Loc.S("Hw_Partitions"), Str(disk, "Partitions")),
                         new("Firmware", Str(disk, "FirmwareRevision").Trim()),
-                        new("Número de série", Str(disk, "SerialNumber").Trim()),
+                        new(Loc.S("Hw_SerialNumber"), Str(disk, "SerialNumber").Trim()),
                     };
-                    groups.Add(new DetailGroup("Disco físico", Clean(items)));
+                    groups.Add(new DetailGroup(Loc.S("Hw_PhysicalDisk"), Clean(items)));
                     break;
                 }
                 break;
@@ -259,7 +262,7 @@ public class HardwareDetailsService
         }
         catch { /* ignora */ }
 
-        return new ComponentDetails("Armazenamento", subtitle, groups);
+        return new ComponentDetails(Loc.S("Hw_Storage"), subtitle, groups);
     }
 
     // ==================================================================== REDE
@@ -280,9 +283,9 @@ public class HardwareDetailsService
 
                 var items = new List<DetailItem>
                 {
-                    new("Tipo", NicTypeText(nic.NetworkInterfaceType)),
-                    new("Velocidade", nic.Speed > 0 ? $"{nic.Speed / 1_000_000.0:0} Mbps" : ""),
-                    new("Endereço MAC", FormatMac(nic.GetPhysicalAddress().ToString())),
+                    new(Loc.S("Hw_Type"), NicTypeText(nic.NetworkInterfaceType)),
+                    new(Loc.S("Hw_Speed"), nic.Speed > 0 ? $"{nic.Speed / 1_000_000.0:0} Mbps" : ""),
+                    new(Loc.S("Hw_MacAddress"), FormatMac(nic.GetPhysicalAddress().ToString())),
                     new("IPv4", ipv4),
                 };
                 groups.Add(new DetailGroup(nic.Name, Clean(items)));
@@ -291,9 +294,9 @@ public class HardwareDetailsService
         catch { /* ignora */ }
 
         if (groups.Count == 0)
-            groups.Add(new DetailGroup("Rede", new[] { new DetailItem("Status", "Nenhum adaptador ativo") }));
+            groups.Add(new DetailGroup(Loc.S("Hw_Network"), new[] { new DetailItem(Loc.S("Hw_Status"), Loc.S("Hw_NoActiveAdapter")) }));
 
-        return new ComponentDetails("Rede", "Adaptadores ativos", groups);
+        return new ComponentDetails(Loc.S("Hw_Network"), Loc.S("Hw_ActiveAdapters"), groups);
     }
 
     // ============================================================ Helpers WMI
@@ -329,7 +332,7 @@ public class HardwareDetailsService
 
     private static string Bool(ManagementBaseObject o, string prop)
     {
-        try { return o[prop] is bool b ? (b ? "Ativada" : "Desativada") : ""; }
+        try { return o[prop] is bool b ? (b ? Loc.S("Hw_Enabled") : Loc.S("Hw_Disabled")) : ""; }
         catch { return ""; }
     }
 
@@ -390,7 +393,7 @@ public class HardwareDetailsService
         var raw = Str(o, "DriverDate");
         if (raw.Length >= 8 && DateTime.TryParseExact(raw.Substring(0, 8), "yyyyMMdd",
             null, System.Globalization.DateTimeStyles.None, out var d))
-            return d.ToString("dd/MM/yyyy");
+            return d.ToString(Loc.S("Hw_DateFormat"), System.Globalization.CultureInfo.InvariantCulture);
         return "";
     }
 
@@ -414,7 +417,7 @@ public class HardwareDetailsService
             34 => "DDR5",
             35 => "LPDDR5",
             30 => "LPDDR4",
-            _ => t > 0 ? $"Tipo {t}" : ""
+            _ => t > 0 ? Loc.F("Hw_TypeN", t) : ""
         };
     }
 
@@ -426,7 +429,7 @@ public class HardwareDetailsService
             8 => "DIMM",
             12 => "SODIMM",
             13 => "Micro-DIMM",
-            _ => f > 0 ? $"Formato {f}" : ""
+            _ => f > 0 ? Loc.F("Hw_FormFactorN", f) : ""
         };
     }
 
@@ -483,17 +486,17 @@ public class HardwareDetailsService
 
     private static string DriveTypeText(DriveType t) => t switch
     {
-        DriveType.Fixed => "Fixo (interno)",
-        DriveType.Removable => "Removível",
-        DriveType.Network => "Rede",
+        DriveType.Fixed => Loc.S("Hw_DriveFixed"),
+        DriveType.Removable => Loc.S("Hw_DriveRemovable"),
+        DriveType.Network => Loc.S("Hw_Network"),
         DriveType.CDRom => "CD/DVD",
-        DriveType.Ram => "Disco RAM",
+        DriveType.Ram => Loc.S("Hw_DriveRam"),
         _ => t.ToString()
     };
 
     private static string NicTypeText(NetworkInterfaceType t) => t switch
     {
-        NetworkInterfaceType.Ethernet => "Ethernet (cabo)",
+        NetworkInterfaceType.Ethernet => Loc.S("Hw_Ethernet"),
         NetworkInterfaceType.Wireless80211 => "Wi-Fi",
         NetworkInterfaceType.GigabitEthernet => "Gigabit Ethernet",
         _ => t.ToString()

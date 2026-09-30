@@ -1,5 +1,7 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Pulse1x.App.Localization;
 
 namespace Pulse1x.App.Services;
 
@@ -45,18 +47,21 @@ public class OptimizationChange
     public bool Reverted { get; set; }
     public DateTime? RevertedAt { get; set; }
 
-    /// <summary>Descrição amigável do alvo da alteração, para exibição na tela.</summary>
+    /// <summary>Descrição amigável do alvo da alteração, para exibição na tela.
+    /// Só de exibição (no idioma atual): fica fora do JSON para o arquivo não gravar texto traduzido.</summary>
+    [JsonIgnore]
     public string DisplayTarget => Kind switch
     {
         ChangeKind.Registry => $"{Hive}\\{KeyPath}\\{ValueName}",
-        ChangeKind.Task => $"Tarefa agendada: {KeyPath}",
-        ChangeKind.PowerCfg => "Plano de energia do Windows",
+        ChangeKind.Task => Loc.F("ChangeLog_Task", KeyPath),
+        ChangeKind.PowerCfg => Loc.S("ChangeLog_PowerPlan"),
         ChangeKind.AppSetting => $"{KeyPath} → {ValueName}",
         _ => KeyPath,
     };
 
     /// <summary>Resumo "antes → depois" do valor alterado.</summary>
-    public string DisplayChange => $"{OldValue ?? "(ausente)"} → {NewValue ?? "(removido)"}";
+    [JsonIgnore]
+    public string DisplayChange => $"{OldValue ?? Loc.S("ChangeLog_Absent")} → {NewValue ?? Loc.S("ChangeLog_Removed")}";
 }
 
 /// <summary>

@@ -34,7 +34,7 @@ public partial class ProfileEditorWindow : FluentWindow
     private void AddStartApp_Click(object sender, RoutedEventArgs e)
     {
         string? file = FilePickers.PickFile(this, Loc.S("GH_PickExecutable"),
-            "Executáveis (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|Todos os arquivos (*.*)|*.*");
+            Loc.S("Filter_ExeShortcuts"));
         if (file is not null) _viewModel.AddStartApp(file);
     }
 }

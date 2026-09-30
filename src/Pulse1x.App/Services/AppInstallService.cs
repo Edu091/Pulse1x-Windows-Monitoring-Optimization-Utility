@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Management;
 using Microsoft.Win32;
+using Pulse1x.App.Localization;
 using Pulse1x.App.Models;
 
 namespace Pulse1x.App.Services;
@@ -144,7 +145,7 @@ public class AppInstallService
         catch (OperationCanceledException)
         {
             try { proc.Kill(entireProcessTree: true); } catch { }
-            lock (sb) sb.AppendLine("Timeout: a instalação não terminou em 20 minutos.");
+            lock (sb) sb.AppendLine(Loc.S("Install_Timeout"));
             lock (sb) return new CommandResult(-1, sb.ToString());
         }
 
