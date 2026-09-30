@@ -1,5 +1,10 @@
 ﻿# Histórico de versões
 
+## 1.13.1 — 30/09/2026
+
+- **Otimização de Hardware e Software** virou uma seção própria na página de Otimização, fora das Otimizações Avançadas. Ela reúne CPU e GPU, Jogos e captura, Aceleração de hardware em aplicativos, Sistema e Ajustes Visuais. As Otimizações Avançadas ficam só com privacidade, telemetria e bloatware. As mudanças das duas seções continuam no mesmo Histórico e Reversão.
+- Os interruptores de **aceleração de hardware** agora mostram o estado real do aplicativo: ligado significa que o app usa aceleração de hardware. Para liberar a GPU, basta desligar o interruptor. Religar devolve a configuração anterior. O botão "Restaurar todos" passou a se chamar **Reativar em todos**.
+
 ## 1.13.0 — 29/09/2026
 
 - As **Otimizações Avançadas** foram reorganizadas em dois grupos. Em cima, **Privacidade, telemetria e bloatware**, com tudo o que desliga coleta de dados, serviços dispensáveis e apps pré-instalados, incluindo o Detector de Bloatware. Logo abaixo, a nova categoria **Otimização de hardware e software**, dividida em CPU e GPU, Jogos, Aceleração de hardware em aplicativos, Sistema e Ajustes Visuais.

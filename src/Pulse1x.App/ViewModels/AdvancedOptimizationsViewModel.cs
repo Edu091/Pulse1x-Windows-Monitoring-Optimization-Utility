@@ -94,14 +94,30 @@ public partial class AdvancedOptimizationViewModel : ObservableObject
         IsApplied = applied;
         _suppressToggle = false;
 
-        StateText = applied ? Loc.S("AdvOpt_StateOn") : Loc.S("AdvOpt_StateOff");
+        StateText = ShowsFeatureState
+            ? (applied ? Loc.S("AdvOpt_HwAccelStateOff") : Loc.S("AdvOpt_HwAccelStateOn"))
+            : (applied ? Loc.S("AdvOpt_StateOn") : Loc.S("AdvOpt_StateOff"));
 
         if (_model.StateDetailAsync is not null)
             StateDetail = await _model.StateDetailAsync();
     }
 
+    /// <summary>
+    /// Leitura "positiva" para os interruptores de aceleração de hardware: ligado = o app usa a
+    /// GPU (estado natural); desligar aplica a otimização. É o inverso de <see cref="IsApplied"/>.
+    /// </summary>
+    public bool IsFeatureOn
+    {
+        get => !IsApplied;
+        set => IsApplied = !value;
+    }
+
+    /// <summary>Otimizações cujo interruptor mostra o recurso (ligado = recurso ativo), não a otimização.</summary>
+    public bool ShowsFeatureState => _model.Category == "HwAccel";
+
     partial void OnIsAppliedChanged(bool value)
     {
+        OnPropertyChanged(nameof(IsFeatureOn));
         if (_suppressToggle) return;
         _ = ToggleAsync(value);
     }
@@ -176,6 +192,9 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     private readonly AdvancedOptimizationService _service;
 
     [ObservableProperty] private bool isSectionExpanded;
+
+    /// <summary>Cartão próprio "Otimização de Hardware e Software", fora das Otimizações Avançadas.</summary>
+    [ObservableProperty] private bool isTuningExpanded;
     [ObservableProperty] private bool isExplainerExpanded;
     [ObservableProperty] private bool isHistoryExpanded;
     [ObservableProperty] private bool isRefreshing;
@@ -337,6 +356,11 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     }
 
     partial void OnIsSectionExpandedChanged(bool value)
+    {
+        if (value) _ = RefreshAllAsync();
+    }
+
+    partial void OnIsTuningExpandedChanged(bool value)
     {
         if (value) _ = RefreshAllAsync();
     }

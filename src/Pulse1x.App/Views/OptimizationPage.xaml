@@ -972,12 +972,6 @@
                                        Margin="8,0,0,0" Opacity="0.8" />
                         </StackPanel>
 
-                        <!-- ================= GRUPO 1: Privacidade, telemetria e bloatware =================
-                             Tudo o que DESLIGA algo do Windows: coleta de dados, serviços dispensáveis
-                             e apps pré-instalados. -->
-                        <TextBlock Text="{Binding [Opt_GroupDebloat], Source={x:Static loc:Loc.Instance}}" FontWeight="Bold" FontSize="15" Margin="2,4,0,2" />
-                        <TextBlock Text="{Binding [Opt_GroupDebloatSub], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12"
-                                   TextWrapping="Wrap" Margin="2,0,0,10" />
 
                         <!-- ===== Privacidade ===== -->
                         <TextBlock Text="{Binding [Opt_CatPrivacy], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,4,0,8" />
@@ -991,111 +985,6 @@
                         <ContentControl Content="{Binding Detector}"
                                         ContentTemplate="{StaticResource BloatwareDetectorTemplate}" />
 
-                        <!-- ================= GRUPO 2: Otimização de hardware e software =================
-                             O que AJUSTA o sistema para render mais: CPU, GPU, jogos e aparência. -->
-                        <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,18,0,14" />
-                        <TextBlock Text="{Binding [Opt_GroupTuning], Source={x:Static loc:Loc.Instance}}" FontWeight="Bold" FontSize="15" Margin="2,0,0,2" />
-                        <TextBlock Text="{Binding [Opt_GroupTuningSub], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12"
-                                   TextWrapping="Wrap" Margin="2,0,0,10" />
-
-                        <!-- ===== Hardware (CPU e GPU) ===== -->
-                        <TextBlock Text="{Binding [Opt_CatHardware], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,4,0,8" />
-                        <ItemsControl ItemsSource="{Binding HardwareOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
-
-                        <!-- ===== Jogos (Game DVR / Xbox Game Bar) ===== -->
-                        <TextBlock Text="{Binding [Opt_CatGaming], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
-                        <ItemsControl ItemsSource="{Binding GamingOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
-
-                        <!-- ===== Aceleração de hardware por aplicativo ===== -->
-                        <TextBlock Text="{Binding [Opt_CatHwAccel], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
-                        <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
-                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                            <StackPanel>
-                                <TextBlock Text="{Binding [Opt_HwAccelIntro], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.8"
-                                           TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,10" />
-
-                                <TextBlock Text="{Binding [Opt_HwAccelNone], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.6"
-                                           TextWrapping="Wrap"
-                                           Visibility="{Binding HasHardwareAccelerationApps, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
-
-                                <ItemsControl ItemsSource="{Binding HardwareAccelerationApps}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <!-- Apps não instalados ficam ocultos. -->
-                                            <Border Margin="0,0,0,4" Padding="8,6" CornerRadius="6"
-                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                                                    Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVis}}">
-                                                <StackPanel>
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="Auto" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                            <TextBlock FontSize="11.5" Opacity="0.65" TextWrapping="Wrap">
-                                                                <Run Text="{Binding StateText, Mode=OneWay}" />
-                                                                <Run Text=" · " />
-                                                                <Run Text="{Binding StateDetail, Mode=OneWay}" />
-                                                            </TextBlock>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
-                                                            <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="0,0,8,0"
-                                                                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
-                                                            <ui:ToggleSwitch IsChecked="{Binding IsApplied, Mode=TwoWay}"
-                                                                             IsEnabled="{Binding CanToggle}" OnContent="" OffContent="" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                    <TextBlock Text="{Binding StatusMessage}" FontSize="11.5" Margin="26,4,0,0" TextWrapping="Wrap"
-                                                               Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
-                                            Visibility="{Binding HasHardwareAccelerationApps, Converter={StaticResource BoolToVis}}">
-                                    <ui:Button Content="{Binding [Opt_HwAccelDisableAll], Source={x:Static loc:Loc.Instance}}"
-                                               Command="{Binding DisableAllHardwareAccelerationCommand}" Padding="12,5" Margin="0,0,8,0" />
-                                    <ui:Button Content="{Binding [Opt_HwAccelRestoreAll], Source={x:Static loc:Loc.Instance}}"
-                                               Command="{Binding RestoreAllHardwareAccelerationCommand}" Padding="12,5" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- ===== Sistema ===== -->
-                        <TextBlock Text="{Binding [Opt_CatSystem], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
-                        <ItemsControl ItemsSource="{Binding SystemOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
-
-                        <!-- ===== Ajustes Visuais ===== -->
-                        <TextBlock Text="{Binding [Opt_CatVisual], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
-                        <ItemsControl ItemsSource="{Binding VisualProfiles}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
-                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.65"
-                                                           TextWrapping="Wrap" Margin="0,1,0,0" />
-                                            </StackPanel>
-                                            <ui:Button Grid.Column="1" Content="{Binding [Opt_Apply], Source={x:Static loc:Loc.Instance}}" Padding="14,6" Margin="10,0,0,0"
-                                                       VerticalAlignment="Center"
-                                                       Command="{Binding DataContext.ApplyVisualProfileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                       CommandParameter="{Binding}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
 
                         <!-- ===== Histórico / Reversão ===== -->
                         <Border Margin="0,12,0,0" CornerRadius="10" BorderThickness="1"
@@ -1210,6 +1099,163 @@
                             </StackPanel>
                         </Border>
 
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Cartão: Otimização de Hardware e Software =====================
+                 Separado das Otimizações Avançadas: lá fica o que DESLIGA algo do Windows (privacidade,
+                 telemetria, bloatware); aqui, o que AJUSTA o sistema para render mais. Usa o mesmo
+                 ViewModel e o mesmo histórico de reversão das Otimizações Avançadas. -->
+            <Border
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="6,0,6,12"
+                DataContext="{Binding AdvancedOptimizations}">
+                <StackPanel>
+
+                    <!-- Cabeçalho recolhível do cartão -->
+                    <ToggleButton IsChecked="{Binding IsTuningExpanded, Mode=TwoWay}"
+                                  Style="{StaticResource GhostToggle}"
+                                  Background="Transparent" BorderThickness="0"
+                                  HorizontalContentAlignment="Stretch" Padding="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                    Background="{DynamicResource BrandAccentBrush}">
+                                <TextBlock Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding [Opt_TuningTitle], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding [Opt_GroupTuningSub], Source={x:Static loc:Loc.Instance}}"
+                                           Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="⌄" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsTuningExpanded, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                            <TextBlock Grid.Column="2" Text="⌃" FontSize="16" VerticalAlignment="Center"
+                                       Visibility="{Binding IsTuningExpanded, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <StackPanel Margin="0,12,0,0"
+                                anim:Anim.AnimateVisibility="True" Visibility="{Binding IsTuningExpanded, Converter={StaticResource BoolToVis}}">
+
+                        <!-- Verificação automática de estado -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                    Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVis}}">
+                            <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" />
+                            <TextBlock Text="{Binding [Opt_CheckingState], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center"
+                                       Margin="8,0,0,0" Opacity="0.8" />
+                        </StackPanel>
+
+                        <!-- ===== Hardware (CPU e GPU) ===== -->
+                        <TextBlock Text="{Binding [Opt_CatHardware], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,4,0,8" />
+                        <ItemsControl ItemsSource="{Binding HardwareOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
+
+                        <!-- ===== Jogos (Game DVR / Xbox Game Bar) ===== -->
+                        <TextBlock Text="{Binding [Opt_CatGaming], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <ItemsControl ItemsSource="{Binding GamingOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
+
+                        <!-- ===== Aceleração de hardware por aplicativo ===== -->
+                        <TextBlock Text="{Binding [Opt_CatHwAccel], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [Opt_HwAccelIntro], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.8"
+                                           TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,10" />
+
+                                <TextBlock Text="{Binding [Opt_HwAccelNone], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.6"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasHardwareAccelerationApps, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                                <ItemsControl ItemsSource="{Binding HardwareAccelerationApps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- Apps não instalados ficam ocultos. -->
+                                            <Border Margin="0,0,0,4" Padding="8,6" CornerRadius="6"
+                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                    Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                            <TextBlock FontSize="11.5" Opacity="0.65" TextWrapping="Wrap">
+                                                                <Run Text="{Binding StateText, Mode=OneWay}" />
+                                                                <Run Text=" · " />
+                                                                <Run Text="{Binding StateDetail, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                                            <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="0,0,8,0"
+                                                                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                                                            <ui:ToggleSwitch IsChecked="{Binding IsFeatureOn, Mode=TwoWay}"
+                                                                             IsEnabled="{Binding CanToggle}" OnContent="" OffContent="" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding StatusMessage}" FontSize="11.5" Margin="26,4,0,0" TextWrapping="Wrap"
+                                                               Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                            Visibility="{Binding HasHardwareAccelerationApps, Converter={StaticResource BoolToVis}}">
+                                    <ui:Button Content="{Binding [Opt_HwAccelDisableAll], Source={x:Static loc:Loc.Instance}}"
+                                               Command="{Binding DisableAllHardwareAccelerationCommand}" Padding="12,5" Margin="0,0,8,0" />
+                                    <ui:Button Content="{Binding [Opt_HwAccelRestoreAll], Source={x:Static loc:Loc.Instance}}"
+                                               Command="{Binding RestoreAllHardwareAccelerationCommand}" Padding="12,5" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== Sistema ===== -->
+                        <TextBlock Text="{Binding [Opt_CatSystem], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <ItemsControl ItemsSource="{Binding SystemOptimizations}" ItemTemplate="{StaticResource AdvancedOptCard}" />
+
+                        <!-- ===== Ajustes Visuais ===== -->
+                        <TextBlock Text="{Binding [Opt_CatVisual], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" FontSize="13" Margin="2,10,0,8" />
+                        <ItemsControl ItemsSource="{Binding VisualProfiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="12"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.65"
+                                                           TextWrapping="Wrap" Margin="0,1,0,0" />
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1" Content="{Binding [Opt_Apply], Source={x:Static loc:Loc.Instance}}" Padding="14,6" Margin="10,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Command="{Binding DataContext.ApplyVisualProfileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                       CommandParameter="{Binding}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding [Opt_TuningHistoryNote], Source={x:Static loc:Loc.Instance}}" Opacity="0.6" FontSize="12"
+                                   TextWrapping="Wrap" Margin="2,10,0,0" />
                     </StackPanel>
                 </StackPanel>
             </Border>

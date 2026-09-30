@@ -12,7 +12,11 @@ internal static partial class LocalizationStrings
     {
         var t = Pt;
 
-        t["Opt_AdvancedSub"] = "Privacidade, limpeza do sistema e ajustes de hardware e software — seguros e totalmente reversíveis";
+        t["Opt_AdvancedSub"] = "Privacidade, telemetria e bloatware — ajustes seguros e totalmente reversíveis";
+        t["Opt_TuningTitle"] = "Otimização de Hardware e Software";
+        t["Opt_TuningHistoryNote"] = "Todas as mudanças desta seção aparecem no Histórico e Reversão das Otimizações Avançadas, onde podem ser desfeitas uma a uma.";
+        t["AdvOpt_HwAccelStateOn"] = "Aceleração de hardware ativada";
+        t["AdvOpt_HwAccelStateOff"] = "Aceleração de hardware desativada";
         t["Opt_GroupDebloat"] = "🛡️ Privacidade, telemetria e bloatware";
         t["Opt_GroupDebloatSub"] = "Desliga coleta de dados, serviços que quase ninguém usa e apps pré-instalados.";
         t["Opt_GroupTuning"] = "⚡ Otimização de hardware e software";
@@ -25,11 +29,11 @@ internal static partial class LocalizationStrings
 
         t["Opt_HwAccelIntro"] =
             "Navegadores, Discord e Spotify usam a GPU mesmo em segundo plano, ocupando VRAM e tempo de GPU que poderiam ir para o jogo. " +
-            "Escolha em quais aplicativos desativar a aceleração de hardware. Desligar o interruptor devolve a configuração que existia antes. " +
-            "A mudança vale na próxima vez que o aplicativo abrir.";
+            "O interruptor mostra o estado atual: ligado = o aplicativo usa aceleração de hardware. Desligue nos que quiser liberar; " +
+            "ligar de novo devolve a configuração que existia antes. A mudança vale na próxima vez que o aplicativo abrir.";
         t["Opt_HwAccelNone"] = "Nenhum aplicativo compatível encontrado (Chrome, Edge, Brave, Firefox, Discord ou Spotify).";
         t["Opt_HwAccelDisableAll"] = "Desativar em todos";
-        t["Opt_HwAccelRestoreAll"] = "Restaurar todos";
+        t["Opt_HwAccelRestoreAll"] = "Reativar em todos";
         t["AdvOpt_HwAccelPolicyDesc"] = "Desativa a aceleração de hardware do {0} pela política oficial do navegador. Ele passa a mostrar \"gerenciado pela organização\" enquanto a política existir.";
         t["AdvOpt_HwAccelDiscordDesc"] = "Desativa a aceleração de hardware no arquivo de configuração do Discord (também PTB e Canary).";
         t["AdvOpt_HwAccelSpotifyDesc"] = "Desativa a aceleração de hardware no arquivo de preferências do Spotify.";
@@ -71,7 +75,11 @@ internal static partial class LocalizationStrings
     {
         var t = En;
 
-        t["Opt_AdvancedSub"] = "Privacy, system cleanup and hardware/software tuning — safe and fully reversible";
+        t["Opt_AdvancedSub"] = "Privacy, telemetry and bloatware — safe and fully reversible tweaks";
+        t["Opt_TuningTitle"] = "Hardware and Software Optimization";
+        t["Opt_TuningHistoryNote"] = "Every change in this section shows up in Advanced Optimizations' History and Revert, where it can be undone one by one.";
+        t["AdvOpt_HwAccelStateOn"] = "Hardware acceleration on";
+        t["AdvOpt_HwAccelStateOff"] = "Hardware acceleration off";
         t["Opt_GroupDebloat"] = "🛡️ Privacy, telemetry and bloatware";
         t["Opt_GroupDebloatSub"] = "Turns off data collection, services almost nobody uses and preinstalled apps.";
         t["Opt_GroupTuning"] = "⚡ Hardware and software optimization";
@@ -84,11 +92,11 @@ internal static partial class LocalizationStrings
 
         t["Opt_HwAccelIntro"] =
             "Browsers, Discord and Spotify use the GPU even in the background, taking VRAM and GPU time that could go to the game. " +
-            "Choose which apps should have hardware acceleration turned off. Turning a switch off brings back the setting that was there before. " +
-            "The change takes effect the next time the app opens.";
+            "Each switch shows the current state: on = the app uses hardware acceleration. Turn it off where you want to free the GPU; " +
+            "turning it back on restores the setting that was there before. The change takes effect the next time the app opens.";
         t["Opt_HwAccelNone"] = "No supported app found (Chrome, Edge, Brave, Firefox, Discord or Spotify).";
         t["Opt_HwAccelDisableAll"] = "Disable in all";
-        t["Opt_HwAccelRestoreAll"] = "Restore all";
+        t["Opt_HwAccelRestoreAll"] = "Re-enable in all";
         t["AdvOpt_HwAccelPolicyDesc"] = "Turns off {0} hardware acceleration through the browser's official policy. It will show \"managed by your organization\" while the policy exists.";
         t["AdvOpt_HwAccelDiscordDesc"] = "Turns off hardware acceleration in Discord's settings file (PTB and Canary too).";
         t["AdvOpt_HwAccelSpotifyDesc"] = "Turns off hardware acceleration in Spotify's preferences file.";
