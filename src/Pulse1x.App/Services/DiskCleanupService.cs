@@ -415,8 +415,10 @@ public class DiskCleanupService
                         (rt.Contains("Update", StringComparison.OrdinalIgnoreCase) || rt.Contains("Hotfix", StringComparison.OrdinalIgnoreCase)))
                         continue;
 
-                    string? uninstall = (sub.GetValue("QuietUninstallString") as string)
-                                        ?? (sub.GetValue("UninstallString") as string);
+                    // A tela promete abrir o desinstalador oficial: o comando interativo vem
+                    // primeiro. O silencioso (QuietUninstallString) removia o app sem perguntar.
+                    string? uninstall = (sub.GetValue("UninstallString") as string)
+                                        ?? (sub.GetValue("QuietUninstallString") as string);
                     if (string.IsNullOrWhiteSpace(uninstall)) continue;
 
                     // Só lista apps com tamanho conhecido (para poder ordenar por peso).
@@ -465,6 +467,14 @@ public class DiskCleanupService
             int end = command.IndexOf('"', 1);
             if (end > 0)
                 return (command.Substring(1, end - 1), command[(end + 1)..].Trim());
+        }
+        // Caminho sem aspas e com espaços ("C:\Program Files (x86)\Foo\uninst.exe /x"): cortar no
+        // primeiro espaço tentava executar "C:\Program". O executável termina no ".exe".
+        int exeEnd = command.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+        if (exeEnd > 0)
+        {
+            exeEnd += 4;
+            return (command[..exeEnd], command[exeEnd..].Trim());
         }
         int space = command.IndexOf(' ');
         return space < 0 ? (command, "") : (command[..space], command[(space + 1)..].Trim());

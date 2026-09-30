@@ -13,6 +13,10 @@ public enum ChangeKind
     Registry,
     Task,
     PowerCfg,
+
+    /// <summary>Configuração dentro do arquivo de um aplicativo (JSON do Discord, "prefs" do
+    /// Spotify). KeyPath = caminho do arquivo, ValueName = chave, ValueKind = "Json" | "Prefs".</summary>
+    AppSetting,
 }
 
 /// <summary>
@@ -47,6 +51,7 @@ public class OptimizationChange
         ChangeKind.Registry => $"{Hive}\\{KeyPath}\\{ValueName}",
         ChangeKind.Task => $"Tarefa agendada: {KeyPath}",
         ChangeKind.PowerCfg => "Plano de energia do Windows",
+        ChangeKind.AppSetting => $"{KeyPath} → {ValueName}",
         _ => KeyPath,
     };
 
@@ -129,6 +134,13 @@ public class OptimizationChangeLog
     {
         lock (_gate)
             return _changes.Any(c => c.OptimizationId == optimizationId && !c.Reverted);
+    }
+
+    /// <summary>Todas as alterações, inclusive as já revertidas, em ordem de registro.</summary>
+    public IReadOnlyList<OptimizationChange> GetAll()
+    {
+        lock (_gate)
+            return _changes.ToList();
     }
 
     /// <summary>Todas as alterações ativas, mais recentes primeiro — para o histórico de reversão.</summary>

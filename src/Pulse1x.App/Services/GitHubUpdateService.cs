@@ -71,17 +71,23 @@ public class GitHubUpdateService
             if (remote <= CurrentVersion)
                 return new UpdateCheckResult(UpdateCheckStatus.UpToDate, versionText, null, null);
 
-            // Procura o instalador entre os assets da release (único .exe publicado).
+            // Procura o instalador entre os assets da release. A release também pode trazer o
+            // Pulse1x.App.exe solto (versão portátil); executá-lo com os argumentos silenciosos do
+            // Inno Setup só abriria uma segunda cópia do app sem atualizar nada. Por isso o
+            // "Pulse1x-Setup-*.exe" tem prioridade e qualquer outro .exe é apenas o último recurso.
             string? url = null, name = null;
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
                 string assetName = asset.GetProperty("name").GetString() ?? "";
-                if (assetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if (!assetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+
+                bool isInstaller = assetName.Contains("Setup", StringComparison.OrdinalIgnoreCase);
+                if (url is null || isInstaller)
                 {
                     url = asset.GetProperty("browser_download_url").GetString();
                     name = assetName;
-                    break;
                 }
+                if (isInstaller) break;
             }
 
             return url is null

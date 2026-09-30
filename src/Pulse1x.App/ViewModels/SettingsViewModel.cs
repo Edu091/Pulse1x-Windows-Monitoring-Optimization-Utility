@@ -206,7 +206,18 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnStartWithWindowsChanged(bool value)
     {
-        _settingsService.SetStartWithWindows(value);
+        try
+        {
+            _settingsService.SetStartWithWindows(value);
+        }
+        catch (Exception ex)
+        {
+            // Sem permissão na chave Run: o interruptor volta à posição real em vez de mostrar
+            // a janela genérica de erro inesperado.
+            System.Diagnostics.Debug.WriteLine(ex);
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+                SetProperty(ref startWithWindows, !value, nameof(StartWithWindows)));
+        }
     }
 
     partial void OnMinimizeToTrayChanged(bool value)

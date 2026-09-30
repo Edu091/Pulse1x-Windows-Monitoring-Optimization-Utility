@@ -55,10 +55,11 @@ public class SpecialCommandsService
         using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var sb = new StringBuilder();
 
+        // Saída e erro chegam em threads diferentes do pool; o StringBuilder não é thread-safe.
         void Handle(string? data)
         {
             if (data is null) return;
-            sb.AppendLine(data);
+            lock (sb) sb.AppendLine(data);
             onOutput?.Report(data);
         }
 
@@ -70,7 +71,7 @@ public class SpecialCommandsService
         proc.BeginErrorReadLine();
         await proc.WaitForExitAsync();
 
-        return new CommandResult(proc.ExitCode, sb.ToString());
+        lock (sb) return new CommandResult(proc.ExitCode, sb.ToString());
     }
 
     // Roda vários comandos em sequência, juntando a saída. Para na primeira falha grave (exceção).

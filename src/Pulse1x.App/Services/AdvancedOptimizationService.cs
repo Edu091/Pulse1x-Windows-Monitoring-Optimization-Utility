@@ -59,6 +59,7 @@ public class AdvancedOptimizationService
 {
     private readonly OptimizationChangeLog _log;
     private readonly HardwareOptimizationService _hardware;
+    private readonly AppHardwareAccelerationService _apps;
     public IReadOnlyList<AdvancedOptimization> Optimizations { get; private set; }
 
     /// <summary>Disparado quando o idioma muda e a lista de otimizações é reconstruída com os novos textos.</summary>
@@ -75,6 +76,7 @@ public class AdvancedOptimizationService
     {
         _log = log;
         _hardware = new HardwareOptimizationService(log);
+        _apps = new AppHardwareAccelerationService(log);
         Optimizations = BuildOptimizations();
         Loc.Instance.LanguageChanged += () =>
         {
@@ -406,24 +408,6 @@ public class AdvancedOptimizationService
 
         list.Add(new AdvancedOptimization
         {
-            Id = "xbox-gamebar",
-            Icon = "🎮",
-            Title = Loc.S("AdvOpt_XboxGameBarTitle"),
-            Category = "Desempenho",
-            Description = Loc.S("AdvOpt_XboxGameBarDesc"),
-            IsAppliedAsync = () => Task.FromResult(
-                GetDword(RegistryHive.CurrentUser, @"System\GameConfigStore", "GameDVR_Enabled") == 0),
-            ApplyAsync = () =>
-            {
-                SetDword("xbox-gamebar", RegistryHive.CurrentUser, @"System\GameConfigStore", "GameDVR_Enabled", 0);
-                SetDword("xbox-gamebar", RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\GameDVR", "AppCaptureEnabled", 0);
-                SetDword("xbox-gamebar", RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\GameDVR", "AllowGameDVR", 0);
-                return Task.CompletedTask;
-            },
-        });
-
-        list.Add(new AdvancedOptimization
-        {
             Id = "xbox-services",
             Icon = "🕹️",
             Title = Loc.S("AdvOpt_XboxServicesTitle"),
@@ -606,7 +590,7 @@ public class AdvancedOptimizationService
             Id = "hibernation",
             Icon = "🛌",
             Title = Loc.S("AdvOpt_HibernationTitle"),
-            Category = "Desempenho",
+            Category = "Sistema",
             Description = Loc.S("AdvOpt_HibernationDesc"),
             StateDetailAsync = () =>
             {
@@ -632,8 +616,194 @@ public class AdvancedOptimizationService
         });
 
         AddHardwareOptimizations(list);
+        AddGamingOptimizations(list);
+        AddHardwareAccelerationApps(list);
 
         return list;
+    }
+
+    // ---------- JOGOS (captura em segundo plano) ----------
+
+    private const string GameDvrUser = @"Software\Microsoft\Windows\CurrentVersion\GameDVR";
+    private const string GameBarUser = @"Software\Microsoft\GameBar";
+    private const string GameConfigStore = @"System\GameConfigStore";
+    private const string GameDvrPolicy = @"SOFTWARE\Policies\Microsoft\Windows\GameDVR";
+    private const string BackgroundApps = @"Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications";
+
+    /// <summary>Pacotes da sobreposição Xbox (Windows 11 e a versão antiga do Windows 10).</summary>
+    private static readonly string[] GameBarPackages =
+    {
+        "Microsoft.XboxGamingOverlay_8wekyb3d8bbwe",
+        "Microsoft.XboxGameOverlay_8wekyb3d8bbwe",
+    };
+
+    /// <summary>
+    /// Game DVR e Xbox Game Bar são dois interruptores independentes: dá para manter a Game Bar
+    /// (atalhos, widgets, chat) sem a gravação contínua, ou o contrário. A Game Bar continua com o
+    /// Id "xbox-gamebar" da versão anterior, cujas alterações já registradas seguem reversíveis por
+    /// ele. O Modo de Jogo (AutoGameModeEnabled) NÃO é tocado: ele ajuda o jogo e não grava nada.
+    /// </summary>
+    private void AddGamingOptimizations(List<AdvancedOptimization> list)
+    {
+        list.Add(new AdvancedOptimization
+        {
+            Id = "game-dvr",
+            Icon = "🎥",
+            Title = Loc.S("AdvOpt_GameDvrTitle"),
+            Category = "Jogos",
+            Description = Loc.S("AdvOpt_GameDvrDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_GameDvrDetail")),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser, GameConfigStore, "GameDVR_Enabled") == 0 &&
+                GetDword(RegistryHive.CurrentUser, GameDvrUser, "AppCaptureEnabled") == 0 &&
+                GetDword(RegistryHive.CurrentUser, GameDvrUser, "HistoricalCaptureEnabled") == 0),
+            ApplyAsync = async () =>
+            {
+                const string id = "game-dvr";
+                // Game DVR: a captura de jogo em si e a política que a proíbe para todo o PC.
+                SetDword(id, RegistryHive.CurrentUser, GameConfigStore, "GameDVR_Enabled", 0, fallbackOldValue: 1);
+                SetDword(id, RegistryHive.CurrentUser, GameDvrUser, "AppCaptureEnabled", 0, fallbackOldValue: 1);
+                SetDword(id, RegistryHive.LocalMachine, GameDvrPolicy, "AllowGameDVR", 0);
+
+                // Captura em segundo plano ("Gravar o que aconteceu"): o buffer contínuo dos
+                // últimos minutos, que é o que custa CPU, GPU, disco e memória durante o jogo.
+                SetDword(id, RegistryHive.CurrentUser, GameDvrUser, "HistoricalCaptureEnabled", 0, fallbackOldValue: 1);
+                SetDword(id, RegistryHive.CurrentUser, GameDvrUser, "AudioCaptureEnabled", 0);
+
+                // Serviço de usuário "GameDVR e Transmissão" — o modelo por usuário; vale no próximo logon.
+                if (ServiceExists("BcastDVRUserService"))
+                    await DisableServiceAsync(id, "BcastDVRUserService", defaultStartType: 3);
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "xbox-gamebar",
+            Icon = "🎮",
+            Title = Loc.S("AdvOpt_XboxGameBarTitle"),
+            Category = "Jogos",
+            Description = Loc.S("AdvOpt_XboxGameBarDesc"),
+            StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_XboxGameBarDetail")),
+            IsAppliedAsync = () => Task.FromResult(
+                GetDword(RegistryHive.CurrentUser, GameBarUser, "UseNexusForGameBarEnabled") == 0 &&
+                GameBarPackages.Any(pkg => GetDword(RegistryHive.CurrentUser, $@"{BackgroundApps}\{pkg}", "Disabled") == 1)),
+            ApplyAsync = () =>
+            {
+                const string id = "xbox-gamebar";
+                // O botão Xbox do controle não abre mais a sobreposição, a dica de abertura some e
+                // o app da Game Bar deixa de rodar em segundo plano.
+                SetDword(id, RegistryHive.CurrentUser, GameBarUser, "UseNexusForGameBarEnabled", 0, fallbackOldValue: 1);
+                SetDword(id, RegistryHive.CurrentUser, GameBarUser, "ShowStartupPanel", 0);
+                foreach (var pkg in GameBarPackages)
+                {
+                    SetDword(id, RegistryHive.CurrentUser, $@"{BackgroundApps}\{pkg}", "Disabled", 1);
+                    SetDword(id, RegistryHive.CurrentUser, $@"{BackgroundApps}\{pkg}", "DisabledByUser", 1);
+                }
+                return Task.CompletedTask;
+            },
+        });
+    }
+
+
+    // ---------- ACELERAÇÃO DE HARDWARE EM APLICATIVOS ----------
+
+    /// <summary>
+    /// Um interruptor por aplicativo. Navegadores usam a política oficial
+    /// HardwareAccelerationModeEnabled (Chrome, Edge, Brave) ou HardwareAcceleration (Firefox);
+    /// Discord e Spotify, o arquivo de configuração do próprio app. Só aparecem os instalados.
+    /// </summary>
+    private void AddHardwareAccelerationApps(List<AdvancedOptimization> list)
+    {
+        void AddPolicyApp(string id, string icon, string name, string policyKey, string valueName, Func<bool> installed)
+        {
+            list.Add(new AdvancedOptimization
+            {
+                Id = id,
+                Icon = icon,
+                Title = name,
+                Category = "HwAccel",
+                Description = Loc.F("AdvOpt_HwAccelPolicyDesc", name),
+                IsAvailableAsync = () => Task.FromResult(installed()),
+                IsAppliedAsync = () => Task.FromResult(GetDword(RegistryHive.LocalMachine, policyKey, valueName) == 0),
+                StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_HwAccelRestartApp")),
+                ApplyAsync = () =>
+                {
+                    SetDword(id, RegistryHive.LocalMachine, policyKey, valueName, 0);
+                    return Task.CompletedTask;
+                },
+            });
+        }
+
+        AddPolicyApp("hwaccel-chrome", "🌐", "Google Chrome", ChromePolicy, "HardwareAccelerationModeEnabled",
+            () => AppExists(@"Google\Chrome\Application\chrome.exe"));
+        AddPolicyApp("hwaccel-edge", "🌊", "Microsoft Edge", EdgePolicy, "HardwareAccelerationModeEnabled",
+            () => AppExists(@"Microsoft\Edge\Application\msedge.exe"));
+        AddPolicyApp("hwaccel-brave", "🦁", "Brave", BravePolicy, "HardwareAccelerationModeEnabled",
+            () => AppExists(@"BraveSoftware\Brave-Browser\Application\brave.exe"));
+        AddPolicyApp("hwaccel-firefox", "🦊", "Mozilla Firefox", FirefoxPolicy, "HardwareAcceleration",
+            () => AppExists(@"Mozilla Firefox\firefox.exe"));
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "hwaccel-discord",
+            Icon = "💬",
+            Title = "Discord",
+            Category = "HwAccel",
+            Description = Loc.S("AdvOpt_HwAccelDiscordDesc"),
+            IsAvailableAsync = () => Task.FromResult(_apps.IsDiscordInstalled()),
+            IsAppliedAsync = () => Task.FromResult(_apps.IsDiscordAccelerationDisabled()),
+            StateDetailAsync = () => Task.FromResult<string?>(
+                AppHardwareAccelerationService.IsRunning("Discord", "DiscordPTB", "DiscordCanary")
+                    ? Loc.F("AdvOpt_HwAccelCloseApp", "Discord")
+                    : Loc.S("AdvOpt_HwAccelRestartApp")),
+            ApplyAsync = () =>
+            {
+                _apps.DisableDiscordAcceleration("hwaccel-discord", "Discord");
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "hwaccel-spotify",
+            Icon = "🎵",
+            Title = "Spotify",
+            Category = "HwAccel",
+            Description = Loc.S("AdvOpt_HwAccelSpotifyDesc"),
+            IsAvailableAsync = () => Task.FromResult(_apps.IsSpotifyInstalled()),
+            IsAppliedAsync = () => Task.FromResult(_apps.IsSpotifyAccelerationDisabled()),
+            StateDetailAsync = () => Task.FromResult<string?>(
+                AppHardwareAccelerationService.IsRunning("Spotify")
+                    ? Loc.F("AdvOpt_HwAccelCloseApp", "Spotify")
+                    : Loc.S("AdvOpt_HwAccelRestartApp")),
+            ApplyAsync = () =>
+            {
+                _apps.DisableSpotifyAcceleration("hwaccel-spotify", "Spotify");
+                return Task.CompletedTask;
+            },
+        });
+    }
+
+    private const string ChromePolicy = @"SOFTWARE\Policies\Google\Chrome";
+    private const string EdgePolicy = @"SOFTWARE\Policies\Microsoft\Edge";
+    private const string BravePolicy = @"SOFTWARE\Policies\BraveSoftware\Brave";
+    private const string FirefoxPolicy = @"SOFTWARE\Policies\Mozilla\Firefox";
+
+    // Procura o executável nas três raízes onde navegadores costumam se instalar (por máquina,
+    // 32 bits e por usuário).
+    private static bool AppExists(string relativeExe)
+    {
+        foreach (var root in new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        })
+        {
+            if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, relativeExe)))
+                return true;
+        }
+        return false;
     }
 
     // ---------- HARDWARE (CPU, GPU e RAM) ----------
@@ -727,6 +897,64 @@ public class AdvancedOptimizationService
             ApplyAsync = () =>
             {
                 _hardware.ApplyGamePriority();
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "mmcss-responsiveness",
+            Icon = "📊",
+            Title = Loc.S("AdvOpt_SystemResponsivenessTitle"),
+            Category = "Hardware",
+            Description = Loc.S("AdvOpt_SystemResponsivenessDesc"),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsSystemResponsivenessApplied()),
+            ApplyAsync = () =>
+            {
+                _hardware.ApplySystemResponsiveness();
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "foreground-priority",
+            Icon = "🔝",
+            Title = Loc.S("AdvOpt_ForegroundPriorityTitle"),
+            Category = "Hardware",
+            Description = Loc.S("AdvOpt_ForegroundPriorityDesc"),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsForegroundPriorityApplied()),
+            ApplyAsync = () =>
+            {
+                _hardware.ApplyForegroundPriority();
+                return Task.CompletedTask;
+            },
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "ultimate-power",
+            Icon = "🔌",
+            Title = Loc.S("AdvOpt_UltimatePowerTitle"),
+            Category = "Hardware",
+            Warning = Loc.S("AdvOpt_UltimatePowerWarning"),
+            Description = Loc.S("AdvOpt_UltimatePowerDesc"),
+            IsAppliedAsync = () => _hardware.IsUltimatePowerActiveAsync(),
+            ApplyAsync = () => _hardware.ApplyUltimatePowerAsync(),
+        });
+
+        list.Add(new AdvancedOptimization
+        {
+            Id = "windowed-game-opt",
+            Icon = "📺",
+            Title = Loc.S("AdvOpt_WindowedGamesTitle"),
+            Category = "Hardware",
+            Description = Loc.S("AdvOpt_WindowedGamesDesc"),
+            IsAvailableAsync = () => Task.FromResult(_hardware.IsWindowedGameOptAvailable()),
+            IsAppliedAsync = () => Task.FromResult(_hardware.IsWindowedGameOptApplied()),
+            ApplyAsync = () =>
+            {
+                _hardware.ApplyWindowedGameOpt();
                 return Task.CompletedTask;
             },
         });
@@ -837,10 +1065,40 @@ public class AdvancedOptimizationService
             case "notifications":
                 DeleteValue(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\PushNotifications", "ToastEnabled");
                 break;
+            case "game-dvr":
+                SetDwordRaw(RegistryHive.CurrentUser, GameConfigStore, "GameDVR_Enabled", 1);
+                SetDwordRaw(RegistryHive.CurrentUser, GameDvrUser, "AppCaptureEnabled", 1);
+                DeleteValue(RegistryHive.LocalMachine, GameDvrPolicy, "AllowGameDVR");
+                DeleteValue(RegistryHive.CurrentUser, GameDvrUser, "HistoricalCaptureEnabled");
+                DeleteValue(RegistryHive.CurrentUser, GameDvrUser, "AudioCaptureEnabled");
+                await RestoreServiceDefaultAsync("BcastDVRUserService", 3);
+                break;
             case "xbox-gamebar":
-                SetDwordRaw(RegistryHive.CurrentUser, @"System\GameConfigStore", "GameDVR_Enabled", 1);
-                SetDwordRaw(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\GameDVR", "AppCaptureEnabled", 1);
-                DeleteValue(RegistryHive.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\GameDVR", "AllowGameDVR");
+                SetDwordRaw(RegistryHive.CurrentUser, GameBarUser, "UseNexusForGameBarEnabled", 1);
+                DeleteValue(RegistryHive.CurrentUser, GameBarUser, "ShowStartupPanel");
+                foreach (var pkg in GameBarPackages)
+                {
+                    DeleteValue(RegistryHive.CurrentUser, $@"{BackgroundApps}\{pkg}", "Disabled");
+                    DeleteValue(RegistryHive.CurrentUser, $@"{BackgroundApps}\{pkg}", "DisabledByUser");
+                }
+                break;
+            case "hwaccel-chrome":
+                DeleteValue(RegistryHive.LocalMachine, ChromePolicy, "HardwareAccelerationModeEnabled");
+                break;
+            case "hwaccel-edge":
+                DeleteValue(RegistryHive.LocalMachine, EdgePolicy, "HardwareAccelerationModeEnabled");
+                break;
+            case "hwaccel-brave":
+                DeleteValue(RegistryHive.LocalMachine, BravePolicy, "HardwareAccelerationModeEnabled");
+                break;
+            case "hwaccel-firefox":
+                DeleteValue(RegistryHive.LocalMachine, FirefoxPolicy, "HardwareAcceleration");
+                break;
+            case "hwaccel-discord":
+                _apps.RestoreDiscordDefault();
+                break;
+            case "hwaccel-spotify":
+                _apps.RestoreSpotifyDefault();
                 break;
             case "xbox-services":
                 foreach (var svc in XboxServices)
@@ -942,6 +1200,10 @@ public class AdvancedOptimizationService
             case "power-throttling":
             case "gpu-msi":
             case "game-priority":
+            case "mmcss-responsiveness":
+            case "foreground-priority":
+            case "windowed-game-opt":
+            case "ultimate-power":
                 await _hardware.RestoreDefaultAsync(id);
                 break;
         }
@@ -995,6 +1257,9 @@ public class AdvancedOptimizationService
                     }
                 }
                 break;
+            case ChangeKind.AppSetting:
+                AppHardwareAccelerationService.Revert(change);
+                break;
         }
 
         _log.MarkReverted(change);
@@ -1014,7 +1279,10 @@ public class AdvancedOptimizationService
         }
 
         using var wk = root.CreateSubKey(c.KeyPath);
-        if (c.ValueKind == "DWord" && int.TryParse(c.OldValue, out int dword))
+        // Registros antigos da "Prioridade de Jogos" guardaram DWORDs do perfil Games como texto;
+        // devolvê-los como texto deixaria o perfil num tipo que o MMCSS não lê.
+        bool isDword = c.ValueKind == "DWord" || HardwareOptimizationService.IsGamesProfileDword(c.KeyPath, c.ValueName);
+        if (isDword && int.TryParse(c.OldValue, out int dword))
             wk.SetValue(c.ValueName, dword, RegistryValueKind.DWord);
         else
             wk.SetValue(c.ValueName, c.OldValue, RegistryValueKind.String);

@@ -37,6 +37,14 @@ public class HardwareOptimizationService
     private const string GraphicsDrivers = @"SYSTEM\CurrentControlSet\Control\GraphicsDrivers";
     private const string PowerThrottling = @"SYSTEM\CurrentControlSet\Control\Power\PowerThrottling";
     private const string GamesProfile = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games";
+    private const string MultimediaProfile = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile";
+    private const string PriorityControl = @"SYSTEM\CurrentControlSet\Control\PriorityControl";
+    private const string DirectXUserPrefs = @"Software\Microsoft\DirectX\UserGpuPreferences";
+    private const string DirectXGlobalSettings = "DirectXUserGlobalSettings";
+
+    /// <summary>GUID oficial do modelo do plano "Desempenho Máximo" (Ultimate Performance).</summary>
+    private const string UltimatePlanTemplate = "e9a42b02-d5df-448d-aa00-03f14749eb61";
+    private const string BalancedPlan = "381b4222-f694-41f0-9685-ff5bb260df2e";
 
     public HardwareOptimizationService(OptimizationChangeLog log) => _log = log;
 
@@ -197,15 +205,182 @@ public class HardwareOptimizationService
     /// Microsoft — nada exótico, apenas explicitados.
     /// </summary>
     public bool IsGamePriorityApplied() =>
-        GetString(RegistryHive.LocalMachine, GamesProfile, "GPU Priority") == "8" &&
-        GetString(RegistryHive.LocalMachine, GamesProfile, "Priority") == "6";
+        GetDword(RegistryHive.LocalMachine, GamesProfile, "GPU Priority") == 8 &&
+        GetDword(RegistryHive.LocalMachine, GamesProfile, "Priority") == 6;
 
+    // "GPU Priority" e "Priority" são REG_DWORD no perfil original do Windows. Versões anteriores
+    // do Pulse1x os gravavam como texto (REG_SZ), que o MMCSS não lê — a otimização aparecia
+    // ligada sem surtir efeito. SetDwordRepairing reescreve no tipo certo e guarda o valor antigo.
     public void ApplyGamePriority()
     {
-        SetString("game-priority", GamesProfile, "GPU Priority", "8");
-        SetString("game-priority", GamesProfile, "Priority", "6");
+        SetDwordRepairing("game-priority", GamesProfile, "GPU Priority", 8, defaultValue: 8);
+        SetDwordRepairing("game-priority", GamesProfile, "Priority", 6, defaultValue: 2);
         SetString("game-priority", GamesProfile, "Scheduling Category", "High");
         SetString("game-priority", GamesProfile, "SFIO Priority", "High");
+    }
+
+    /// <summary>Nomes do perfil Games que são DWORD — usados para corrigir reversões antigas gravadas como texto.</summary>
+    public static bool IsGamesProfileDword(string keyPath, string valueName) =>
+        keyPath.Equals(GamesProfile, StringComparison.OrdinalIgnoreCase) &&
+        (valueName == "GPU Priority" || valueName == "Priority");
+
+    // =====================================================================================
+    //  CPU — Reserva do agendador multimídia para tarefas em segundo plano
+    // =====================================================================================
+
+    /// <summary>
+    /// SystemResponsiveness é a fatia da CPU que o MMCSS reserva para tarefas de baixa prioridade
+    /// enquanto um app multimídia (jogo, áudio, vídeo) está ativo. O padrão é 20%; 10% é o mínimo
+    /// que o Windows aceita (valores menores são tratados como 20).
+    /// </summary>
+    public bool IsSystemResponsivenessApplied() =>
+        GetDword(RegistryHive.LocalMachine, MultimediaProfile, "SystemResponsiveness") == 10;
+
+    public void ApplySystemResponsiveness() =>
+        SetDword("mmcss-responsiveness", RegistryHive.LocalMachine, MultimediaProfile, "SystemResponsiveness", 10, fallbackOldValue: 20);
+
+    // =====================================================================================
+    //  CPU — Prioridade do programa em primeiro plano
+    // =====================================================================================
+
+    /// <summary>
+    /// Win32PrioritySeparation define o tamanho da fatia de tempo e o reforço dado ao programa em
+    /// primeiro plano. 0x26 (38) = fatias curtas e variáveis, com reforço máximo (3×) para a janela
+    /// ativa — o jogo recebe CPU com mais frequência que o que roda atrás dele. Padrão: 2.
+    /// </summary>
+    public bool IsForegroundPriorityApplied() =>
+        GetDword(RegistryHive.LocalMachine, PriorityControl, "Win32PrioritySeparation") == 0x26;
+
+    public void ApplyForegroundPriority() =>
+        SetDword("foreground-priority", RegistryHive.LocalMachine, PriorityControl, "Win32PrioritySeparation", 0x26, fallbackOldValue: 2);
+
+    // =====================================================================================
+    //  GPU — Otimizações para jogos em janela (Windows 11 22H2+)
+    // =====================================================================================
+
+    /// <summary>
+    /// A opção "Otimizações para jogos em janela" das Configurações de Gráficos. Troca o modelo de
+    /// apresentação antigo (blt) de jogos DirectX 10/11 em janela ou em tela cheia sem bordas pelo
+    /// modelo flip, o mesmo da tela cheia exclusiva: menos latência e acesso a VRR/Auto HDR.
+    /// A chave é uma lista "nome=valor;" compartilhada com outras opções — só o nosso item muda.
+    /// </summary>
+    public bool IsWindowedGameOptAvailable() => Environment.OSVersion.Version.Build >= 22621;
+
+    public bool IsWindowedGameOptApplied() =>
+        ReadDirectXSetting("SwapEffectUpgradeEnable") == "1";
+
+    public void ApplyWindowedGameOpt()
+    {
+        string? old = GetString(RegistryHive.CurrentUser, DirectXUserPrefs, DirectXGlobalSettings);
+        string updated = WithDirectXSetting(old, "SwapEffectUpgradeEnable", "1");
+        if (updated == old) return;
+
+        try
+        {
+            using var wk = Registry.CurrentUser.CreateSubKey(DirectXUserPrefs);
+            wk.SetValue(DirectXGlobalSettings, updated, RegistryValueKind.String);
+        }
+        catch { return; }
+
+        _log.Record(new OptimizationChange
+        {
+            OptimizationId = "windowed-game-opt",
+            OptimizationTitle = "windowed-game-opt",
+            Kind = ChangeKind.Registry,
+            Hive = "HKCU",
+            KeyPath = DirectXUserPrefs,
+            ValueName = DirectXGlobalSettings,
+            ValueKind = "String",
+            OldValue = old,
+            NewValue = updated,
+        });
+    }
+
+    private string? ReadDirectXSetting(string name)
+    {
+        string? raw = GetString(RegistryHive.CurrentUser, DirectXUserPrefs, DirectXGlobalSettings);
+        if (raw is null) return null;
+        foreach (var part in raw.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0].Trim().Equals(name, StringComparison.OrdinalIgnoreCase))
+                return kv[1].Trim();
+        }
+        return null;
+    }
+
+    /// <summary>Define (ou substitui) um item "nome=valor;" preservando os demais. Público para teste.</summary>
+    public static string WithDirectXSetting(string? raw, string name, string? value)
+    {
+        var parts = (raw ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Where(p => !p.Split('=', 2)[0].Trim().Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (value is not null) parts.Add($"{name}={value}");
+        return parts.Count == 0 ? "" : string.Join(";", parts) + ";";
+    }
+
+    // =====================================================================================
+    //  CPU — Plano de energia "Desempenho Máximo"
+    // =====================================================================================
+
+    /// <summary>
+    /// O plano oculto "Desempenho Máximo" (Ultimate Performance) da Microsoft elimina as
+    /// microlatências de gerenciamento de energia: a CPU não reduz frequência entre rajadas de
+    /// carga. O Windows não o mostra por padrão; o Pulse1x cria uma cópia dele uma única vez e a
+    /// reaproveita. O plano anterior é guardado no log e volta ao desfazer.
+    /// </summary>
+    public async Task<bool> IsUltimatePowerActiveAsync()
+    {
+        string? active = await GetActiveSchemeAsync();
+        if (active is null) return false;
+        return active.Equals(UltimatePlanTemplate, StringComparison.OrdinalIgnoreCase)
+               || active.Equals(FindKnownUltimatePlan(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task ApplyUltimatePowerAsync()
+    {
+        string? previous = await GetActiveSchemeAsync();
+
+        // Reaproveita a cópia criada antes, se ainda existir; senão duplica o modelo oficial.
+        string? plan = FindKnownUltimatePlan();
+        if (plan is null || (await RunAsync("powercfg", $"/query {plan}")).code != 0)
+        {
+            var (code, output) = await RunAsync("powercfg", $"/duplicatescheme {UltimatePlanTemplate}");
+            var match = Regex.Match(output, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+            if (code != 0 || !match.Success)
+                throw new InvalidOperationException(output.Trim());
+            plan = match.Value;
+        }
+
+        var (setCode, setOutput) = await RunAsync("powercfg", $"/setactive {plan}");
+        if (setCode != 0) throw new InvalidOperationException(setOutput.Trim());
+
+        _log.Record(new OptimizationChange
+        {
+            OptimizationId = "ultimate-power",
+            OptimizationTitle = "ultimate-power",
+            Kind = ChangeKind.PowerCfg,
+            KeyPath = "powercfg /setactive",
+            ValueName = "PowerPlan",
+            OldValue = previous,
+            NewValue = plan,
+        });
+    }
+
+    // A cópia criada pelo Pulse1x fica registrada no log (mesmo depois de revertida), o que evita
+    // duplicar o plano a cada vez que o interruptor é ligado.
+    private string? FindKnownUltimatePlan() =>
+        _log.GetAll()
+            .Where(c => c.OptimizationId == "ultimate-power" && c.ValueName == "PowerPlan")
+            .Select(c => c.NewValue)
+            .LastOrDefault(v => !string.IsNullOrEmpty(v));
+
+    private static async Task<string?> GetActiveSchemeAsync()
+    {
+        var (code, output) = await RunAsync("powercfg", "/getactivescheme");
+        if (code != 0) return null;
+        var match = Regex.Match(output, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+        return match.Success ? match.Value : null;
     }
 
     // =====================================================================================
@@ -242,11 +417,33 @@ public class HardwareOptimizationService
                 break;
 
             case "game-priority":
-                // Valores de fábrica do perfil Games do Windows.
-                SetStringRaw(GamesProfile, "GPU Priority", "8");
-                SetStringRaw(GamesProfile, "Priority", "2");
+                // Valores de fábrica do perfil Games do Windows (os dois primeiros são DWORD).
+                SetDwordRaw(RegistryHive.LocalMachine, GamesProfile, "GPU Priority", 8);
+                SetDwordRaw(RegistryHive.LocalMachine, GamesProfile, "Priority", 2);
                 SetStringRaw(GamesProfile, "Scheduling Category", "Medium");
                 SetStringRaw(GamesProfile, "SFIO Priority", "Normal");
+                break;
+
+            case "mmcss-responsiveness":
+                SetDwordRaw(RegistryHive.LocalMachine, MultimediaProfile, "SystemResponsiveness", 20);
+                break;
+
+            case "foreground-priority":
+                SetDwordRaw(RegistryHive.LocalMachine, PriorityControl, "Win32PrioritySeparation", 2);
+                break;
+
+            case "windowed-game-opt":
+                try
+                {
+                    string? raw = GetString(RegistryHive.CurrentUser, DirectXUserPrefs, DirectXGlobalSettings);
+                    using var wk = Registry.CurrentUser.CreateSubKey(DirectXUserPrefs);
+                    wk.SetValue(DirectXGlobalSettings, WithDirectXSetting(raw, "SwapEffectUpgradeEnable", "0"), RegistryValueKind.String);
+                }
+                catch { }
+                break;
+
+            case "ultimate-power":
+                await RunAsync("powercfg", $"/setactive {BalancedPlan}");
                 break;
         }
     }
@@ -349,6 +546,48 @@ public class HardwareOptimizationService
             ValueName = name,
             ValueKind = "DWord",
             OldValue = (alreadyAtTarget ? fallbackOldValue : old)?.ToString(),
+            NewValue = value.ToString(),
+        });
+    }
+
+    // Como SetDword, mas aceita um valor atual gravado como texto (REG_SZ "6") e o converte: o
+    // valor antigo é registrado como DWORD, então desfazer devolve também o tipo correto.
+    private void SetDwordRepairing(string optId, string subKey, string name, int value, int defaultValue)
+    {
+        object? raw;
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(subKey);
+            raw = key?.GetValue(name);
+        }
+        catch { raw = null; }
+
+        if (raw is int current && current == value) return;
+        int? old = raw switch
+        {
+            int i => i,
+            string s when int.TryParse(s, out int parsed) => parsed,
+            _ => null,
+        };
+
+        try
+        {
+            using var wk = Registry.LocalMachine.CreateSubKey(subKey);
+            wk.SetValue(name, value, RegistryValueKind.DWord);
+        }
+        catch { return; }
+
+        _log.Record(new OptimizationChange
+        {
+            OptimizationId = optId,
+            OptimizationTitle = optId,
+            Kind = ChangeKind.Registry,
+            Hive = "HKLM",
+            KeyPath = subKey,
+            ValueName = name,
+            ValueKind = "DWord",
+            // Se o valor já era o alvo (só no tipo errado), desfazer volta ao padrão do Windows.
+            OldValue = (old is null || old == value ? defaultValue : old.Value).ToString(),
             NewValue = value.ToString(),
         });
     }

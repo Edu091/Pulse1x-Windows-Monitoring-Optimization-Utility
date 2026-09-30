@@ -236,6 +236,7 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
         lock (_lock)
         {
             var readings = new List<GpuReading>();
+            if (_disposed) return readings;
 
             foreach (var hardware in _computer.Hardware)
             {
@@ -261,6 +262,7 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
             double usage = 0;
             double? temperature = null;
             double? clock = null;
+            if (_disposed) return new HardwareReading(usage, temperature, clock);
 
             foreach (var hardware in _computer.Hardware)
             {
@@ -325,8 +327,17 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
         return temperatureSensors.Max(s => s.Value!.Value);
     }
 
+    // Fecha sob o mesmo lock das leituras: sem ele, sair do app podia descarregar o driver no
+    // meio de um hardware.Update() do Dashboard, do hub ou da telemetria.
+    private bool _disposed;
+
     public void Dispose()
     {
-        _computer.Close();
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _computer.Close();
+        }
     }
 }

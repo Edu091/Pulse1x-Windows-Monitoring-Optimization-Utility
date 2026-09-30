@@ -183,10 +183,16 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     public ObservableCollection<AdvancedOptimizationViewModel> PrivacyOptimizations { get; } = new();
     public ObservableCollection<AdvancedOptimizationViewModel> PerformanceOptimizations { get; } = new();
     public ObservableCollection<AdvancedOptimizationViewModel> HardwareOptimizations { get; } = new();
+    public ObservableCollection<AdvancedOptimizationViewModel> GamingOptimizations { get; } = new();
+    public ObservableCollection<AdvancedOptimizationViewModel> HardwareAccelerationApps { get; } = new();
+    public ObservableCollection<AdvancedOptimizationViewModel> SystemOptimizations { get; } = new();
     public ObservableCollection<VisualProfileViewModel> VisualProfiles { get; } = new();
     public ObservableCollection<OptimizationChange> History { get; } = new();
 
     public bool HasHistory => History.Count > 0;
+
+    /// <summary>Algum aplicativo com aceleração de hardware ajustável foi encontrado neste PC.</summary>
+    public bool HasHardwareAccelerationApps => HardwareAccelerationApps.Any(a => a.IsAvailable);
 
     /// <summary>Ferramenta aninhada: Detector de Bloatware (análise e recomendação seguras).</summary>
     public BloatwareDetectorViewModel Detector { get; }
@@ -207,6 +213,9 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
         PrivacyOptimizations.Clear();
         PerformanceOptimizations.Clear();
         HardwareOptimizations.Clear();
+        GamingOptimizations.Clear();
+        HardwareAccelerationApps.Clear();
+        SystemOptimizations.Clear();
 
         foreach (var opt in _service.Optimizations)
         {
@@ -215,6 +224,9 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
             {
                 case "Privacidade": PrivacyOptimizations.Add(vm); break;
                 case "Hardware": HardwareOptimizations.Add(vm); break;
+                case "Jogos": GamingOptimizations.Add(vm); break;
+                case "HwAccel": HardwareAccelerationApps.Add(vm); break;
+                case "Sistema": SystemOptimizations.Add(vm); break;
                 default: PerformanceOptimizations.Add(vm); break;
             }
         }
@@ -252,6 +264,10 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
             foreach (var vm in PrivacyOptimizations) await vm.RefreshStateAsync();
             foreach (var vm in PerformanceOptimizations) await vm.RefreshStateAsync();
             foreach (var vm in HardwareOptimizations) await vm.RefreshStateAsync();
+            foreach (var vm in GamingOptimizations) await vm.RefreshStateAsync();
+            foreach (var vm in HardwareAccelerationApps) await vm.RefreshStateAsync();
+            foreach (var vm in SystemOptimizations) await vm.RefreshStateAsync();
+            OnPropertyChanged(nameof(HasHardwareAccelerationApps));
             RefreshVisualProfiles();
             RefreshHistory();
         }
@@ -288,6 +304,22 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     {
         await _service.RevertChangeAsync(change);
         await RefreshAllAsync();
+    }
+
+    /// <summary>Desativa a aceleração de hardware em todos os aplicativos encontrados.</summary>
+    [RelayCommand]
+    private void DisableAllHardwareAcceleration()
+    {
+        foreach (var app in HardwareAccelerationApps)
+            if (app.CanToggle && !app.IsApplied) app.IsApplied = true;
+    }
+
+    /// <summary>Devolve a aceleração de hardware ao estado anterior em todos os aplicativos.</summary>
+    [RelayCommand]
+    private void RestoreAllHardwareAcceleration()
+    {
+        foreach (var app in HardwareAccelerationApps)
+            if (app.CanToggle && app.IsApplied) app.IsApplied = false;
     }
 
     [RelayCommand]

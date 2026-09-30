@@ -94,22 +94,14 @@ public class NetworkOptimizationService
     /// <summary>Desativa a economia de energia do adaptador Wi-Fi (modo Máximo Desempenho, índice 0).</summary>
     public async Task<OpResult> DisableWifiPowerSavingAsync()
     {
-        int? old = await ReadPowerIndexAsync(WirelessSub, WirelessPowerSaving);
-        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {WirelessSub} {WirelessPowerSaving} 0");
-        await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
-        if (old is not null && old != 0)
-            Record("powerindex", $"{WirelessSub} {WirelessPowerSaving}", "WifiPowerSaving", old.ToString(), "0", "Lat_ToolWifiPower");
+        await DisablePowerIndexAsync(WirelessSub, WirelessPowerSaving, "WifiPowerSaving", "Lat_ToolWifiPower");
         return new OpResult(true, "Lat_DoneWifiPower");
     }
 
     /// <summary>Desativa a suspensão seletiva de USB (evita o adaptador USB Wi-Fi "dormir").</summary>
     public async Task<OpResult> DisableSelectiveSuspendAsync()
     {
-        int? old = await ReadPowerIndexAsync(UsbSub, UsbSelectiveSuspend);
-        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {UsbSub} {UsbSelectiveSuspend} 0");
-        await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
-        if (old is not null && old != 0)
-            Record("powerindex", $"{UsbSub} {UsbSelectiveSuspend}", "SelectiveSuspend", old.ToString(), "0", "Lat_ToolSelectiveSuspend");
+        await DisablePowerIndexAsync(UsbSub, UsbSelectiveSuspend, "SelectiveSuspend", "Lat_ToolSelectiveSuspend");
         return new OpResult(true, "Lat_DoneSelectiveSuspend");
     }
 
@@ -141,9 +133,12 @@ public class NetworkOptimizationService
         if (nic is null) return new OpResult(false, "Lat_NoAdapter");
         string name = nic.Name;
 
-        // Guarda a configuração anterior só uma vez (a primeira troca); reversão volta ao DHCP.
-        string oldDns = string.Join(",", nic.GetIPProperties().DnsAddresses
-            .Where(d => d.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(d => d.ToString()));
+        // Guarda a configuração anterior só uma vez (a primeira troca). DnsAddresses mistura os
+        // servidores entregues pelo DHCP com os manuais — gravar esses como "anterior" fazia o
+        // desfazer fixar o DNS do roteador como estático. O que conta é o NameServer da interface:
+        // vazio = DHCP; preenchido = DNS manual do usuário.
+        bool alreadyRecorded = _log.GetAllActive().Any(c => c.ValueKind == "netsh-dns" && c.KeyPath == name);
+        string oldDns = ReadStaticDns(nic.Id);
 
         if (provider == DnsProvider.Automatic)
         {
@@ -159,7 +154,8 @@ public class NetworkOptimizationService
         await RunAsync("netsh", $"interface ip add dns name=\"{name}\" {secondary} index=2");
         if (r1.code != 0) return new OpResult(false, "Lat_OpFailed", r1.output.Trim());
 
-        Record("netsh-dns", name, "Dns", string.IsNullOrEmpty(oldDns) ? "dhcp" : oldDns, $"{primary},{secondary}", "Lat_ToolDns");
+        if (!alreadyRecorded)
+            Record("netsh-dns", name, "Dns", string.IsNullOrEmpty(oldDns) ? "dhcp" : oldDns, $"{primary},{secondary}", "Lat_ToolDns");
         return new OpResult(true, provider == DnsProvider.Google ? "Lat_DoneDnsGoogle" : "Lat_DoneDnsCloudflare");
     }
 
@@ -170,8 +166,10 @@ public class NetworkOptimizationService
         // Responsividade do sistema e throttling de rede (afetam latência em jogos/streaming).
         SetDword(SystemProfile, "SystemResponsiveness", 0, "Lat_ToolCompetitive");
         SetDword(SystemProfile, "NetworkThrottlingIndex", unchecked((int)0xFFFFFFFF), "Lat_ToolCompetitive");
-        SetString(GamesProfile, "GPU Priority", "8", "Lat_ToolCompetitive");
-        SetString(GamesProfile, "Priority", "6", "Lat_ToolCompetitive");
+        // DWORD, como no perfil original do Windows (texto aqui era ignorado pelo MMCSS e, ao
+        // desfazer, apagava os valores de fábrica).
+        SetDword(GamesProfile, "GPU Priority", 8, "Lat_ToolCompetitive");
+        SetDword(GamesProfile, "Priority", 6, "Lat_ToolCompetitive");
         SetString(GamesProfile, "Scheduling Category", "High", "Lat_ToolCompetitive");
 
         // Desativa o algoritmo de Nagle na interface ativa (junta pacotes pequenos e adiciona atraso).
@@ -231,13 +229,11 @@ public class NetworkOptimizationService
         foreach (var change in _log.GetAllActive())
             await RevertChangeAsync(change);
 
-        // Padrões do Windows (rede de segurança, mesmo sem registro no log).
-        var nic = NetworkLatencyService.ActiveAdapter();
-        if (nic is not null)
-            await RunAsync("netsh", $"interface ip set dns name=\"{nic.Name}\" source=dhcp");
+        // Só o Auto-Tuning volta ao padrão como rede de segurança — ele é o mesmo em qualquer PC.
+        // DNS em DHCP, "winsock reset" e "int ip reset" eram executados SEMPRE aqui e apagavam
+        // configurações do próprio usuário (DNS manual, IP fixo) que o Pulse1x nunca alterou;
+        // essas continuam disponíveis como ferramentas separadas.
         await RunAsync("netsh", "int tcp set global autotuninglevel=normal");
-        await RunAsync("netsh", "winsock reset");
-        await RunAsync("netsh", "int ip reset");
         return new OpResult(true, "Lat_DoneRestoreAll");
     }
 
@@ -259,7 +255,11 @@ public class NetworkOptimizationService
                     var parts = change.KeyPath.Split(' ');
                     if (parts.Length == 2 && change.OldValue is not null)
                     {
-                        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {parts[0]} {parts[1]} {change.OldValue}");
+                        // "ac|dc" desde a 1.13.0; registros antigos guardam só o índice de tomada.
+                        var old = change.OldValue.Split('|');
+                        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {parts[0]} {parts[1]} {old[0]}");
+                        if (old.Length == 2)
+                            await RunAsync("powercfg", $"/setdcvalueindex SCHEME_CURRENT {parts[0]} {parts[1]} {old[1]}");
                         await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
                     }
                 }
@@ -300,7 +300,8 @@ public class NetworkOptimizationService
                 return;
             }
             using var wk = root.CreateSubKey(c.KeyPath);
-            if (c.ValueKind == "DWord" && int.TryParse(c.OldValue, out int dword))
+            bool isDword = c.ValueKind == "DWord" || HardwareOptimizationService.IsGamesProfileDword(c.KeyPath, c.ValueName);
+            if (isDword && int.TryParse(c.OldValue, out int dword))
                 wk.SetValue(c.ValueName, dword, RegistryValueKind.DWord);
             else
                 wk.SetValue(c.ValueName, c.OldValue, RegistryValueKind.String);
@@ -313,6 +314,8 @@ public class NetworkOptimizationService
     {
         int? old = GetDword(subKey, name);
         if (old == value) return;
+        // Valor gravado como texto por versões antigas: o número dele ainda é o "valor anterior".
+        if (old is null && int.TryParse(GetString(subKey, name), out int fromText)) old = fromText;
         try
         {
             using var wk = Registry.LocalMachine.CreateSubKey(subKey);
@@ -345,6 +348,14 @@ public class NetworkOptimizationService
         catch { return null; }
     }
 
+    // DNS IPv4 configurado manualmente na interface ("" quando vem do DHCP), no formato "a,b".
+    private static string ReadStaticDns(string interfaceId)
+    {
+        string? raw = GetString($@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{interfaceId}", "NameServer");
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        return string.Join(",", raw.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries));
+    }
+
     private static string? GetString(string subKey, string name)
     {
         try
@@ -373,16 +384,34 @@ public class NetworkOptimizationService
         });
     }
 
-    private async Task<int?> ReadPowerIndexAsync(string sub, string setting)
+    // Zera um índice do plano de energia na tomada E na bateria. Antes só o índice de tomada (AC)
+    // era gravado, e num notebook na bateria o ajuste simplesmente não valia. O valor anterior é
+    // guardado como "ac|dc" para o desfazer restaurar cada um.
+    private async Task DisablePowerIndexAsync(string sub, string setting, string valueName, string titleKey)
+    {
+        int? oldAc = await ReadPowerIndexAsync(sub, setting);
+        int? oldDc = await ReadPowerIndexAsync(sub, setting, dc: true);
+        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {sub} {setting} 0");
+        await RunAsync("powercfg", $"/setdcvalueindex SCHEME_CURRENT {sub} {setting} 0");
+        await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
+        if ((oldAc ?? 0) != 0 || (oldDc ?? 0) != 0)
+            Record("powerindex", $"{sub} {setting}", valueName, $"{oldAc ?? 0}|{oldDc ?? 0}", "0|0", titleKey);
+    }
+
+    private async Task<int?> ReadPowerIndexAsync(string sub, string setting, bool dc = false)
     {
         var r = await RunAsync("powercfg", $"/query SCHEME_CURRENT {sub} {setting}");
-        // Pega a linha do índice de CA (corrente alternada): "AC Power Setting Index" (EN) ou
-        // "...Correntes Alternadas..." (PT). Ignora a linha de CC ("DC"/"Contínuas").
+        // Linha do índice de CA (tomada): "AC Power Setting Index" (EN) ou "...Correntes
+        // Alternadas..." (PT); de CC (bateria): "DC Power Setting Index" ou "...Contínuas...".
         foreach (var line in r.output.Split('\n'))
         {
-            bool isAc = line.Contains("AC Power Setting Index", StringComparison.OrdinalIgnoreCase)
-                        || line.Contains("Alternadas", StringComparison.OrdinalIgnoreCase);
-            if (!isAc) continue;
+            bool match = dc
+                ? line.Contains("DC Power Setting Index", StringComparison.OrdinalIgnoreCase)
+                  || line.Contains("Contínuas", StringComparison.OrdinalIgnoreCase)
+                  || line.Contains("Continuas", StringComparison.OrdinalIgnoreCase)
+                : line.Contains("AC Power Setting Index", StringComparison.OrdinalIgnoreCase)
+                  || line.Contains("Alternadas", StringComparison.OrdinalIgnoreCase);
+            if (!match) continue;
             var m = Regex.Match(line, @"0x([0-9a-fA-F]+)");
             if (m.Success && int.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.HexNumber, null, out int v))
                 return v;

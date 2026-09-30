@@ -1,5 +1,18 @@
 ﻿# Histórico de versões
 
+## 1.13.0 — 29/09/2026
+
+- As **Otimizações Avançadas** foram reorganizadas em dois grupos. Em cima, **Privacidade, telemetria e bloatware**, com tudo o que desliga coleta de dados, serviços dispensáveis e apps pré-instalados, incluindo o Detector de Bloatware. Logo abaixo, a nova categoria **Otimização de hardware e software**, dividida em CPU e GPU, Jogos, Aceleração de hardware em aplicativos, Sistema e Ajustes Visuais.
+- Nova opção **Aceleração de hardware em aplicativos**: um interruptor para cada app instalado (Chrome, Edge, Brave, Firefox, Discord e Spotify) desativa o uso da GPU em segundo plano, liberando VRAM e GPU para o jogo. Também há botões para aplicar ou restaurar todos de uma vez. Ao desligar, cada app volta à configuração anterior.
+- **Desativar Game DVR** e **Desativar Xbox Game Bar** agora são opções independentes. A primeira desliga a gravação, a captura contínua em segundo plano, a gravação de áudio e o serviço de transmissão. A segunda impede que o botão Xbox abra a sobreposição e que a Game Bar rode em segundo plano. O Modo de Jogo continua ativo, e ambas podem ser restauradas.
+- Novos ajustes de CPU e GPU: **menos CPU reservada para segundo plano** (MMCSS), **prioridade para o programa em primeiro plano**, **plano de energia Desempenho Máximo** (que lembra o plano anterior) e **Otimizações para jogos em janela** (Windows 11).
+- Corrigida a **Prioridade de Jogos no Sistema**: `GPU Priority` e `Priority` eram gravados como texto, que o Windows ignora, então a otimização aparecia ativa sem surtir efeito. Agora são gravados como DWORD, e valores antigos são reparados. O perfil Competitivo da aba Latência tinha o mesmo defeito e, ao ser desfeito, apagava os valores de fábrica.
+- Corrigidas as **listas suspensas brancas com texto invisível**, como o seletor de idioma nas Configurações. Todas as caixas de seleção do app usam o estilo escuro, e as páginas principais fixam o texto branco do tema.
+- Ao trocar entre tema claro e escuro, os cartões não herdam mais as cores do tema anterior.
+- O controle não mexe mais no Pulse1x enquanto ele está em segundo plano ou na bandeja. Antes, LB/RB trocavam as categorias e o botão View abria o GameHub por cima de outro jogo.
+- **Desfazer Todas as Alterações** (Latência) não reseta mais o Winsock nem o TCP/IP e não apaga DNS manual ou IP fixo que o Pulse1x nunca alterou. O DNS anterior passa a ser salvo corretamente, distinguindo DHCP de DNS manual.
+- Economia de energia do Wi-Fi e suspensão seletiva de USB agora valem também na bateria. O atualizador sempre baixa o instalador, e não o .exe portátil. Desinstaladores com espaços no caminho voltaram a abrir, e a saída dos Comandos Especiais não se embaralha mais.
+
 ## 1.12.2 — 22/09/2026
 
 - Corrigido o cálculo de tráfego entre **Dashboard** e **Latência**: cada seção agora possui seu próprio amostrador, impedindo leituras zeradas ou subestimadas quando ambas atualizavam o mesmo contador.

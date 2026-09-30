@@ -11,6 +11,9 @@
                      pincéis de texto pretos até a primeira troca de tema. -->
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <!-- Mesclado explicitamente para que a chave DefaultComboBoxStyle exista quando o
+                     estilo implícito de ComboBox abaixo for resolvido (ver o comentário nele). -->
+                <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ComboBox/ComboBox.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que
@@ -39,9 +42,15 @@
             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
             </Style>
-            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <!-- BasedOn aponta para a CHAVE EXPLÍCITA do Wpf.Ui. Com {x:Type ComboBox}, o
+                 StaticResource era resolvido enquanto o dicionário do app ainda estava sendo
+                 montado e caía no template claro padrão do Windows: a caixa ficava cinza-clara e a
+                 lista suspensa BRANCA com texto branco (invisível), como no seletor de idioma das
+                 Configurações. É a mesma correção já aplicada em HubDialogTheme.xaml. -->
+            <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
             </Style>
+            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}" />
             <!-- O Foreground aqui não é decorativo: dentro de um DataTemplate (ex.: a lista de
                  launchers nas Configurações, as opções do editor de perfil) o texto do CheckBox
                  não herdava o pincel do tema e saía no PRETO padrão do sistema, ilegível sobre o

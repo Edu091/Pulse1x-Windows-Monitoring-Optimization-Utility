@@ -353,8 +353,13 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     private async Task ApplyDnsAsync()
     {
         var provider = SelectedDnsIndex switch { 1 => DnsProvider.Google, 2 => DnsProvider.Cloudflare, _ => DnsProvider.Automatic };
-        var r = await _opt.SetDnsAsync(provider);
-        ApplyAllStatus = (r.Success ? "✅ " : "❌ ") + Loc.S(r.MessageKey);
+        try
+        {
+            var r = await _opt.SetDnsAsync(provider);
+            ApplyAllStatus = (r.Success ? "✅ " : "❌ ") + Loc.S(r.MessageKey);
+        }
+        // O adaptador pode sumir entre a detecção e a leitura (NetworkInformationException).
+        catch (Exception ex) { ApplyAllStatus = "❌ " + ex.Message; }
         HasChanges = _opt.HasChanges();
     }
 

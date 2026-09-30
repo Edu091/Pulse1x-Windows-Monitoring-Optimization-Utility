@@ -136,8 +136,15 @@ public partial class MainWindow : FluentWindow
         gamepad.SetActive(true);
     }
 
+    // O XInput/SDL entrega o controle mesmo com o Pulse1x atrás de outro programa ou escondido na
+    // bandeja. Sem esta checagem, jogar outra coisa trocava as categorias do app (LB/RB) e o botão
+    // View maximizava o GameHub por cima do jogo.
+    private static bool IsPulse1xForeground() =>
+        Application.Current?.Windows.OfType<Window>().Any(w => w.IsActive && w.IsVisible) == true;
+
     private void OnGlobalGamepadNavigate(GamepadDirection direction)
     {
+        if (!IsPulse1xForeground()) return;
         if (_inGameHub || ReferenceEquals(ContentFrame.Content, _inputLabPage)) return;
 
         // Vale também para os diálogos: o foco é global, então a navegação segue a janela ativa.
@@ -147,6 +154,7 @@ public partial class MainWindow : FluentWindow
 
     private void OnGlobalGamepadAction(GamepadAction action)
     {
+        if (!IsPulse1xForeground()) return;
         if (_inGameHub || ReferenceEquals(ContentFrame.Content, _inputLabPage)) return;
 
         // Com um diálogo aberto, A aciona o que está em foco e B fecha a janela.

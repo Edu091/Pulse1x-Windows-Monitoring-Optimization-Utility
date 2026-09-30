@@ -117,7 +117,10 @@ public class ThemeService
     /// Cores originais dos pincéis de painel, guardadas na primeira aplicação. Sem isso, aplicar a
     /// transparência duas vezes iria comendo o alfa a cada passada, até o painel sumir.
     /// </summary>
-    private readonly Dictionary<string, Color> _basePanelColors = new();
+    /// A instância do pincel é guardada junto: ao trocar entre claro e escuro, o Wpf.Ui substitui o
+    /// dicionário do tema por pincéis NOVOS, e reaplicar a cor guardada do tema anterior deixava os
+    /// cartões brancos no modo escuro (e quase invisíveis no claro).
+    private readonly Dictionary<string, (SolidColorBrush Brush, Color Color)> _basePanelColors = new();
 
     private static readonly string[] PanelBrushKeys =
     {
@@ -144,10 +147,13 @@ public class ThemeService
         {
             if (resources[key] is not SolidColorBrush brush || brush.IsFrozen) continue;
 
-            if (!_basePanelColors.TryGetValue(key, out var baseColor))
+            Color baseColor;
+            if (_basePanelColors.TryGetValue(key, out var cached) && ReferenceEquals(cached.Brush, brush))
+                baseColor = cached.Color;
+            else
             {
                 baseColor = brush.Color;
-                _basePanelColors[key] = baseColor;
+                _basePanelColors[key] = (brush, baseColor);
             }
 
             // Guardamos um mínimo de opacidade: painéis totalmente transparentes deixariam o texto
