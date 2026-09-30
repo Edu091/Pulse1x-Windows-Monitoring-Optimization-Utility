@@ -1,5 +1,16 @@
 ﻿# Histórico de versões
 
+## 1.13.3 — 30/09/2026
+
+- **FPS de verdade no GameHub:** as estatísticas agora contam os quadros que o jogo apresenta via DirectX (DXGI e D3D9), como o PresentMon faz, e calculam média e 1% low a partir do tempo real de cada quadro. Antes, o valor era o uso da GPU multiplicado pela taxa de atualização: um jogo limitado pela GPU num monitor de 60 Hz sempre aparecia com ~60. Jogos que não passam pelo DirectX (alguns OpenGL/Vulkan) continuam com a estimativa, agora marcada como "(estimado)".
+- **Perfis do GameHub desfazem os ajustes de rede ao fim da partida:** a suspensão seletiva de USB, a economia de energia do Wi-Fi e os perfis Competitivo/Estabilidade aplicados pelo perfil voltam ao estado anterior quando o jogo fecha, inclusive na recuperação após uma queda. Ajustes feitos por você antes da sessão não são tocados.
+- Ao fechar um jogo, o perfil volta **na hora**. A espera por um processo sucessor só acontece quando o processo durou poucos minutos, que é o caso típico de um launcher intermediário. O nome do processo do jogo também passou a ser gravado corretamente para a próxima vez.
+- **Conta certa:** quando o Pulse1x é aberto com a senha de outro administrador, as otimizações por usuário (Copilot, sugestões, Game DVR, Xbox Game Bar, aceleração de hardware do Discord/Spotify e dos navegadores instalados por usuário) passam a valer para quem está usando o PC, e não para a conta do administrador.
+- **Latência:** sair da página interrompe o teste de velocidade e o teste de servidores, que antes seguiam consumindo banda em segundo plano.
+- As cópias repetidas do plano **Desempenho Máximo** criadas pelas versões anteriores são removidas na abertura. Fica uma, e nunca é apagado o plano ativo nem um plano usado por perfil, pelo histórico ou por uma sessão pendente.
+- **Inglês completo:** detalhes de hardware, gráficos, cartões do Dashboard, histórico de reversão, Comandos Especiais (incluindo o relatório do sistema), relatório da Saúde, tipos de disco e mensagens de desinstalação agora seguem o idioma escolhido.
+- **Detector de Bloatware:** itens de inicialização desativados continuam na lista com o botão "Reativar", e itens ignorados ganharam o botão "Deixar de ignorar".
+
 ## 1.13.2 — 30/09/2026
 
 Auditoria completa de todas as seções, com as 42 otimizações testadas de verdade (aplicar, conferir, desfazer).
