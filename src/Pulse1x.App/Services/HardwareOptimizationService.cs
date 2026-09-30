@@ -285,7 +285,7 @@ public class HardwareOptimizationService
 
         try
         {
-            using var wk = Registry.CurrentUser.CreateSubKey(DirectXUserPrefs);
+            using var wk = InteractiveUser.Registry.CreateSubKey(DirectXUserPrefs);
             wk.SetValue(DirectXGlobalSettings, updated, RegistryValueKind.String);
         }
         catch { return; }
@@ -312,7 +312,7 @@ public class HardwareOptimizationService
     /// <summary>Desfaz um item da lista do DirectX preservando os demais (usado pela reversão genérica).</summary>
     public static void RevertDirectXItem(OptimizationChange change)
     {
-        using var wk = Registry.CurrentUser.CreateSubKey(change.KeyPath);
+        using var wk = InteractiveUser.Registry.CreateSubKey(change.KeyPath);
         string? raw = wk.GetValue(change.ValueName) as string;
         string updated = WithDirectXSetting(raw, "SwapEffectUpgradeEnable", change.OldValue);
         if (updated.Length == 0) wk.DeleteValue(change.ValueName, throwOnMissingValue: false);
@@ -495,7 +495,7 @@ public class HardwareOptimizationService
                 try
                 {
                     string? raw = GetString(RegistryHive.CurrentUser, DirectXUserPrefs, DirectXGlobalSettings);
-                    using var wk = Registry.CurrentUser.CreateSubKey(DirectXUserPrefs);
+                    using var wk = InteractiveUser.Registry.CreateSubKey(DirectXUserPrefs);
                     wk.SetValue(DirectXGlobalSettings, WithDirectXSetting(raw, "SwapEffectUpgradeEnable", "0"), RegistryValueKind.String);
                 }
                 catch { }
@@ -592,7 +592,7 @@ public class HardwareOptimizationService
 
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var wk = root.CreateSubKey(subKey);
             wk.SetValue(name, value, RegistryValueKind.DWord);
         }
@@ -684,7 +684,7 @@ public class HardwareOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey);
             return key?.GetValue(name) is int i ? i : (int?)null;
         }
@@ -695,7 +695,7 @@ public class HardwareOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey);
             return key?.GetValue(name)?.ToString();
         }
@@ -708,7 +708,7 @@ public class HardwareOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var wk = root.CreateSubKey(subKey);
             wk.SetValue(name, value, RegistryValueKind.DWord);
         }
@@ -729,7 +729,7 @@ public class HardwareOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey, writable: true);
             if (key?.GetValue(name) is not null)
                 key.DeleteValue(name, throwOnMissingValue: false);

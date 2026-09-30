@@ -152,6 +152,39 @@ public class PowerPlanService
         return guid.Success ? guid.Value.ToLowerInvariant() : null;
     }
 
+    /// <summary>
+    /// Remove cópias repetidas do plano "Desempenho Máximo". Até a 1.13.1, ligar o plano pelas
+    /// Otimizações duplicava o modelo a cada vez (uma máquina acumulou dez planos idênticos na lista
+    /// de energia). Fica UMA cópia — a ativa, ou a que um perfil/histórico usa, ou a primeira — e
+    /// nunca se apaga o plano ativo nem um plano referenciado por perfil ou pelo histórico de reversão.
+    /// </summary>
+    public async Task<int> RemoveDuplicateUltimatePlansAsync(IEnumerable<string?> referencedGuids)
+    {
+        string[] fragments = { "Ultimate", "Máximo", "Maximo", "Maximum" };
+        var referenced = referencedGuids
+            .Where(g => !string.IsNullOrWhiteSpace(g))
+            .Select(g => g!.ToLowerInvariant())
+            .ToHashSet();
+
+        var ultimate = (await ListPlansAsync())
+            .Where(p => fragments.Any(f => p.Name.Contains(f, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        if (ultimate.Count <= 1) return 0;
+
+        var keep = ultimate.FirstOrDefault(p => p.IsActive)
+                   ?? ultimate.FirstOrDefault(p => referenced.Contains(p.Guid))
+                   ?? ultimate[0];
+
+        int removed = 0;
+        foreach (var plan in ultimate)
+        {
+            if (plan.Guid == keep.Guid || plan.IsActive || referenced.Contains(plan.Guid)) continue;
+            var (code, _) = await RunAsync("powercfg", $"/delete {plan.Guid}");
+            if (code == 0) removed++;
+        }
+        return removed;
+    }
+
     // =====================================================================================
     //  Configurações avançadas
     // =====================================================================================

@@ -799,7 +799,7 @@ public class AdvancedOptimizationService
         {
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            InteractiveUser.LocalAppData,
         })
         {
             if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, relativeExe)))
@@ -1281,7 +1281,7 @@ public class AdvancedOptimizationService
             return;
         }
 
-        var root = c.Hive == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser;
+        var root = c.Hive == "HKLM" ? Registry.LocalMachine : InteractiveUser.Registry;
 
         if (c.OldValue is null)
         {
@@ -1316,7 +1316,7 @@ public class AdvancedOptimizationService
         bool alreadyAtTarget = old == value;
         if (alreadyAtTarget && fallbackOldValue is null) return;
 
-        var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+        var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
         using (var wk = root.CreateSubKey(subKey))
             wk.SetValue(name, value, RegistryValueKind.DWord);
 
@@ -1338,7 +1338,7 @@ public class AdvancedOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey);
             return key?.GetValue(name) is int i ? i : (int?)null;
         }
@@ -1352,7 +1352,7 @@ public class AdvancedOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var wk = root.CreateSubKey(subKey);
             wk.SetValue(name, value, RegistryValueKind.DWord);
         }
@@ -1364,7 +1364,7 @@ public class AdvancedOptimizationService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey, writable: true);
             if (key?.GetValue(name) is not null)
                 key.DeleteValue(name, throwOnMissingValue: false);

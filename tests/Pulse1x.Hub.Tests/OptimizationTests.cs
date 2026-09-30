@@ -88,6 +88,14 @@ internal static class OptimizationTests
             finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Pulse1xTests", throwOnMissingSubKey: false); }
         });
 
+        suite.Run("Interactive user is not redirected when it is the process account", () =>
+        {
+            // O harness roda na própria conta de quem está logado: HKCU e AppData ficam os de sempre.
+            TestSuite.Equal<string?>(null, InteractiveUser.RedirectedSid);
+            TestSuite.Equal(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), InteractiveUser.RoamingAppData);
+            TestSuite.Equal(Microsoft.Win32.Registry.CurrentUser.Name, InteractiveUser.Registry.Name);
+        });
+
         suite.Run("Legacy MMCSS text values are restored as DWORD", () =>
         {
             const string games = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games";

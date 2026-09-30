@@ -94,7 +94,7 @@ public class NetworkLatencyService
 
     /// <summary>Envia <paramref name="count"/> pings e calcula latência média, jitter (variação média
     /// entre amostras consecutivas) e perda de pacotes. É a base do indicador em tempo real.</summary>
-    public async Task<PingStats> PingAsync(string host, int count = 10, int timeoutMs = 1000)
+    public async Task<PingStats> PingAsync(string host, int count = 10, int timeoutMs = 1000, CancellationToken ct = default)
     {
         var times = new List<long>();
         int lost = 0;
@@ -102,6 +102,7 @@ public class NetworkLatencyService
 
         for (int i = 0; i < count; i++)
         {
+            ct.ThrowIfCancellationRequested();
             try
             {
                 var reply = await ping.SendPingAsync(host, timeoutMs);
@@ -125,7 +126,7 @@ public class NetworkLatencyService
 
     /// <summary>Mede latência por conexão TCP (handshake) — funciona mesmo quando o host bloqueia
     /// ICMP (caso de microsoft.com, amazon.com e muitos servidores de jogo/CDN).</summary>
-    public async Task<PingStats> TcpPingAsync(string host, int port = 443, int count = 5, int timeoutMs = 1500)
+    public async Task<PingStats> TcpPingAsync(string host, int port = 443, int count = 5, int timeoutMs = 1500, CancellationToken ct = default)
     {
         var times = new List<double>();
         int lost = 0;
@@ -133,12 +134,14 @@ public class NetworkLatencyService
         // Resolve o nome UMA vez, fora do cronômetro. Antes, ConnectAsync(host) resolvia o DNS a
         // cada tentativa dentro da medição e a primeira amostra somava 20–100 ms de consulta.
         System.Net.IPAddress[] addresses;
-        try { addresses = await System.Net.Dns.GetHostAddressesAsync(host); }
+        try { addresses = await System.Net.Dns.GetHostAddressesAsync(host, ct); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch { return new PingStats(0, 0, 100, false); }
         if (addresses.Length == 0) return new PingStats(0, 0, 100, false);
 
         for (int i = 0; i < count; i++)
         {
+            ct.ThrowIfCancellationRequested();
             try
             {
                 using var client = new TcpClient(addresses[0].AddressFamily);
@@ -170,11 +173,11 @@ public class NetworkLatencyService
     /// <summary>Mede a latência de um servidor de teste: tenta ICMP e, se o host não responde
     /// (bloqueio comum), cai para a latência de conexão TCP na porta 443 — assim o resultado nunca
     /// fica "inalcançável" só porque o servidor ignora ping.</summary>
-    public async Task<PingStats> MeasureTestServerAsync(string host)
+    public async Task<PingStats> MeasureTestServerAsync(string host, CancellationToken ct = default)
     {
-        var icmp = await PingAsync(host, count: 6, timeoutMs: 1500);
+        var icmp = await PingAsync(host, count: 6, timeoutMs: 1500, ct);
         if (icmp.Success && icmp.LossPercent < 100) return icmp;
-        return await TcpPingAsync(host, 443, count: 5, timeoutMs: 1500);
+        return await TcpPingAsync(host, 443, count: 5, timeoutMs: 1500, ct);
     }
 
     /// <summary>Um único ping rápido — usado no laço de tempo real do painel para não bloquear.</summary>
@@ -265,41 +268,45 @@ public class NetworkLatencyService
 
     /// <summary>Mede download e upload reais. Baixa ~15 MB da Cloudflare e envia ~5 MB; converte para Mbps.
     /// Consome banda de internet de propósito — é o que o usuário pede ao tocar em "Analisar".</summary>
-    public async Task<SpeedResult> RunSpeedTestAsync()
+    public async Task<SpeedResult> RunSpeedTestAsync(CancellationToken ct = default)
     {
-        double down = await MeasureDownloadAsync(15_000_000);
-        double up = await MeasureUploadAsync(5_000_000);
+        double down = await MeasureDownloadAsync(15_000_000, ct);
+        double up = await MeasureUploadAsync(5_000_000, ct);
         return new SpeedResult(Math.Round(down, 1), Math.Round(up, 1));
     }
 
-    private static async Task<double> MeasureDownloadAsync(int bytes)
+    private static async Task<double> MeasureDownloadAsync(int bytes, CancellationToken ct)
     {
         try
         {
             var sw = Stopwatch.StartNew();
             using var resp = await Http.GetAsync($"https://speed.cloudflare.com/__down?bytes={bytes}",
-                HttpCompletionOption.ResponseHeadersRead);
+                HttpCompletionOption.ResponseHeadersRead, ct);
             resp.EnsureSuccessStatusCode();
-            var data = await resp.Content.ReadAsByteArrayAsync();
+            var data = await resp.Content.ReadAsByteArrayAsync(ct);
             sw.Stop();
             double seconds = Math.Max(sw.Elapsed.TotalSeconds, 0.001);
             return data.Length * 8 / seconds / 1_000_000; // bits -> Mbps
         }
+        // Sair da página cancela o teste: o cancelamento sobe, não vira "0 Mbps".
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch { return 0; }
     }
 
-    private static async Task<double> MeasureUploadAsync(int bytes)
+    private static async Task<double> MeasureUploadAsync(int bytes, CancellationToken ct)
     {
         try
         {
             var payload = new byte[bytes];
             var sw = Stopwatch.StartNew();
             using var content = new ByteArrayContent(payload);
-            using var resp = await Http.PostAsync("https://speed.cloudflare.com/__up", content);
+            using var resp = await Http.PostAsync("https://speed.cloudflare.com/__up", content, ct);
             sw.Stop();
             double seconds = Math.Max(sw.Elapsed.TotalSeconds, 0.001);
             return bytes * 8 / seconds / 1_000_000;
         }
+        // Sair da página cancela o teste: o cancelamento sobe, não vira "0 Mbps".
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch { return 0; }
     }
 
@@ -432,12 +439,13 @@ public class NetworkLatencyService
 
     /// <summary>Roda a bateria completa de testes e devolve um relatório com a nota e as observações
     /// em linguagem simples (chaves de localização). É o miolo do botão "Analisar Minha Conexão".</summary>
-    public async Task<DiagnosticReport> AnalyzeAsync()
+    public async Task<DiagnosticReport> AnalyzeAsync(CancellationToken ct = default)
     {
         var basics = ReadBasics();
         var wifi = await ReadWifiAsync();
-        var ping = await PingAsync(PreferredPingTarget(), count: 12, timeoutMs: 1500);
-        var speed = await RunSpeedTestAsync();
+        var ping = await PingAsync(PreferredPingTarget(), count: 12, timeoutMs: 1500, ct);
+        var speed = await RunSpeedTestAsync(ct);
+        ct.ThrowIfCancellationRequested();
         var tcp = await ReadTcpSettingsAsync();
         var channels = wifi.Connected && wifi.Channel > 0 ? await AnalyzeChannelsAsync(wifi.Channel) : null;
         var driver = basics.IsWifi ? await ReadWifiDriverAsync() : null;

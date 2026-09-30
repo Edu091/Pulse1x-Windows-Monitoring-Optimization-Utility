@@ -220,6 +220,25 @@ public partial class App : Application
         var gamingModeService = new GamingModeService();
 
         var powerPlanService = new PowerPlanService();
+
+        // Limpa as cópias do "Desempenho Máximo" acumuladas pelo bug da 1.13.0/1.13.1, preservando
+        // qualquer plano que um perfil, o histórico de reversão ou uma sessão pendente ainda usem.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var pending = snapshotService.LoadPending();
+                var referenced = profileStore.Profiles.Select(p => p.Power.PlanGuid)
+                    .Concat(advancedOptimizationService.ChangeLog.GetAll()
+                        .Where(c => c.Kind == ChangeKind.PowerCfg && c.ValueName == "PowerPlan")
+                        .SelectMany(c => new[] { c.OldValue, c.NewValue }))
+                    .Append(pending?.PowerPlanGuid)
+                    .Append(pending?.PowerSettingsPlanGuid)
+                    .ToList();
+                await powerPlanService.RemoveDuplicateUltimatePlansAsync(referenced);
+            }
+            catch { /* limpeza de conveniência: nunca atrapalha a abertura */ }
+        });
         var oemVendorService = new OemVendorService(settingsService.Current.OemCommands);
         var audioService = new AudioService();
         var displayService = new DisplayService();

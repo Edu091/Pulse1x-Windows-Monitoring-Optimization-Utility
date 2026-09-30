@@ -188,8 +188,15 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         else
         {
             _timer.Stop();
+            // Sair da página (ou entrar no Modo Jogo) interrompe o teste de velocidade (~20 MB) e o
+            // teste de servidores (até ~100 s), que antes seguiam consumindo banda em segundo plano.
+            _pageCts.Cancel();
+            _pageCts.Dispose();
+            _pageCts = new CancellationTokenSource();
         }
     }
+
+    private CancellationTokenSource _pageCts = new();
 
     // ===================== Painel em tempo real =====================
 
@@ -402,7 +409,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         DiagnosticLines.Clear();
         try
         {
-            var report = await _net.AnalyzeAsync();
+            var report = await _net.AnalyzeAsync(_pageCts.Token);
 
             ScoreValue = report.Score.Score;
             ScoreText = $"{report.Score.Score}/100";
@@ -435,6 +442,11 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
 
             HasDiagnostic = true;
         }
+        catch (OperationCanceledException)
+        {
+            // Página deixada no meio da análise: sem relatório parcial nem mensagem de erro.
+            HasDiagnostic = false;
+        }
         catch (Exception ex)
         {
             DiagnosticHeadline = "❌ " + ex.Message;
@@ -455,9 +467,14 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         {
             foreach (var vm in TestServers)
             {
-                var stats = await _net.MeasureTestServerAsync(vm.Host);
+                var stats = await _net.MeasureTestServerAsync(vm.Host, _pageCts.Token);
                 vm.SetResult(stats);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Os que ficaram "…" voltam ao estado sem medição.
+            foreach (var s in TestServers.Where(s => s.IsTesting)) s.ResetPending();
         }
         finally { IsTestingServers = false; }
     }
@@ -650,6 +667,14 @@ public partial class TestServerViewModel : ObservableObject
     {
         Name = name;
         Host = host;
+    }
+
+    /// <summary>Volta ao estado "ainda não medido" (teste interrompido).</summary>
+    public void ResetPending()
+    {
+        IsTesting = false;
+        PingText = JitterText = LossText = "--";
+        Color = "#808080";
     }
 
     public void SetTesting()

@@ -23,8 +23,9 @@ public class AppHardwareAccelerationService
 
     public AppHardwareAccelerationService(OptimizationChangeLog log) => _log = log;
 
-    private static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-    private static string LocalAppData => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    // Pastas de quem usa o PC (ver InteractiveUser), não da conta que elevou o app.
+    private static string AppData => InteractiveUser.RoamingAppData;
+    private static string LocalAppData => InteractiveUser.LocalAppData;
 
     // Estável, PTB e Canary têm pastas separadas; todas seguem o mesmo interruptor.
     private static IEnumerable<string> DiscordSettingsFiles() =>
