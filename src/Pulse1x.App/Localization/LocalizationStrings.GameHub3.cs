@@ -67,7 +67,8 @@ internal static partial class LocalizationStrings
         t["GH_StatsClear"] = "Apagar hist\u00f3rico";
         t["GH_StatsClearConfirm"] = "Apagar todo o hist\u00f3rico de sess\u00f5es?\n\nAs horas, m\u00e9dias e estat\u00edsticas de FPS ser\u00e3o perdidas. Esta a\u00e7\u00e3o n\u00e3o pode ser desfeita.";
         t["GH_StatsEmpty"] = "Sua biblioteca ainda est\u00e1 vazia. Adicione um jogo ao GameHub para acompanhar as estat\u00edsticas.";
-        t["GH_StatsFpsEstimated"] = "O FPS \u00e9 estimado sem injetar nada no jogo \u2014 serve para comparar sess\u00f5es do mesmo jogo, n\u00e3o como n\u00famero de benchmark.";
+        t["GH_StatsFpsEstimated"] = "O FPS \u00e9 medido contando os quadros que o jogo entrega ao Windows (DirectX), sem injetar nada no jogo. Jogos que n\u00e3o passam pelo DirectX (alguns OpenGL/Vulkan) recebem uma estimativa pela ocupa\u00e7\u00e3o da GPU, marcada como estimada.";
+        t["GH_StatsFpsEstimatedTag"] = "(estimado)";
         t["GH_StatsImpactOff"] = "Impacto: zero. Todas as medi\u00e7\u00f5es est\u00e3o desligadas.";
         t["GH_StatsImpactMinimal"] = "Impacto: desprez\u00edvel. Apenas o registro da sess\u00e3o est\u00e1 ativo.";
         t["GH_StatsImpactVeryLow"] = "Impacto esperado: muito baixo. Sensores locais s\u00e3o lidos a cada 3 segundos.";
@@ -141,7 +142,8 @@ internal static partial class LocalizationStrings
         t["GH_StatsClear"] = "Clear history";
         t["GH_StatsClearConfirm"] = "Delete the whole session history?\n\nHours, averages and FPS statistics will be lost. This cannot be undone.";
         t["GH_StatsEmpty"] = "Your library is empty. Add a game to GameHub to track its statistics.";
-        t["GH_StatsFpsEstimated"] = "FPS is estimated without injecting anything into the game \u2014 use it to compare sessions of the same game, not as a benchmark number.";
+        t["GH_StatsFpsEstimated"] = "FPS is measured by counting the frames the game hands to Windows (DirectX), without injecting anything into the game. Games that bypass DirectX (some OpenGL/Vulkan titles) get an estimate from GPU load, marked as estimated.";
+        t["GH_StatsFpsEstimatedTag"] = "(estimated)";
         t["GH_StatsImpactOff"] = "Impact: none. All measurements are disabled.";
         t["GH_StatsImpactMinimal"] = "Impact: negligible. Only session logging is active.";
         t["GH_StatsImpactVeryLow"] = "Expected impact: very low. Local sensors are read every 3 seconds.";

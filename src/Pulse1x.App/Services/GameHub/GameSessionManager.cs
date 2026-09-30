@@ -235,6 +235,7 @@ public class GameSessionManager
             MaxFps = fps?.Max,
             MinFps = fps?.Min,
             OnePercentLowFps = fps?.OnePercentLow,
+            FpsEstimated = fps?.IsEstimated,
             AverageCpuTemperature = telemetry?.AverageCpuTemperature,
             AverageGpuTemperature = telemetry?.AverageGpuTemperature,
             AverageCpuUsage = telemetry?.AverageCpuUsage,

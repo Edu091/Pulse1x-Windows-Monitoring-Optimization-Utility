@@ -30,6 +30,7 @@
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.3.2" />
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="LiveChartsCore" Version="2.0.4" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.8" />
     <PackageReference Include="SDL3-CS.Windows" Version="3.4.16" />
     <PackageReference Include="System.Management" Version="10.0.9" />
     <!-- Páginas de código legadas (CP850/CP437 etc.): o powercfg e o netsh escrevem a saída na
@@ -38,6 +39,17 @@
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
+
+  <!-- O TraceEvent (medição de FPS por ETW) traz DLLs nativas auxiliares — KernelTraceControl.dll
+       e msdia140.dll — que só servem para símbolos, rundown do kernel e mesclagem de arquivos
+       .etl. Uma sessão em tempo real de provedores de modo usuário, que é tudo o que o Pulse1x usa,
+       não carrega nenhuma delas; tirá-las evita ~2,5 MB a mais no executável single-file. -->
+  <Target Name="DropTraceEventHelperFiles" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <None Remove="@(None)"
+            Condition="$([System.String]::Copy('%(None.FullPath)').ToLowerInvariant().Contains('microsoft.diagnostics.tracing.traceevent'))" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <Resource Include="Resources\pulse1x_taskbar.png" />

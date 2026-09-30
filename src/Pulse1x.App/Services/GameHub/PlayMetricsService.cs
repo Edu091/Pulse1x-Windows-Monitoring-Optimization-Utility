@@ -90,6 +90,7 @@ public class PlayMetricsService
             session.MaxFps = null;
             session.MinFps = null;
             session.OnePercentLowFps = null;
+            session.FpsEstimated = null;
         }
         if (!options.Temperatures)
         {
@@ -182,6 +183,8 @@ public class PlayMetricsService
             WorstOnePercentLowFps = sessions.Where(s => s.OnePercentLowFps is > 0)
                 .Select(s => s.OnePercentLowFps!.Value).DefaultIfEmpty(0).Min() is var low && low > 0 ? low : null,
             AverageOnePercentLowFps = AverageNullable(sessions.Select(s => s.OnePercentLowFps)),
+            // Sessões antigas (sem o campo) foram todas medidas pela estimativa da GPU.
+            FpsEstimated = withFps.Any(s => s.FpsEstimated != false),
             AverageCpuTemperature = AverageNullable(sessions.Select(s => s.AverageCpuTemperature)),
             AverageGpuTemperature = AverageNullable(sessions.Select(s => s.AverageGpuTemperature)),
             AverageCpuUsage = AverageNullable(sessions.Select(s => s.AverageCpuUsage)),

@@ -131,8 +131,11 @@ public partial class StatisticsViewModel : ObservableObject
             : Loc.F("GH_StatsPeriod", stats.FirstPlayed.Value.ToString("dd/MM/yyyy"),
                 stats.LastPlayed?.ToString("dd/MM/yyyy") ?? "-");
         SelectedPlaytimeText = stats?.TotalText ?? "-";
-        SelectedFpsText = FormatMetric(stats?.AverageFps, " FPS");
-        SelectedOnePercentLowText = FormatMetric(stats?.AverageOnePercentLowFps, " FPS");
+        // FPS vindo da estimativa pela GPU (jogo sem eventos de Present, ou histórico antigo) é
+        // marcado na própria métrica, para não ser lido como contagem real de quadros.
+        string fpsSuffix = stats?.FpsEstimated == true ? " FPS " + Loc.S("GH_StatsFpsEstimatedTag") : " FPS";
+        SelectedFpsText = FormatMetric(stats?.AverageFps, fpsSuffix);
+        SelectedOnePercentLowText = FormatMetric(stats?.AverageOnePercentLowFps, fpsSuffix);
         SelectedCpuTemperatureText = FormatMetric(stats?.AverageCpuTemperature, " °C");
         SelectedGpuTemperatureText = FormatMetric(stats?.AverageGpuTemperature, " °C");
         SelectedRamText = stats?.AverageRamUsedGb is > 0

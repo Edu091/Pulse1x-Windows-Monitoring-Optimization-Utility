@@ -23,6 +23,11 @@ public class PlaySession
     public double? MinFps { get; set; }
     /// <summary>1% low: a média dos piores 1% dos quadros — é o que se sente como engasgo.</summary>
     public double? OnePercentLowFps { get; set; }
+    /// <summary>
+    /// O FPS da sessão veio da estimativa pela ocupação da GPU, e não da contagem de quadros?
+    /// Null = sessão gravada antes da contagem real existir, quando todo FPS era estimado.
+    /// </summary>
+    public bool? FpsEstimated { get; set; }
 
     // Local telemetry averages for the session. No raw timeline is persisted or uploaded.
     public double? AverageCpuTemperature { get; set; }
@@ -58,6 +63,8 @@ public class GameStats
     public double? BestMaxFps { get; set; }
     public double? WorstOnePercentLowFps { get; set; }
     public double? AverageOnePercentLowFps { get; set; }
+    /// <summary>Alguma sessão que entra nas médias de FPS foi estimada (não contada)?</summary>
+    public bool FpsEstimated { get; set; }
 
     public double? AverageCpuTemperature { get; set; }
     public double? AverageGpuTemperature { get; set; }

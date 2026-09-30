@@ -51,6 +51,8 @@ public partial class App : Application
     private static readonly Color BrandAccentColor = Color.FromRgb(0xDC, 0x26, 0x26);
 
     private HardwareMonitorService? _hardwareMonitorService;
+    // Guardado para o OnExit: a sessão ETW de FPS sobrevive ao processo se não for encerrada.
+    private FpsMonitorService? _fpsMonitorService;
     private TrayIconService? _trayIconService;
     private Mutex? _singleInstanceMutex;
     private EventWaitHandle? _showWindowSignal;
@@ -251,7 +253,7 @@ public partial class App : Application
 
         var hubStatusService = new HubStatusService(_hardwareMonitorService, systemMetricsService);
         var playMetricsService = new PlayMetricsService();
-        var fpsMonitorService = new FpsMonitorService();
+        var fpsMonitorService = _fpsMonitorService = new FpsMonitorService();
         var sessionTelemetryService = new SessionTelemetryService(_hardwareMonitorService, systemMetricsService);
 
         var sessionManager = new GameSessionManager(
@@ -451,6 +453,7 @@ public partial class App : Application
         _showWindowSignal?.Dispose();
         _trayIconService?.Dispose();
         _hardwareMonitorService?.Dispose();
+        _fpsMonitorService?.Dispose();
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
         // Criado sem posse (initiallyOwned: false), então só descartamos — liberar um mutex não
