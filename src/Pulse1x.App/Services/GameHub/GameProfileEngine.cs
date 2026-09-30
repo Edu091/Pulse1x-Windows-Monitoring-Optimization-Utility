@@ -228,6 +228,7 @@ public class GameProfileEngine
         if (wanted.Count == 0) return;
 
         // Lê os valores atuais ANTES de escrever e grava o snapshot em disco.
+        snapshot.PowerSettingsPlanGuid = (await _power.GetActivePlanAsync())?.Guid;
         snapshot.PowerSettings = await _power.CaptureAsync(
             wanted.Select(w => (w.SubGroupGuid, w.SettingGuid, w.Label)));
         _snapshots.Persist(snapshot);
@@ -501,10 +502,12 @@ public class GameProfileEngine
 
         Try(() =>
         {
-            if (snapshot.Volume is int volume) _audio.SetVolume(volume);
-            if (snapshot.Muted is bool muted) _audio.SetMuted(muted);
+            // Primeiro o dispositivo, depois volume/mudo — a mesma ordem da aplicação. Ao contrário,
+            // o fone recebia o volume antigo das caixas de som e só então o padrão voltava.
             if (snapshot.DefaultOutputDeviceId is { Length: > 0 } output) _audio.SetDefaultDevice(output);
             if (snapshot.DefaultInputDeviceId is { Length: > 0 } input) _audio.SetDefaultDevice(input);
+            if (snapshot.Volume is int volume) _audio.SetVolume(volume);
+            if (snapshot.Muted is bool muted) _audio.SetMuted(muted);
         });
 
         Try(() =>
@@ -519,17 +522,18 @@ public class GameProfileEngine
             if (snapshot.OemModeId is { Length: > 0 } mode) _oem.SetMode(mode);
         });
 
-        // As configurações avançadas voltam ANTES do plano: elas foram gravadas no plano que estava
-        // ativo na hora da captura, que é justamente o que vamos reativar em seguida.
+        // As configurações avançadas voltam para o plano de onde foram LIDAS (o do jogo, se o
+        // perfil trocou de plano antes). Snapshots antigos, sem esse campo, usam o plano original.
         if (snapshot.PowerSettings.Count > 0)
-            await TryAsync(() => _power.RestoreAsync(snapshot.PowerSettings, snapshot.PowerPlanGuid));
+            await TryAsync(() => _power.RestoreAsync(snapshot.PowerSettings,
+                snapshot.PowerSettingsPlanGuid ?? snapshot.PowerPlanGuid));
 
         if (snapshot.PowerPlanGuid is { Length: > 0 } plan)
             await TryAsync(() => _power.SetActivePlanAsync(plan));
 
         Try(() =>
         {
-            if (snapshot.StartedProcessIds.Count > 0) _processes.CloseStartedApps(snapshot.StartedProcessIds);
+            if (snapshot.StartedProcessIds.Count > 0) _processes.CloseStartedApps(snapshot.StartedProcessIds, snapshot.CapturedAt);
         });
 
         Try(() =>

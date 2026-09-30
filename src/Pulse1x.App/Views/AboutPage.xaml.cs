@@ -12,20 +12,25 @@ public partial class AboutPage : Page
     {
         InitializeComponent();
 
+        if (AppInfoService.Changelog is { Length: > 0 } changelog)
+            RenderChangelog(changelog);
+        else
+            // Sem histórico embutido, o botão não teria o que mostrar.
+            ChangelogToggle.Visibility = Visibility.Collapsed;
+
+        RefreshTexts();
+        // Textos montados em código não acompanham as ligações [Chave]: sem isto, trocar o idioma
+        // deixava "Versão 1.13.1" e o botão do histórico em português.
+        Loc.Instance.LanguageChanged += RefreshTexts;
+    }
+
+    private void RefreshTexts()
+    {
         // A versão vem do assembly: antes era uma literal nas traduções e ficou parada em
         // "1.0.0" por todas as publicações seguintes.
         VersionText.Text = string.Format(Loc.Instance["About_Version"], AppInfoService.Version);
-
-        if (AppInfoService.Changelog is { Length: > 0 } changelog)
-        {
-            ChangelogToggle.Content = Loc.Instance["About_Changelog"];
-            RenderChangelog(changelog);
-        }
-        else
-        {
-            // Sem histórico embutido, o botão não teria o que mostrar.
-            ChangelogToggle.Visibility = Visibility.Collapsed;
-        }
+        bool showing = ChangelogPanel.Visibility == Visibility.Visible;
+        ChangelogToggle.Content = Loc.Instance[showing ? "About_ChangelogHide" : "About_Changelog"];
     }
 
     private void ToggleChangelog(object sender, RoutedEventArgs e)

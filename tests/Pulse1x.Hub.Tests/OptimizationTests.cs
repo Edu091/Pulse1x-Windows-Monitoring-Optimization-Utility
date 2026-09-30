@@ -67,6 +67,27 @@ internal static class OptimizationTests
             finally { File.Delete(file); }
         });
 
+        suite.Run("Undoing windowed-game optimization keeps later DirectX settings", () =>
+        {
+            const string key = @"Software\Pulse1xTests\DirectX";
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(key))
+                    // O usuário ligou Auto HDR DEPOIS de a otimização ser aplicada.
+                    k.SetValue("DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=1;AutoHDREnable=1;");
+
+                HardwareOptimizationService.RevertDirectXItem(new OptimizationChange
+                {
+                    Kind = ChangeKind.Registry, Hive = "HKCU", KeyPath = key, ValueName = "DirectXUserGlobalSettings",
+                    ValueKind = HardwareOptimizationService.DirectXItemKind, OldValue = null, NewValue = "1",
+                });
+
+                using var read = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(key)!;
+                TestSuite.Equal("AutoHDREnable=1;", read.GetValue("DirectXUserGlobalSettings") as string);
+            }
+            finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Pulse1xTests", throwOnMissingSubKey: false); }
+        });
+
         suite.Run("Legacy MMCSS text values are restored as DWORD", () =>
         {
             const string games = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games";

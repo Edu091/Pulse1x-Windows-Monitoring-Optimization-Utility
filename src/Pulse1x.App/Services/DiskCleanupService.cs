@@ -493,7 +493,9 @@ public class DiskCleanupService
             {
                 wFunc = FO_DELETE,
                 pFrom = from,
-                fFlags = (ushort)(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT)
+                // FOF_WANTNUKEWARNING: um arquivo maior que a cota da Lixeira seria APAGADO de vez,
+                // sem aviso, mesmo com FOF_ALLOWUNDO. Com a flag o Windows pergunta antes.
+                fFlags = (ushort)(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT | FOF_WANTNUKEWARNING)
             };
 
             try { SHFileOperation(ref op); }
@@ -592,7 +594,17 @@ public class DiskCleanupService
             catch { subdirs = Array.Empty<string>(); }
 
             foreach (var d in subdirs)
+            {
+                // Nunca seguir junções/links simbólicos. Qualquer usuário pode criar em
+                // C:\Windows\Temp uma junção para C:\Windows\System32 — e a limpeza, rodando como
+                // administrador, apagaria o que estivesse do outro lado.
+                try
+                {
+                    if ((File.GetAttributes(d) & FileAttributes.ReparsePoint) != 0) continue;
+                }
+                catch { continue; }
                 stack.Push(d);
+            }
         }
     }
 
@@ -743,6 +755,7 @@ public class DiskCleanupService
     private const ushort FOF_NOCONFIRMATION = 0x0010;
     private const ushort FOF_ALLOWUNDO = 0x0040;     // envia para a Lixeira (reversível)
     private const ushort FOF_NOERRORUI = 0x0400;
+    private const ushort FOF_WANTNUKEWARNING = 0x4000;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct SHFILEOPSTRUCT

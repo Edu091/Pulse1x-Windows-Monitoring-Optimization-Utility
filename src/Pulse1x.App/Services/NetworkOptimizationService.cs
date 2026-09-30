@@ -110,7 +110,13 @@ public class NetworkOptimizationService
     {
         var settings = await ReadTcpAsync();
         await RunAsync("netsh", "int tcp set global rss=enabled");
-        if (!settings.rss.Contains("enabled", StringComparison.OrdinalIgnoreCase))
+        // Só registra quando o estado anterior era CLARAMENTE desligado. Antes, qualquer coisa que
+        // não contivesse "enabled" (leitura "—", "habilitado" de um Windows traduzido) virava
+        // "estava desligado", e Desfazer tudo DESLIGAVA um RSS que sempre esteve ligado.
+        bool wasDisabled = settings.rss.StartsWith("disabled", StringComparison.OrdinalIgnoreCase)
+                           || settings.rss.StartsWith("desabilitad", StringComparison.OrdinalIgnoreCase);
+        bool alreadyLogged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-rss");
+        if (wasDisabled && !alreadyLogged)
             Record("netsh-rss", "rss", "Rss", "disabled", "enabled", "Lat_ToolRss");
         return new OpResult(true, "Lat_DoneRss");
     }
@@ -121,7 +127,8 @@ public class NetworkOptimizationService
         var settings = await ReadTcpAsync();
         string old = ParseAutoTuning(settings.autotune);
         await RunAsync("netsh", "int tcp set global autotuninglevel=normal");
-        if (!old.Equals("normal", StringComparison.OrdinalIgnoreCase) && old != "—")
+        bool autoLogged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-autotuning");
+        if (!old.Equals("normal", StringComparison.OrdinalIgnoreCase) && old != "—" && !autoLogged)
             Record("netsh-autotuning", "autotuning", "AutoTuning", old, "normal", "Lat_ToolAutoTuning");
         return new OpResult(true, "Lat_DoneAutoTuning");
     }

@@ -27,6 +27,11 @@ public class SystemSnapshot
     /// <summary>Valores originais das configurações avançadas alteradas, no plano que estava ativo.</summary>
     public List<PowerSettingValue> PowerSettings { get; set; } = new();
 
+    /// <summary>Plano de onde <see cref="PowerSettings"/> foram lidas. O perfil troca de plano ANTES
+    /// de ajustar as configurações avançadas, então elas vêm do plano do jogo — e voltar a gravá-las
+    /// no plano original (PowerPlanGuid) deixava, por exemplo, o Equilibrado com CPU mínima em 100%.</summary>
+    public string? PowerSettingsPlanGuid { get; set; }
+
     // ---- Fabricante (OEM) ----
     public string? OemVendorId { get; set; }
     public string? OemModeId { get; set; }

@@ -42,7 +42,8 @@ public class ProcessControlService
 
         while (DateTime.UtcNow < deadline && !token.IsCancellationRequested)
         {
-            var candidate = FindCandidate(game, launched, gameDir);
+            // Varre todos os processos (e o MainModule de cada um): fora da thread de UI.
+            var candidate = await Task.Run(() => FindCandidate(game, launched, gameDir));
             if (candidate is not null) return candidate;
 
             try { await Task.Delay(1000, token); }
@@ -57,8 +58,8 @@ public class ProcessControlService
         // 1) O nome que já deu certo antes.
         if (!string.IsNullOrEmpty(game.KnownProcessName))
         {
-            var known = SafeGetByName(game.KnownProcessName).OrderByDescending(SafeMemory).FirstOrDefault();
-            if (known is not null) return known;
+            var known = SafeGetByName(game.KnownProcessName).OrderByDescending(SafeMemory).ToList();
+            if (known.Count > 0) return KeepFirst(known);
         }
 
         // 2) Qualquer processo rodando de dentro da pasta do jogo.
@@ -73,6 +74,11 @@ public class ProcessControlService
                 .OrderByDescending(SafeMemory)
                 .ToList();
 
+            // Os que não foram escolhidos são descartados: esta busca roda a cada segundo por até
+            // dois minutos, e cada Process guardado segura um handle do sistema.
+            foreach (var p in all)
+                if (inDir.Count == 0 || !ReferenceEquals(p, inDir[0])) p.Dispose();
+
             if (inDir.Count > 0) return inDir[0];
         }
 
@@ -84,6 +90,12 @@ public class ProcessControlService
         catch { }
 
         return null;
+    }
+
+    private static Process KeepFirst(List<Process> processes)
+    {
+        for (int i = 1; i < processes.Count; i++) processes[i].Dispose();
+        return processes[0];
     }
 
     private static string? SafeDirectory(string workingDirectory, string executable)
@@ -166,7 +178,12 @@ public class ProcessControlService
     /// app possa salvar), e só encerra à força quem não responde. Devolve o que foi fechado, com o
     /// caminho do executável, para conseguir reabrir depois.
     /// </summary>
-    public async Task<List<ClosedProcessInfo>> CloseProcessesAsync(IEnumerable<string> names)
+    // Esperar até 3 s por processo (WaitForExit) congelava a interface: com cinco apps sem
+    // resposta, o hub ficava ~15 s parado. O trabalho roda fora da thread de UI.
+    public Task<List<ClosedProcessInfo>> CloseProcessesAsync(IEnumerable<string> names) =>
+        Task.Run(() => CloseProcesses(names.ToList()));
+
+    private List<ClosedProcessInfo> CloseProcesses(List<string> names)
     {
         var closed = new List<ClosedProcessInfo>();
 
@@ -203,7 +220,6 @@ public class ProcessControlService
                 closed.Add(new ClosedProcessInfo { ProcessName = name, ExecutablePath = path, Count = count });
         }
 
-        await Task.CompletedTask;
         return closed;
     }
 
@@ -250,14 +266,22 @@ public class ProcessControlService
     }
 
     /// <summary>Fecha os aplicativos abertos junto ao jogo, pelos ids guardados no snapshot.</summary>
-    public void CloseStartedApps(IEnumerable<int> processIds)
+    public void CloseStartedApps(IEnumerable<int> processIds, DateTime sessionStartedAt)
     {
+        // Os ids só valem para ESTA sessão do Windows. Na recuperação depois de uma queda ou
+        // reinício, os mesmos números já pertencem a outros programas (navegador, editor) — e eram
+        // encerrados com a árvore inteira. Só fecha quem nasceu logo depois do início da sessão.
+        DateTime bootTime = DateTime.Now - TimeSpan.FromMilliseconds(Environment.TickCount64);
+        if (bootTime > sessionStartedAt) return;
+
         foreach (int id in processIds)
         {
             try
             {
                 using var process = Process.GetProcessById(id);
                 if (Protected.Contains(process.ProcessName)) continue;
+                DateTime started = process.StartTime;
+                if (started < sessionStartedAt.AddSeconds(-5) || started > sessionStartedAt.AddMinutes(5)) continue;
                 if (!process.CloseMainWindow() || !process.WaitForExit(3000))
                     process.Kill(entireProcessTree: true);
             }

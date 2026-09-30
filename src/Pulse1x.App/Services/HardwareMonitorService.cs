@@ -281,27 +281,36 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
 
     private static readonly string[] PreferredTemperatureNames = { "Package", "Core (Tctl/Tdie)", "Core Average", "Hot Spot", "Core" };
 
+    private static bool IsGpu(IHardware hardware) => GpuTypes.Contains(hardware.HardwareType);
+
+    private static ISensor? FindSensor(IHardware hardware, SensorType type, string name) =>
+        hardware.Sensors.FirstOrDefault(s => s.SensorType == type && s.Value.HasValue &&
+                                             s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    // A GPU não tem sensor "Total": antes, com o núcleo em 0% o valor caía no primeiro Load que
+    // viesse depois — "GPU Memory Controller" ou o % de VRAM usada — e o card mostrava ~25% de uso
+    // com a placa ociosa. Agora cada tipo lê o sensor que de fato representa o uso.
     private static double ReadUsage(IHardware hardware)
     {
-        double usage = 0;
+        var loads = hardware.Sensors.Where(s => s.SensorType == SensorType.Load && s.Value.HasValue).ToList();
+        if (loads.Count == 0) return 0;
 
-        foreach (var sensor in hardware.Sensors)
-        {
-            if (sensor.SensorType == SensorType.Load && sensor.Value.HasValue &&
-                (sensor.Name.Contains("Total", StringComparison.OrdinalIgnoreCase) || usage == 0))
-            {
-                usage = sensor.Value.Value;
-            }
-        }
-
-        return usage;
+        var preferred = IsGpu(hardware)
+            ? FindSensor(hardware, SensorType.Load, "GPU Core") ?? FindSensor(hardware, SensorType.Load, "D3D 3D")
+            : loads.FirstOrDefault(s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase));
+        return (preferred ?? loads[0]).Value!.Value;
     }
 
+    // O máximo de TODOS os clocks incluía o da memória: uma RTX aparecia com "9,5 GHz".
     private static double? ReadClock(IHardware hardware)
     {
+        if (IsGpu(hardware))
+            return FindSensor(hardware, SensorType.Clock, "GPU Core")?.Value;
+
         var clockSensors = hardware.Sensors
             .Where(s => s.SensorType == SensorType.Clock && s.Value.HasValue &&
-                        !s.Name.Contains("Bus", StringComparison.OrdinalIgnoreCase))
+                        !s.Name.Contains("Bus", StringComparison.OrdinalIgnoreCase) &&
+                        !s.Name.Contains("Memory", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (clockSensors.Count == 0) return null;
@@ -316,6 +325,11 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
             .ToList();
 
         if (temperatureSensors.Count == 0) return null;
+
+        // Na GPU, o "Hot Spot" fica 10–20 °C acima do núcleo por projeto. Lê-lo como a temperatura
+        // da placa disparava o alerta de superaquecimento da Saúde com a placa em condição normal.
+        if (IsGpu(hardware) && FindSensor(hardware, SensorType.Temperature, "GPU Core") is { } core)
+            return core.Value;
 
         foreach (var preferredName in PreferredTemperatureNames)
         {

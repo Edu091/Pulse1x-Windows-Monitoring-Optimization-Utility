@@ -13,6 +13,10 @@ internal static partial class LocalizationStrings
         var t = Pt;
 
         t["Opt_AdvancedSub"] = "Privacidade, telemetria e bloatware — ajustes seguros e totalmente reversíveis";
+        t["Opt_VisualActive"] = "Em uso";
+        t["AdvOpt_RevertAllPartial"] = "Algumas alterações não puderam ser desfeitas. As demais foram revertidas:";
+        t["App_StartupFailed"] = "O Pulse1x não conseguiu abrir. O erro foi registrado em %LOCALAPPDATA%\\Pulse1x\\crash.log.";
+        t["Update_AlreadyRunning"] = "Uma atualização já está sendo baixada.";
         t["Opt_TuningTitle"] = "Otimização de Hardware e Software";
         t["Opt_TuningHistoryNote"] = "Todas as mudanças desta seção aparecem no Histórico e Reversão das Otimizações Avançadas, onde podem ser desfeitas uma a uma.";
         t["AdvOpt_HwAccelStateOn"] = "Aceleração de hardware ativada";
@@ -76,6 +80,10 @@ internal static partial class LocalizationStrings
         var t = En;
 
         t["Opt_AdvancedSub"] = "Privacy, telemetry and bloatware — safe and fully reversible tweaks";
+        t["Opt_VisualActive"] = "In use";
+        t["AdvOpt_RevertAllPartial"] = "Some changes could not be undone. The rest were reverted:";
+        t["App_StartupFailed"] = "Pulse1x could not start. The error was logged to %LOCALAPPDATA%\\Pulse1x\\crash.log.";
+        t["Update_AlreadyRunning"] = "An update is already being downloaded.";
         t["Opt_TuningTitle"] = "Hardware and Software Optimization";
         t["Opt_TuningHistoryNote"] = "Every change in this section shows up in Advanced Optimizations' History and Revert, where it can be undone one by one.";
         t["AdvOpt_HwAccelStateOn"] = "Hardware acceleration on";

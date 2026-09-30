@@ -203,7 +203,8 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
             var elapsed = now - _lastSample;
             _lastSample = now;
 
-            string pingTarget = _net.PreferredPingTarget();
+            // Consultar os adaptadores (GetAllNetworkInterfaces) é lento com VPN/Hyper-V: fora da UI.
+            string pingTarget = await Task.Run(_net.PreferredPingTarget);
 
             // Coleta pesada (netsh + ping + throughput) fora da thread de UI.
             var data = await Task.Run(async () =>
@@ -271,7 +272,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         try
         {
             var wifi = await _net.ReadWifiAsync();
-            var ping = await _net.PingAsync(_net.PreferredPingTarget(), count: 8, timeoutMs: 1000);
+            var ping = await _net.PingAsync(await Task.Run(_net.PreferredPingTarget), count: 8, timeoutMs: 1000);
             ApplyScore(ping, wifi);
         }
         catch
@@ -293,9 +294,10 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
         ScoreRatingText = QualityColors.Emoji(score.Level) + " " + Loc.S(QualityColors.LabelKey(score.Level));
 
         JitterText = ping.Success ? $"{ping.JitterMs:0.#} ms" : "—";
-        JitterColor = QualityColors.Hex(NetworkLatencyService.JitterLevel(ping.JitterMs));
+        // Sem nenhuma resposta, "—" em verde (nível de 0 ms) parecia um resultado ótimo.
+        JitterColor = ping.Success ? QualityColors.Hex(NetworkLatencyService.JitterLevel(ping.JitterMs)) : "#808080";
         LossText = ping.Success ? $"{ping.LossPercent:0.#}%" : "—";
-        LossColor = QualityColors.Hex(NetworkLatencyService.LossLevel(ping.LossPercent));
+        LossColor = ping.Success ? QualityColors.Hex(NetworkLatencyService.LossLevel(ping.LossPercent)) : "#E53935";
     }
 
     // ===================== Ferramentas =====================
@@ -366,6 +368,13 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task RestoreAllAsync()
     {
+        // "Desfazer" e "Aplicar tudo" ao mesmo tempo percorriam o log de alterações juntos.
+        if (IsApplyingAll) return;
+        await RestoreAllCoreAsync();
+    }
+
+    private async Task RestoreAllCoreAsync()
+    {
         var confirm = System.Windows.MessageBox.Show(
             Loc.S("Lat_RestoreConfirmBody"), Loc.S("Lat_RestoreConfirmTitle"),
             System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
@@ -409,7 +418,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
                 $"{report.Speed.DownloadMbps:0.#}", $"{report.Speed.UploadMbps:0.#}"), "#808080"));
             DiagnosticLines.Add(new DiagnosticLineViewModel("📡", Loc.F("Lat_DiagPing",
                 $"{report.Ping.AvgMs:0.#}", $"{report.Ping.JitterMs:0.#}", $"{report.Ping.LossPercent:0.#}"),
-                QualityColors.Hex(NetworkLatencyService.PingLevel(report.Ping.AvgMs))));
+                report.Ping.Success ? QualityColors.Hex(NetworkLatencyService.PingLevel(report.Ping.AvgMs)) : "#E53935"));
 
             if (report.Wifi.Connected)
                 DiagnosticLines.Add(new DiagnosticLineViewModel("📶", Loc.F("Lat_DiagWifi",
@@ -501,7 +510,7 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     private async Task AddDriverLatencyCausesAsync()
     {
         bool foundCause = false;
-        var basics = _net.ReadBasics();
+        var basics = await Task.Run(_net.ReadBasics);
 
         if (basics.IsWifi)
         {

@@ -7,7 +7,7 @@
 ; .exe num diretório temporário do runner, diferente do caminho fixo usado no publish local
 ; (atualizar_pulse1x.bat). Os #ifndef abaixo mantêm o build manual funcionando sem argumentos.
 #ifndef AppVersion
-  #define AppVersion "1.13.1"
+  #define AppVersion "1.13.2"
 #endif
 #ifndef SourceExeDir
   #define SourceExeDir "C:\Pulse1x\release-public"
@@ -20,14 +20,10 @@
 AppId={{8C2E7B1A-9F4D-4A6B-9E3C-1D7F5A2B6C90}
 AppName=Pulse1x
 AppVersion={#AppVersion}
-; Mesmo nome do mutex de instância única do app (App.xaml.cs) — permite ao Inno Setup detectar
-; com precisão o Pulse1x em execução para /CLOSEAPPLICATIONS e /RESTARTAPPLICATIONS (usado pelo
-; GitHubUpdateService ao atualizar com o app já aberto).
-; Os DOIS nomes: o instalador roda elevado e, nesse contexto, pode não enxergar um mutex criado
-; na sessão do usuário — sem ver o app aberto, ele não o fecharia e falharia ao substituir o .exe
-; em uso. O "Global\" resolve isso; o local é mantido para continuar detectando versões antigas
-; (1.4.6 e anteriores), que só criavam esse.
-AppMutex=Global\Pulse1x_SingleInstance_Mutex,Pulse1x_SingleInstance_Mutex
+; Sem AppMutex de propósito. Com ele, o Setup vê o Pulse1x aberto e pergunta "feche o app"; em
+; modo silencioso (/SUPPRESSMSGBOXES, usado pelo atualizador automático) a resposta assumida é
+; Cancelar e a atualização abortava com código 1 (visto no update.log). Quem fecha o app em uso é o
+; CloseApplications (Restart Manager) abaixo, e a entrada silenciosa do [Run] o reabre ao terminar.
 AppPublisher=Eduardo Almeida Bedin
 AppPublisherURL=https://github.com/Edu091/Pulse1x-Windows-Monitoring-Optimization-Utility
 DefaultDirName={autopf}\Pulse1x
@@ -48,7 +44,7 @@ WizardStyle=modern
 ; O AppId acima é a identidade da instalação: com ele igual, rodar um Setup mais novo ATUALIZA a
 ; instalação existente em vez de criar uma segunda. As diretivas abaixo tornam isso explícito e
 ; tiram os atritos que apareciam ao atualizar com o app aberto:
-;   • CloseApplications   — o instalador fecha o Pulse1x em execução (achado pelo AppMutex) em vez
+;   • CloseApplications   — o instalador fecha o Pulse1x em execução (pelo Restart Manager) em vez
 ;                           de falhar com "arquivo em uso";
 ;   • RestartApplications — e o reabre ao terminar, para a atualização ser transparente;
 ;   • UsePreviousAppDir   — reinstala na mesma pasta escolhida da primeira vez;
@@ -86,3 +82,11 @@ Name: "{autodesktop}\Pulse1x"; Filename: "{app}\Pulse1x.App.exe"; Tasks: desktop
 ; (requireAdministrator no app.manifest), sem essa flag o lançamento pós-instalação falha com
 ; "CreateProcess falhou; código 740: a operação solicitada requer elevação" (bug corrigido em 2026-07-13).
 Filename: "{app}\Pulse1x.App.exe"; Description: "{cm:LaunchProgram,Pulse1x}"; Flags: nowait postinstall skipifsilent shellexec
+; Atualização automática (/VERYSILENT pelo GitHubUpdateService): a entrada acima é pulada em modo
+; silencioso e o /RESTARTAPPLICATIONS só reabre apps que se registram no Restart Manager — o que o
+; Pulse1x não faz. Sem esta linha, o app simplesmente sumia depois de atualizar.
+Filename: "{app}\Pulse1x.App.exe"; Flags: nowait shellexec; Check: WizardSilent
+
+[UninstallRun]
+; Tarefa de logon criada por "Iniciar com o Windows" (SettingsService.StartupTaskName).
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""Pulse1x"" /F"; Flags: runhidden; RunOnceId: "RemoveStartupTask"

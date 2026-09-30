@@ -32,6 +32,7 @@ public partial class HealthViewModel : ObservableObject
 
     [ObservableProperty] private bool isActionRunning;
     [ObservableProperty] private string actionStatus = "";
+    [ObservableProperty] private string errorText = "";
 
     // Recolhe a análise de volta, deixando só o resumo da nota geral visível.
     [ObservableProperty] private bool isReportCollapsed;
@@ -61,6 +62,7 @@ public partial class HealthViewModel : ObservableObject
         IsRunning = true;
         ProgressText = Loc.S("HealthVm_StartingDiagnostic");
         ActionStatus = "";
+        ErrorText = "";
         IsReportCollapsed = false;
 
         try
@@ -71,7 +73,9 @@ public partial class HealthViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ProgressText = Loc.S("HealthVm_DiagnosticFailed") + ex.Message;
+            // ProgressText só aparece enquanto IsRunning, que o finally desliga logo abaixo — a
+            // falha precisa de um texto próprio para o usuário chegar a vê-la.
+            ErrorText = "❌ " + Loc.S("HealthVm_DiagnosticFailed") + ex.Message;
         }
         finally
         {

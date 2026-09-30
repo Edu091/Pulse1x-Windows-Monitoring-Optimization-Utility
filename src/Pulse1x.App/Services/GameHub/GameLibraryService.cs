@@ -216,7 +216,10 @@ public class GameLibraryService
 
         lock (_gate)
         {
+            // ROMs ficam de fora (discos e versões regionais têm o mesmo nome limpo, mas são jogos
+            // distintos) — este limpador roda a cada abertura do app.
             var groups = _data.Games
+                .Where(g => g.Launcher != LauncherKind.Emulator)
                 .GroupBy(g => NormalizedName(g.Name), StringComparer.Ordinal)
                 .Where(g => g.Key.Length > 0 && g.Count() > 1);
 
@@ -405,7 +408,11 @@ public class GameLibraryService
         catch { }
 
         if (remember) AddScanFolder(folder);
-        return Reconcile(found, new[] { $"{Path.GetFileName(folder)} ({found.Count})" });
+        // Só os jogos DESTA pasta podem sair: sem esse escopo, varrer uma pasta apagava os jogos
+        // encontrados em todas as outras pastas lembradas (todos são do tipo Manual).
+        string root = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return Reconcile(found, new[] { $"{Path.GetFileName(folder)} ({found.Count})" },
+            g => g.Launcher == LauncherKind.Manual && g.Executable.StartsWith(root, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Varre as ROMs de um emulador recém-cadastrado, sem mexer no resto da biblioteca.</summary>
@@ -414,7 +421,9 @@ public class GameLibraryService
         var found = new List<GameEntry>();
         try { found.AddRange(await EmulatorScanner.ScanAsync(emulator)); }
         catch { }
-        return Reconcile(found, new[] { $"{emulator.Name} ({found.Count})" });
+        // Idem para emuladores: varrer o emulador B apagava as ROMs detectadas do emulador A.
+        return Reconcile(found, new[] { $"{emulator.Name} ({found.Count})" },
+            g => g.Launcher == LauncherKind.Emulator && g.EmulatorId == emulator.Id);
     }
 
     /// <summary>Reconcilia o que foi encontrado com o que já está na biblioteca.</summary>
@@ -461,9 +470,14 @@ public class GameLibraryService
     private List<GameEntry> RemoveCrossLauncherDuplicates(List<GameEntry> found)
     {
         var byName = new Dictionary<string, GameEntry>(StringComparer.Ordinal);
+        // ROMs ficam fora da deduplicação por nome: o nome limpo tira "(Disc 2)" e "(USA)", e os
+        // discos 2 e 3 de um jogo de PS1 ou suas versões regionais sumiam como "duplicatas". Cada
+        // ROM já é única pelo próprio arquivo (DedupeKey = emulador + caminho).
+        var roms = found.Where(g => g.Launcher == LauncherKind.Emulator).ToList();
 
         foreach (var game in found)
         {
+            if (game.Launcher == LauncherKind.Emulator) continue;
             string key = NormalizedName(game.Name);
             if (key.Length == 0) continue;
 
@@ -481,11 +495,15 @@ public class GameLibraryService
         var result = byName.Values.ToList();
 
         // E também não duplicamos o que a biblioteca já tem por outra loja.
+        // GroupBy antes do dicionário: dois itens visíveis com o mesmo nome (um "Hades" manual e o
+        // da Steam, ou duplicatas personalizadas que o limpador preserva) faziam o ToDictionary
+        // lançar, e TODA varredura seguinte falhava.
         var existingNames = _data.Games
             .Where(g => !g.IsHidden)
-            .ToDictionary(g => NormalizedName(g.Name), g => g, StringComparer.Ordinal);
+            .GroupBy(g => NormalizedName(g.Name), StringComparer.Ordinal)
+            .ToDictionary(grp => grp.Key, grp => grp.OrderByDescending(g => LauncherPriority(g.Launcher)).First(), StringComparer.Ordinal);
 
-        return result
+        return roms.Concat(result
             .Where(game =>
             {
                 string key = NormalizedName(game.Name);
@@ -494,18 +512,20 @@ public class GameLibraryService
                 if (existing.DedupeKey.Equals(game.DedupeKey, StringComparison.OrdinalIgnoreCase)) return true;
                 // Título repetido vindo de outra loja: só entra se for de prioridade maior.
                 return LauncherPriority(game.Launcher) > LauncherPriority(existing.Launcher);
-            })
+            }))
             .ToList();
     }
 
-    private ScanResult Reconcile(List<GameEntry> rawFound, IReadOnlyList<string> sources)
+    private ScanResult Reconcile(List<GameEntry> rawFound, IReadOnlyList<string> sources, Func<GameEntry, bool>? removalScope = null)
     {
         int added = 0, updated = 0, removed = 0;
 
         lock (_gate)
         {
             var found = RemoveCrossLauncherDuplicates(rawFound);
-            var existing = _data.Games.ToDictionary(g => g.DedupeKey, StringComparer.OrdinalIgnoreCase);
+            var existing = _data.Games
+                .GroupBy(g => g.DedupeKey, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(grp => grp.Key, grp => grp.First(), StringComparer.OrdinalIgnoreCase);
             var foundKeys = new HashSet<string>(found.Select(g => g.DedupeKey), StringComparer.OrdinalIgnoreCase);
 
             foreach (var game in found)
@@ -539,7 +559,12 @@ public class GameLibraryService
             // Só consideramos as origens presentes nesta varredura, para uma varredura parcial
             // (só atalhos, por exemplo) não apagar os jogos da Steam.
             var scannedKinds = found.Select(g => g.Launcher).Distinct().ToHashSet();
-            if (scannedKinds.Count > 0)
+            if (removalScope is not null)
+            {
+                removed = _data.Games.RemoveAll(g =>
+                    g.AutoDetected && removalScope(g) && !foundKeys.Contains(g.DedupeKey));
+            }
+            else if (scannedKinds.Count > 0)
             {
                 removed = _data.Games.RemoveAll(g =>
                     g.AutoDetected && scannedKinds.Contains(g.Launcher) && !foundKeys.Contains(g.DedupeKey));

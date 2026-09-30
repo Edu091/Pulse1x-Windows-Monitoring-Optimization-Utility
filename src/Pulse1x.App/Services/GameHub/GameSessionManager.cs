@@ -132,8 +132,26 @@ public class GameSessionManager
                     _telemetry?.Start(options);
                 }
 
-                try { await main.WaitForExitAsync(token); }
-                catch (OperationCanceledException) { return; }
+                // O processo achado pode ser só um intermediário (anti-cheat, "Launcher.exe") que sai
+                // assim que o jogo de verdade abre. Antes a sessão acabava ali, no meio da partida:
+                // o perfil era desfeito e o tempo jogado virava segundos. Quando o observado sai,
+                // procuramos por alguns segundos um sucessor na pasta do jogo antes de encerrar.
+                var current = main;
+                for (int hop = 0; hop < 5; hop++)
+                {
+                    try { await current.WaitForExitAsync(token); }
+                    catch (OperationCanceledException) { return; }
+
+                    var next = await _engine.Processes.DetectMainProcessAsync(
+                        session.Game, launched: null, TimeSpan.FromSeconds(15), token);
+                    if (next is null || next.Id == current.Id) break;
+
+                    current = next;
+                    session.MainProcess = next;
+                    _engine.AttachToProcess(session.Profile, next,
+                        new Progress<ProfileStepProgress>(step => StepReported?.Invoke(step)));
+                    if (_metrics?.Enabled == true && _metrics.Options.Fps) _fps?.Start(next);
+                }
             }
             else if (launched is not null)
             {

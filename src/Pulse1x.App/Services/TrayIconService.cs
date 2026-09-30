@@ -30,6 +30,10 @@ public class TrayIconService : IDisposable
             ContextMenu = BuildContextMenu()
         };
 
+        // Criado em código (fora da árvore visual), o TaskbarIcon do H.NotifyIcon 2.x só registra o
+        // ícone no Windows no evento Loaded — que nunca dispara aqui. Sem ForceCreate, "minimizar
+        // para a bandeja" escondia a janela e nenhum ícone aparecia: o único "Sair" ficava inacessível.
+        _trayIcon.ForceCreate(enablesEfficiencyMode: false);
         _trayIcon.TrayLeftMouseUp += (_, _) => ShowWindow();
         Loc.Instance.LanguageChanged += RefreshTexts;
     }
@@ -73,15 +77,21 @@ public class TrayIconService : IDisposable
         if (_exitItem != null) _exitItem.Header = Loc.S("Tray_Exit");
     }
 
+    // Estado antes de ir para a bandeja: o GameHub abre maximizado, e voltar sempre em "Normal"
+    // o devolvia como uma janela pequena.
+    private WindowState _stateBeforeHide = WindowState.Normal;
+
     public void MinimizeToTray()
     {
+        if (_window.WindowState != WindowState.Minimized)
+            _stateBeforeHide = _window.WindowState;
         _window.Hide();
     }
 
-    private void ShowWindow()
+    public void ShowWindow()
     {
         _window.Show();
-        _window.WindowState = WindowState.Normal;
+        _window.WindowState = _stateBeforeHide;
         _window.Activate();
     }
 

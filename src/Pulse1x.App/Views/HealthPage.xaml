@@ -193,6 +193,11 @@
                             <TextBlock Text="{Binding ProgressText}" VerticalAlignment="Center" Margin="10,0,0,0" />
                         </StackPanel>
                     </StackPanel>
+
+                    <!-- Falha do diagnóstico: fora do painel "em andamento", que some ao terminar. -->
+                    <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" Margin="0,12,0,0"
+                               Foreground="{DynamicResource BrandHighlightBrush}"
+                               Visibility="{Binding ErrorText, Converter={StaticResource StrToVis}}" />
                 </StackPanel>
             </Border>
 

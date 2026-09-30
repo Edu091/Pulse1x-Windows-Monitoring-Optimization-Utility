@@ -174,6 +174,9 @@ public partial class SettingsViewModel : ObservableObject
             UpdateStatusText = result.Started
                 ? Loc.S("Settings_UpdateInstalling")
                 : Loc.F("Settings_UpdateDownloadFailedDetail", result.ErrorMessage ?? "?");
+            // O instalador espera o Pulse1x sair para substituir o .exe e depois o reabre.
+            if (result.Started)
+                System.Windows.Application.Current?.Shutdown();
         }
         finally
         {
@@ -187,6 +190,17 @@ public partial class SettingsViewModel : ObservableObject
         Loc.Instance.SetLanguage(value.Value);
         _settingsService.Current.Language = Loc.Instance.LanguageCode;
         _settingsService.Save();
+
+        // O status da atualização é texto já montado: refaz no idioma novo (antes ficava
+        // "Você está na versão mais recente" mesmo em inglês).
+        if (!IsCheckingUpdate && !IsDownloadingUpdate)
+            UpdateStatusText = _lastCheck?.Status switch
+            {
+                UpdateCheckStatus.UpdateAvailable => Loc.F("Settings_UpdateAvailable", _lastCheck.LatestVersion ?? "?"),
+                UpdateCheckStatus.UpToDate => Loc.S("Settings_UpdateUpToDate"),
+                UpdateCheckStatus.Failed => Loc.S("Settings_UpdateCheckFailed"),
+                _ => Loc.S("Settings_UpdateCheckIdle"),
+            };
     }
 
     partial void OnIsDarkThemeChanged(bool value)

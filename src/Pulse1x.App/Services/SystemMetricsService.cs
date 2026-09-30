@@ -140,7 +140,10 @@ public class SystemMetricsService : ISystemMetricsService
             bytesSent += stats.BytesSent;
         }
 
-        if (!_hasPreviousNetworkSample || elapsedSinceLastRead.TotalSeconds <= 0)
+        // Um intervalo quase nulo é a página voltando a ficar visível (ela reinicia o relógio e lê na
+        // hora). Os bytes guardados são de ANTES de ela sumir: dividir tudo o que passou nesse tempo
+        // por microssegundos dava picos de GB/s que achatavam o gráfico por minutos. Vira nova base.
+        if (!_hasPreviousNetworkSample || elapsedSinceLastRead.TotalSeconds < 0.25)
         {
             _lastBytesReceived = bytesReceived;
             _lastBytesSent = bytesSent;

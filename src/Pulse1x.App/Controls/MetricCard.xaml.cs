@@ -38,6 +38,13 @@ public partial class MetricCard : UserControl
         DependencyProperty.Register(nameof(ProgressVisibility), typeof(Visibility), typeof(MetricCard),
             new PropertyMetadata(Visibility.Visible));
 
+    // Declarados ANTES dos registros abaixo: inicializadores estáticos rodam na ordem do arquivo,
+    // e com eles depois o padrão de LevelBrush era null — cartões que nunca saíam de "Normal"
+    // (CPU/RAM em repouso, rede) ficavam sem o ponto de status e sem a barra de progresso.
+    private static readonly Brush NormalBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
+    private static readonly Brush ElevatedBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07));
+    private static readonly Brush CriticalBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
+
     public static readonly DependencyProperty LevelProperty =
         DependencyProperty.Register(nameof(Level), typeof(UsageLevel), typeof(MetricCard),
             new PropertyMetadata(UsageLevel.Normal, OnLevelChanged));
@@ -52,9 +59,6 @@ public partial class MetricCard : UserControl
     public static readonly DependencyProperty DetailIdProperty =
         DependencyProperty.Register(nameof(DetailId), typeof(string), typeof(MetricCard), new PropertyMetadata(""));
 
-    private static readonly Brush NormalBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
-    private static readonly Brush ElevatedBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07));
-    private static readonly Brush CriticalBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
 
     public string Title
     {

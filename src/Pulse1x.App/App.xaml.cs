@@ -102,6 +102,26 @@ public partial class App : Application
 
         _singleInstanceMutex = mutex;
 
+        // O OnStartup roda dentro de uma operação do Dispatcher, então uma exceção aqui cairia no
+        // DispatcherUnhandledException acima (marcado como tratado) e o processo ficaria vivo SEM
+        // janela, dono do mutex: toda nova tentativa de abrir o app só "sinalizava" e saía. Uma
+        // falha na montagem agora é registrada, avisada e encerra o processo.
+        try
+        {
+            StartApplication();
+        }
+        catch (Exception ex)
+        {
+            LogCrash("OnStartup", ex);
+            MessageBox.Show(Localization.Loc.S("App_StartupFailed") + "\n\n" + ex.Message, "Pulse1x",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+        }
+    }
+
+    private void StartApplication()
+    {
+
         // Marca a presença do app para o instalador elevado (ver GlobalInstanceMutexName).
         // Nunca pode impedir o app de abrir: se o sistema negar a criação no espaço global,
         // seguimos com o mutex local e o instalador apenas pedirá para fechar o app à mão.
@@ -117,6 +137,11 @@ public partial class App : Application
         }
 
         var settingsService = new SettingsService();
+        // Até a 1.13.1 "Iniciar com o Windows" usava a chave Run, que o Windows ignora para apps
+        // que exigem administrador. Quem tinha a opção ligada migra para a tarefa de logon (e o
+        // caminho do .exe se atualiza caso o app tenha mudado de lugar).
+        if (settingsService.Current.StartWithWindows)
+            _ = Task.Run(() => { try { settingsService.SetStartWithWindows(true); } catch { } });
         AnimationSettings.Enabled = settingsService.Current.AnimationsEnabled;
         Localization.Loc.Instance.SetLanguage(Localization.Loc.FromCode(settingsService.Current.Language));
         var appTheme = settingsService.Current.DarkTheme ? ApplicationTheme.Dark : ApplicationTheme.Light;
@@ -310,8 +335,15 @@ public partial class App : Application
             _showWindowSignal,
             (_, _) => Dispatcher.Invoke(() =>
             {
+                // Pela bandeja, a janela volta no estado em que estava (o GameHub fica maximizado).
+                if (mainWindow.TrayIconService is { } tray)
+                {
+                    tray.ShowWindow();
+                    return;
+                }
                 mainWindow.Show();
-                mainWindow.WindowState = WindowState.Normal;
+                if (mainWindow.WindowState == WindowState.Minimized)
+                    mainWindow.WindowState = WindowState.Normal;
                 mainWindow.Activate();
             }),
             state: null,
@@ -339,7 +371,12 @@ public partial class App : Application
         if (choice != MessageBoxResult.Yes) return;
 
         var installResult = await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
-        if (!installResult.Started)
+        if (installResult.Started)
+        {
+            // O instalador espera o Pulse1x sair para substituir o .exe e depois o reabre.
+            Current.Shutdown();
+        }
+        else
         {
             MessageBox.Show(
                 owner,

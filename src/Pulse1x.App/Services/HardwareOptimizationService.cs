@@ -46,7 +46,15 @@ public class HardwareOptimizationService
     private const string UltimatePlanTemplate = "e9a42b02-d5df-448d-aa00-03f14749eb61";
     private const string BalancedPlan = "381b4222-f694-41f0-9685-ff5bb260df2e";
 
-    public HardwareOptimizationService(OptimizationChangeLog log) => _log = log;
+    // Título traduzido para o Histórico e Reversão (antes as entradas mostravam o id cru, ex.:
+    // "core-parking"). Vem do AdvancedOptimizationService, dono da lista de otimizações.
+    private readonly Func<string, string> _title;
+
+    public HardwareOptimizationService(OptimizationChangeLog log, Func<string, string>? title = null)
+    {
+        _log = log;
+        _title = title ?? (id => id);
+    }
 
     // =====================================================================================
     //  GPU — Agendamento por hardware (HAGS)
@@ -282,18 +290,44 @@ public class HardwareOptimizationService
         }
         catch { return; }
 
+        // Guarda só o NOSSO item ("DxItem"), não a lista inteira: a mesma string guarda Auto HDR e
+        // VRR, e desfazer regravando a lista antiga apagava o que o usuário ligasse depois.
         _log.Record(new OptimizationChange
         {
             OptimizationId = "windowed-game-opt",
-            OptimizationTitle = "windowed-game-opt",
+            OptimizationTitle = _title("windowed-game-opt"),
             Kind = ChangeKind.Registry,
             Hive = "HKCU",
             KeyPath = DirectXUserPrefs,
             ValueName = DirectXGlobalSettings,
-            ValueKind = "String",
-            OldValue = old,
-            NewValue = updated,
+            ValueKind = DirectXItemKind,
+            OldValue = ReadDirectXItem(old, "SwapEffectUpgradeEnable"),
+            NewValue = "1",
         });
+    }
+
+    /// <summary>ValueKind das alterações de um único item da lista do DirectX.</summary>
+    public const string DirectXItemKind = "DxItem";
+
+    /// <summary>Desfaz um item da lista do DirectX preservando os demais (usado pela reversão genérica).</summary>
+    public static void RevertDirectXItem(OptimizationChange change)
+    {
+        using var wk = Registry.CurrentUser.CreateSubKey(change.KeyPath);
+        string? raw = wk.GetValue(change.ValueName) as string;
+        string updated = WithDirectXSetting(raw, "SwapEffectUpgradeEnable", change.OldValue);
+        if (updated.Length == 0) wk.DeleteValue(change.ValueName, throwOnMissingValue: false);
+        else wk.SetValue(change.ValueName, updated, RegistryValueKind.String);
+    }
+
+    private static string? ReadDirectXItem(string? raw, string name)
+    {
+        foreach (var part in (raw ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0].Trim().Equals(name, StringComparison.OrdinalIgnoreCase))
+                return kv[1].Trim();
+        }
+        return null;
     }
 
     private string? ReadDirectXSetting(string name)
@@ -331,25 +365,33 @@ public class HardwareOptimizationService
     /// </summary>
     public async Task<bool> IsUltimatePowerActiveAsync()
     {
-        string? active = await GetActiveSchemeAsync();
+        var (code, output) = await RunAsync("powercfg", "/getactivescheme");
+        if (code != 0) return false;
+        string? active = ExtractGuid(output);
         if (active is null) return false;
+        // Reconhece também pelo nome: o plano pode ter sido ativado pelos Comandos Especiais ou
+        // por um perfil do GameHub, cada um com a sua cópia do modelo.
         return active.Equals(UltimatePlanTemplate, StringComparison.OrdinalIgnoreCase)
-               || active.Equals(FindKnownUltimatePlan(), StringComparison.OrdinalIgnoreCase);
+               || active.Equals(FindKnownUltimatePlan(), StringComparison.OrdinalIgnoreCase)
+               || IsUltimateName(output);
     }
 
     public async Task ApplyUltimatePowerAsync()
     {
-        string? previous = await GetActiveSchemeAsync();
+        string? previous = ExtractGuid((await RunAsync("powercfg", "/getactivescheme")).output);
 
-        // Reaproveita a cópia criada antes, se ainda existir; senão duplica o modelo oficial.
+        // Reaproveita um plano "Desempenho Máximo" que já exista — o do log ou qualquer outro com
+        // esse nome. Só procurar no log fazia cada ativação sem histórico criar mais uma cópia (uma
+        // máquina acumulou dez planos idênticos).
         string? plan = FindKnownUltimatePlan();
         if (plan is null || (await RunAsync("powercfg", $"/query {plan}")).code != 0)
+            plan = await FindUltimatePlanByNameAsync();
+        if (plan is null)
         {
             var (code, output) = await RunAsync("powercfg", $"/duplicatescheme {UltimatePlanTemplate}");
-            var match = Regex.Match(output, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-            if (code != 0 || !match.Success)
+            plan = ExtractGuid(output);
+            if (code != 0 || plan is null)
                 throw new InvalidOperationException(output.Trim());
-            plan = match.Value;
         }
 
         var (setCode, setOutput) = await RunAsync("powercfg", $"/setactive {plan}");
@@ -358,13 +400,38 @@ public class HardwareOptimizationService
         _log.Record(new OptimizationChange
         {
             OptimizationId = "ultimate-power",
-            OptimizationTitle = "ultimate-power",
+            OptimizationTitle = _title("ultimate-power"),
             Kind = ChangeKind.PowerCfg,
             KeyPath = "powercfg /setactive",
             ValueName = "PowerPlan",
             OldValue = previous,
             NewValue = plan,
         });
+    }
+
+    // Nome do plano por idioma: "Ultimate Performance", "Desempenho Máximo", "Maximum Performance".
+    private static readonly string[] UltimateNameFragments = { "Ultimate", "Máximo", "Maximo", "Maximum" };
+
+    private static bool IsUltimateName(string powercfgLine)
+    {
+        var name = Regex.Match(powercfgLine, @"\(([^)]*)\)");
+        return name.Success && UltimateNameFragments.Any(f =>
+            name.Groups[1].Value.Contains(f, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static async Task<string?> FindUltimatePlanByNameAsync()
+    {
+        var (_, output) = await RunAsync("powercfg", "/list");
+        foreach (var line in output.Split('\n'))
+            if (IsUltimateName(line) && ExtractGuid(line) is { } guid)
+                return guid;
+        return null;
+    }
+
+    private static string? ExtractGuid(string text)
+    {
+        var match = Regex.Match(text, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+        return match.Success ? match.Value : null;
     }
 
     // A cópia criada pelo Pulse1x fica registrada no log (mesmo depois de revertida), o que evita
@@ -374,14 +441,6 @@ public class HardwareOptimizationService
             .Where(c => c.OptimizationId == "ultimate-power" && c.ValueName == "PowerPlan")
             .Select(c => c.NewValue)
             .LastOrDefault(v => !string.IsNullOrEmpty(v));
-
-    private static async Task<string?> GetActiveSchemeAsync()
-    {
-        var (code, output) = await RunAsync("powercfg", "/getactivescheme");
-        if (code != 0) return null;
-        var match = Regex.Match(output, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-        return match.Success ? match.Value : null;
-    }
 
     // =====================================================================================
     //  Restauração dos padrões do Windows
@@ -458,13 +517,16 @@ public class HardwareOptimizationService
     {
         var (ac, dc) = await ReadIndexAsync(subGroup, setting);
         if (ac is null && dc is null) return;
+        string? scheme = ExtractGuid((await RunAsync("powercfg", "/getactivescheme")).output);
 
         _log.Record(new OptimizationChange
         {
             OptimizationId = optId,
-            OptimizationTitle = optId,
+            OptimizationTitle = _title(optId),
             Kind = ChangeKind.PowerCfg,
-            KeyPath = $"{subGroup} {setting}",
+            // O plano também vai no KeyPath: desfazer depois de trocar de plano (ex.: ligar o
+            // Desempenho Máximo) gravava os valores antigos no plano errado.
+            KeyPath = scheme is null ? $"{subGroup} {setting}" : $"{subGroup} {setting} {scheme}",
             ValueName = "ValueIndex",
             OldValue = $"{ac ?? 0}|{dc ?? 0}",
             NewValue = "100|100",
@@ -539,7 +601,7 @@ public class HardwareOptimizationService
         _log.Record(new OptimizationChange
         {
             OptimizationId = optId,
-            OptimizationTitle = optId,
+            OptimizationTitle = _title(optId),
             Kind = ChangeKind.Registry,
             Hive = hive == RegistryHive.LocalMachine ? "HKLM" : "HKCU",
             KeyPath = subKey,
@@ -580,7 +642,7 @@ public class HardwareOptimizationService
         _log.Record(new OptimizationChange
         {
             OptimizationId = optId,
-            OptimizationTitle = optId,
+            OptimizationTitle = _title(optId),
             Kind = ChangeKind.Registry,
             Hive = "HKLM",
             KeyPath = subKey,
@@ -607,7 +669,7 @@ public class HardwareOptimizationService
         _log.Record(new OptimizationChange
         {
             OptimizationId = optId,
-            OptimizationTitle = optId,
+            OptimizationTitle = _title(optId),
             Kind = ChangeKind.Registry,
             Hive = "HKLM",
             KeyPath = subKey,

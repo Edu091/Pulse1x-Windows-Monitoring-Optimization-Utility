@@ -37,6 +37,17 @@ public static class SelfUpdateService
             if (string.Equals(Path.GetFullPath(currentExe), Path.GetFullPath(StagingExePath), StringComparison.OrdinalIgnoreCase))
                 return false;
 
+            // O app roda como administrador e C:\ permite a qualquer usuário criar pastas: sem estas
+            // travas, um usuário comum podia pôr um .exe em C:\Pulse1x\staging e tê-lo executado
+            // com privilégios de administrador na próxima abertura. A instalação em Program Files
+            // se atualiza só pelo instalador; o staging vale apenas para a cópia de desenvolvimento
+            // e somente com um arquivo cujo dono seja este usuário ou os Administradores.
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            if (Path.GetFullPath(currentExe).StartsWith(programFiles + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!IsOwnedByTrustedAccount(StagingExePath))
+                return false;
+
             var currentTime = File.GetLastWriteTimeUtc(currentExe);
             var stagingTime = File.GetLastWriteTimeUtc(StagingExePath);
             if (stagingTime <= currentTime)
@@ -71,5 +82,19 @@ public static class SelfUpdateService
             // Se a verificacao falhar por qualquer motivo, segue com a versao atual em uso.
             return false;
         }
+    }
+
+    private static bool IsOwnedByTrustedAccount(string path)
+    {
+        try
+        {
+            var owner = new FileInfo(path).GetAccessControl()
+                .GetOwner(typeof(System.Security.Principal.SecurityIdentifier));
+            var me = System.Security.Principal.WindowsIdentity.GetCurrent().User;
+            var admins = new System.Security.Principal.SecurityIdentifier(
+                System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+            return owner is not null && (owner.Equals(me) || owner.Equals(admins));
+        }
+        catch { return false; }
     }
 }

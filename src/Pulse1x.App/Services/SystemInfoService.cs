@@ -26,7 +26,16 @@ public class SystemInfoService
             : $"{uptime.Hours:00}:{uptime.Minutes:00}:{uptime.Seconds:00}";
     }
 
-    public int GetProcessCount() => Process.GetProcesses().Length;
+    public int GetProcessCount() => CountProcesses();
+
+    // Chamado a cada atualização do Dashboard: sem Dispose, ~300 objetos Process (cada um com um
+    // handle nativo) iam para o finalizador por segundo.
+    public static int CountProcesses()
+    {
+        var processes = Process.GetProcesses();
+        foreach (var p in processes) p.Dispose();
+        return processes.Length;
+    }
 
     private static string ResolveSystemModel()
     {

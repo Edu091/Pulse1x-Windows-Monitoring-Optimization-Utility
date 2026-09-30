@@ -1,5 +1,19 @@
 ﻿# Histórico de versões
 
+## 1.13.2 — 30/09/2026
+
+Auditoria completa de todas as seções, com as 42 otimizações testadas de verdade (aplicar, conferir, desfazer).
+
+- **Bandeja:** o ícone da bandeja nunca era criado. Com "minimizar para a bandeja" ligado (o padrão), fechar a janela escondia o app sem ícone e sem como sair, a não ser pelo Gerenciador de Tarefas. A janela também volta da bandeja no estado em que estava (o GameHub continua maximizado).
+- **Atualização automática:** com o app aberto, o instalador silencioso abortava logo no início e, quando instalava, não reabria o Pulse1x. Agora o app sai do caminho, o instalador atualiza e o reabre sozinho. O download tem tempo limite e confere o tamanho, e não é mais possível iniciar dois downloads ao mesmo tempo.
+- **Iniciar com o Windows** nunca funcionava, porque o Windows ignora apps que exigem administrador na chave Run. A opção passou a usar uma tarefa de logon, e quem já a tinha ligada é migrado sozinho.
+- **Segurança:** a limpeza de disco não segue mais junções e links, que permitiam apagar arquivos de sistema a partir de uma pasta temporária. Arquivos grandes demais para a Lixeira agora pedem confirmação. A pasta de staging não pode mais ser usada para executar um programa como administrador.
+- **Dashboard e Saúde:** o ponto de status e a barra dos cartões não apareciam em CPU, RAM e rede sem carga. O uso, o clock e a temperatura da GPU liam o sensor errado (controlador de memória, clock da VRAM e hotspot), o que gerava falsos alertas de temperatura. Voltar à página não mostra mais picos de GB/s na rede. Um erro no diagnóstico agora aparece na tela. A GPU dedicada é reconhecida corretamente em notebooks híbridos, e o alerta de reserva do NVMe não dispara mais em SSDs saudáveis.
+- **Otimizações:** o plano Desempenho Máximo é reaproveitado em vez de duplicado a cada vez (uma máquina tinha dez cópias) e é reconhecido quando ativado pelos Comandos Especiais. Desfazer o estacionamento de núcleos volta ao plano certo, e desfazer "jogos em janela" não apaga mais o Auto HDR/VRR. Registro Remoto e Roteamento voltam ao padrão de fábrica (desativados). "Desfazer tudo" não trava mais numa tarefa removida pelo Windows. O histórico mostra nomes em vez de ids, e o perfil visual em uso ganhou um indicador.
+- **Latência e Input Lab:** "Desfazer tudo" podia desligar o RSS que sempre esteve ligado. As leituras do netsh em português (velocidade do link, tipo de rádio, Auto-Tuning) voltaram a funcionar. O ping TCP não conta mais a consulta DNS como latência. O Input Lab devolve o controle ao estado anterior e não bloqueia mais o Alt+F4. As cores de falha deixaram de aparecer verdes.
+- **GameHub:** dois jogos com o mesmo nome faziam toda varredura falhar. Varrer uma pasta ou um emulador não apaga mais os jogos das outras pastas e emuladores, e os discos e versões regionais de ROMs deixaram de sumir. Jogos que abrem por um intermediário (anti-cheat, launcher) não encerram mais a sessão no meio da partida. As configurações avançadas de energia voltam para o plano certo. O áudio volta no dispositivo certo antes do volume. A recuperação após uma queda não fecha mais programas que herdaram o mesmo número de processo. Fechar apps do perfil não trava mais a interface.
+- A página Sobre e o status de atualização acompanham a troca de idioma, e instalações por winget que travam são abandonadas após 20 minutos.
+
 ## 1.13.1 — 30/09/2026
 
 - **Otimização de Hardware e Software** virou uma seção própria na página de Otimização, fora das Otimizações Avançadas. Ela reúne CPU e GPU, Jogos e captura, Aceleração de hardware em aplicativos, Sistema e Ajustes Visuais. As Otimizações Avançadas ficam só com privacidade, telemetria e bloatware. As mudanças das duas seções continuam no mesmo Histórico e Reversão.

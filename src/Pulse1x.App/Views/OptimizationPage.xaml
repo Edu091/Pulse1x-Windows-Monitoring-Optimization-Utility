@@ -1240,7 +1240,16 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                    <!-- Perfil em uso agora: antes nada indicava qual dos três estava aplicado. -->
+                                                    <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="4" VerticalAlignment="Center"
+                                                            Background="{DynamicResource BrandAccentBrush}"
+                                                            Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="{Binding [Opt_VisualActive], Source={x:Static loc:Loc.Instance}}"
+                                                                   FontSize="11" Foreground="White" />
+                                                    </Border>
+                                                </StackPanel>
                                                 <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.65"
                                                            TextWrapping="Wrap" Margin="0,1,0,0" />
                                             </StackPanel>

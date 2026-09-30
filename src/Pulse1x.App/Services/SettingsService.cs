@@ -126,20 +126,47 @@ public class SettingsService
         AtomicFile.WriteAllText(_settingsFilePath, json);
     }
 
+    /// <summary>Nome da tarefa agendada que abre o Pulse1x no logon (também removida pelo desinstalador).</summary>
+    public const string StartupTaskName = "Pulse1x";
+
+    /// <summary>
+    /// O Pulse1x exige administrador (requireAdministrator), e o Windows IGNORA em silêncio
+    /// programas assim na chave Run: o interruptor ficava ligado e o app nunca abria no logon. O
+    /// caminho suportado é uma tarefa agendada no logon com privilégio máximo — que também não
+    /// mostra o UAC a cada inicialização. A entrada antiga da chave Run é removida.
+    /// </summary>
     public void SetStartWithWindows(bool enabled)
     {
-        using var key = Registry.CurrentUser.OpenSubKey(RunRegistryKeyPath, writable: true);
-        if (key == null) return;
+        using (var key = Registry.CurrentUser.OpenSubKey(RunRegistryKeyPath, writable: true))
+        {
+            if (key?.GetValue(RunRegistryValueName) != null)
+                key.DeleteValue(RunRegistryValueName);
+        }
 
+        string args;
         if (enabled)
         {
             var exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
-            key.SetValue(RunRegistryValueName, $"\"{exePath}\"");
+            string user = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            args = $"/Create /TN \"{StartupTaskName}\" /TR \"\\\"{exePath}\\\"\" /SC ONLOGON /RU \"{user}\" /RL HIGHEST /IT /F";
         }
         else
         {
-            if (key.GetValue(RunRegistryValueName) != null)
-                key.DeleteValue(RunRegistryValueName);
+            args = $"/Delete /TN \"{StartupTaskName}\" /F";
+        }
+
+        using (var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("schtasks.exe", args)
+               {
+                   UseShellExecute = false,
+                   CreateNoWindow = true,
+                   RedirectStandardOutput = true,
+                   RedirectStandardError = true,
+               })!)
+        {
+            proc.WaitForExit(15000);
+            // Excluir uma tarefa que não existe não é erro; criar e falhar, sim.
+            if (enabled && proc.ExitCode != 0)
+                throw new InvalidOperationException(proc.StandardError.ReadToEnd().Trim());
         }
 
         Current.StartWithWindows = enabled;

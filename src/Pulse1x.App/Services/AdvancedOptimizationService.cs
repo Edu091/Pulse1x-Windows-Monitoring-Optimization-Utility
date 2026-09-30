@@ -75,7 +75,7 @@ public class AdvancedOptimizationService
     public AdvancedOptimizationService(OptimizationChangeLog log)
     {
         _log = log;
-        _hardware = new HardwareOptimizationService(log);
+        _hardware = new HardwareOptimizationService(log, TitleFor);
         _apps = new AppHardwareAccelerationService(log);
         Optimizations = BuildOptimizations();
         Loc.Instance.LanguageChanged += () =>
@@ -505,7 +505,9 @@ public class AdvancedOptimizationService
             StateDetailAsync = () => Task.FromResult<string?>(Loc.S("AdvOpt_AffectedServices") + " RemoteRegistry."),
             IsAvailableAsync = () => Task.FromResult(ServiceExists("RemoteRegistry")),
             IsAppliedAsync = () => Task.FromResult(GetServiceStartType("RemoteRegistry") == 4),
-            ApplyAsync = async () => await DisableServiceAsync("remote-registry", "RemoteRegistry"),
+            // Windows 10/11 já trazem o Registro Remoto DESATIVADO (Start=4): usar 3 como "valor
+            // original" fazia o desfazer deixá-lo iniciável, o contrário do estado de fábrica.
+            ApplyAsync = async () => await DisableServiceAsync("remote-registry", "RemoteRegistry", defaultStartType: 4),
         });
 
         list.Add(new AdvancedOptimization
@@ -521,7 +523,7 @@ public class AdvancedOptimizationService
             IsAppliedAsync = () => Task.FromResult(GetServiceStartType("RemoteAccess") == 4),
             ApplyAsync = async () =>
             {
-                await DisableServiceAsync("remote-access", "RemoteAccess");
+                await DisableServiceAsync("remote-access", "RemoteAccess", defaultStartType: 4);
                 foreach (var svc in new[] { "SessionEnv", "TermService" })
                     if (ServiceExists(svc)) await DisableServiceAsync("remote-access", svc, defaultStartType: 3);
             },
@@ -1175,10 +1177,10 @@ public class AdvancedOptimizationService
                 await RestoreServiceDefaultAsync("Spooler", 2);
                 break;
             case "remote-registry":
-                await RestoreServiceDefaultAsync("RemoteRegistry", 3);
+                await RestoreServiceDefaultAsync("RemoteRegistry", 4);
                 break;
             case "remote-access":
-                await RestoreServiceDefaultAsync("RemoteAccess", 3);
+                await RestoreServiceDefaultAsync("RemoteAccess", 4);
                 await RestoreServiceDefaultAsync("SessionEnv", 3);
                 await RestoreServiceDefaultAsync("TermService", 3);
                 break;
@@ -1228,6 +1230,10 @@ public class AdvancedOptimizationService
                 break;
             case ChangeKind.Task:
                 {
+                    // Tarefa removida do Windows (uma atualização apaga algumas de telemetria): não
+                    // há o que reativar. Lançar aqui travava "Desfazer tudo" nessa entrada para sempre.
+                    if (await GetTaskStateAsync(change.KeyPath) == "missing") break;
+
                     var result = await RunAsync("schtasks", $"/Change /TN \"{change.KeyPath}\" /Enable");
                     // O comando pode falhar silenciosamente (ex.: "Acesso negado" quando o app não
                     // está elevado) — sem checar o código de saída e o estado real, o log marcaria
@@ -1247,12 +1253,14 @@ public class AdvancedOptimizationService
                 {
                     // KeyPath guarda "SUBGRUPO CONFIGURAÇÃO"; OldValue, os índices originais de
                     // tomada e bateria ("ac|dc"), que é como CaptureIndex os gravou.
+                    // Desde a 1.13.2 o KeyPath traz também o GUID do plano alterado (3º item).
                     var guids = change.KeyPath.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     var values = change.OldValue.Split('|');
-                    if (guids.Length == 2 && values.Length == 2)
+                    if (guids.Length is 2 or 3 && values.Length == 2)
                     {
-                        await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {guids[0]} {guids[1]} {values[0]}");
-                        await RunAsync("powercfg", $"/setdcvalueindex SCHEME_CURRENT {guids[0]} {guids[1]} {values[1]}");
+                        string scheme = guids.Length == 3 ? guids[2] : "SCHEME_CURRENT";
+                        await RunAsync("powercfg", $"/setacvalueindex {scheme} {guids[0]} {guids[1]} {values[0]}");
+                        await RunAsync("powercfg", $"/setdcvalueindex {scheme} {guids[0]} {guids[1]} {values[1]}");
                         await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
                     }
                 }
@@ -1267,6 +1275,12 @@ public class AdvancedOptimizationService
 
     private void RevertRegistry(OptimizationChange c)
     {
+        if (c.ValueKind == HardwareOptimizationService.DirectXItemKind)
+        {
+            HardwareOptimizationService.RevertDirectXItem(c);
+            return;
+        }
+
         var root = c.Hive == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser;
 
         if (c.OldValue is null)

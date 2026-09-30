@@ -4,6 +4,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using System.Windows;
+using Pulse1x.App.Localization;
 
 namespace Pulse1x.App.Services;
 
@@ -100,12 +102,30 @@ public class GitHubUpdateService
         }
     }
 
-    /// <summary>Baixa o instalador e o executa silenciosamente. O Inno Setup fecha o Pulse1x em
-    /// execução, substitui os arquivos e o reabre automaticamente — este método retorna assim que
-    /// o instalador é iniciado (ou falha em iniciar), antes da instalação em si terminar. Nunca
+    // Um download por vez: o aviso da abertura e o botão das Configurações gravavam no mesmo
+    // arquivo temporário ao mesmo tempo (violação de compartilhamento ou dois instaladores).
+    private static readonly SemaphoreSlim InstallGate = new(1, 1);
+
+    /// <summary>Baixa o instalador e agenda sua execução silenciosa para logo depois que o Pulse1x
+    /// fechar. Quando <see cref="UpdateInstallResult.Started"/> é true, o CHAMADOR deve encerrar o
+    /// app (<see cref="Application.Shutdown()"/>) — o instalador substitui o .exe e o reabre. Nunca
     /// falha em silêncio: qualquer erro é registrado em <c>update.log</c> e devolvido em
     /// <see cref="UpdateInstallResult.ErrorMessage"/> para a UI poder mostrar ao usuário.</summary>
     public async Task<UpdateInstallResult> DownloadAndInstallAsync(string downloadUrl, string assetName, IProgress<double>? progress = null)
+    {
+        if (!await InstallGate.WaitAsync(0))
+            return new UpdateInstallResult(false, Loc.S("Update_AlreadyRunning"));
+        try
+        {
+            return await DownloadAndLaunchAsync(downloadUrl, assetName, progress);
+        }
+        finally
+        {
+            InstallGate.Release();
+        }
+    }
+
+    private async Task<UpdateInstallResult> DownloadAndLaunchAsync(string downloadUrl, string assetName, IProgress<double>? progress)
     {
         string filePath;
         try
@@ -114,22 +134,29 @@ public class GitHubUpdateService
             Directory.CreateDirectory(dir);
             filePath = Path.Combine(dir, assetName);
 
-            using var resp = await Http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            // O Timeout do HttpClient só cobre os cabeçalhos quando se lê em fluxo: numa conexão
+            // travada, o laço abaixo esperava para sempre e o botão Instalar ficava preso.
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            using var resp = await Http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             resp.EnsureSuccessStatusCode();
             long? total = resp.Content.Headers.ContentLength;
-            await using (var httpStream = await resp.Content.ReadAsStreamAsync())
+            long readTotal = 0;
+            await using (var httpStream = await resp.Content.ReadAsStreamAsync(cts.Token))
             await using (var fileStream = File.Create(filePath))
             {
                 var buffer = new byte[81920];
-                long readTotal = 0;
                 int read;
-                while ((read = await httpStream.ReadAsync(buffer)) > 0)
+                while ((read = await httpStream.ReadAsync(buffer, cts.Token)) > 0)
                 {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, read));
+                    await fileStream.WriteAsync(buffer.AsMemory(0, read), cts.Token);
                     readTotal += read;
                     if (total is > 0) progress?.Report((double)readTotal / total.Value);
                 }
             }
+
+            // Download interrompido: executar um instalador truncado só daria um erro obscuro.
+            if (total is > 0 && readTotal != total.Value)
+                throw new IOException($"Download incompleto: {readTotal} de {total.Value} bytes.");
         }
         catch (Exception ex)
         {
@@ -137,58 +164,31 @@ public class GitHubUpdateService
             return new UpdateInstallResult(false, ex.Message);
         }
 
-        // Um instalador recém-baixado, ainda sem reputação (não assinado digitalmente), costuma
-        // ser retido por alguns segundos pelo antivírus/SmartScreen na primeira tentativa de
-        // execução ("arquivo em uso"/"não foi possível executar") — geralmente resolve sozinho
-        // em poucos segundos. Tenta algumas vezes com espera curta antes de desistir.
-        const int maxAttempts = 3;
-        Exception? lastError = null;
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        try
         {
-            try
+            // O instalador procura o Pulse1x pelo AppMutex e, em modo silencioso, a pergunta "feche
+            // o Pulse1x" assume Cancelar: a atualização abortava com código 1 (registrado no
+            // update.log). Agora quem sai do caminho é o app: o instalador é agendado para daqui a
+            // ~3 s por um cmd filho — que herda a elevação, sem novo UAC — e o chamador encerra o
+            // Pulse1x em seguida, liberando o mutex. Ao terminar, o próprio instalador reabre o app.
+            string log = Path.Combine(Path.GetDirectoryName(filePath)!, "install.log");
+            string command = $"/c ping -n 4 127.0.0.1 >nul & \"{filePath}\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=\"{log}\"";
+            using var process = Process.Start(new ProcessStartInfo
             {
-                // O instalador roda elevado (PrivilegesRequired=admin no .iss) e pode disparar um
-                // UAC próprio mesmo com o Pulse1x já elevado — ShellExecute não herda elevação
-                // entre processos. /CLOSEAPPLICATIONS fecha o Pulse1x que está usando os arquivos
-                // a substituir; /RESTARTAPPLICATIONS o reabre ao final.
-                using var process = Process.Start(new ProcessStartInfo
-                {
-                    FileName = filePath,
-                    Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
-                    UseShellExecute = true,
-                });
-
-                if (process is null)
-                {
-                    lastError = new Exception("Process.Start retornou null.");
-                    continue;
-                }
-
-                // Uma instalação bem-sucedida vai fechar este mesmo processo Pulse1x pouco depois
-                // (CLOSEAPPLICATIONS), então não dá para esperar o instalador terminar de verdade.
-                // Só esperamos uma janela curta para pegar falhas IMEDIATAS (ex.: UAC cancelado,
-                // antivírus bloqueando a execução, argumento inválido).
-                var waitTask = process.WaitForExitAsync();
-                var completed = await Task.WhenAny(waitTask, Task.Delay(3000));
-                if (completed == waitTask && process.ExitCode != 0)
-                {
-                    lastError = new Exception($"O instalador encerrou logo no início com código {process.ExitCode}.");
-                    if (attempt < maxAttempts) await Task.Delay(2000);
-                    continue;
-                }
-
-                return new UpdateInstallResult(true, null);
-            }
-            catch (Exception ex)
-            {
-                lastError = ex;
-                if (attempt < maxAttempts) await Task.Delay(2000);
-            }
+                FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                Arguments = command,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (process is null)
+                throw new Exception("Process.Start retornou null.");
+            return new UpdateInstallResult(true, null);
         }
-
-        LogFailure("install", lastError ?? new Exception("Falha desconhecida."));
-        return new UpdateInstallResult(false, lastError?.Message);
+        catch (Exception ex)
+        {
+            LogFailure("install", ex);
+            return new UpdateInstallResult(false, ex.Message);
+        }
     }
 
     // Registra falhas em %LOCALAPPDATA%\Pulse1x\update.log — mesmo padrão do crash.log do

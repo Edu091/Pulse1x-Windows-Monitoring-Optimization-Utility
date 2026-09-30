@@ -130,13 +130,20 @@ public class NetworkLatencyService
         var times = new List<double>();
         int lost = 0;
 
+        // Resolve o nome UMA vez, fora do cronômetro. Antes, ConnectAsync(host) resolvia o DNS a
+        // cada tentativa dentro da medição e a primeira amostra somava 20–100 ms de consulta.
+        System.Net.IPAddress[] addresses;
+        try { addresses = await System.Net.Dns.GetHostAddressesAsync(host); }
+        catch { return new PingStats(0, 0, 100, false); }
+        if (addresses.Length == 0) return new PingStats(0, 0, 100, false);
+
         for (int i = 0; i < count; i++)
         {
             try
             {
-                using var client = new TcpClient();
+                using var client = new TcpClient(addresses[0].AddressFamily);
                 var sw = Stopwatch.StartNew();
-                var connect = client.ConnectAsync(host, port);
+                var connect = client.ConnectAsync(addresses[0], port);
                 var finished = await Task.WhenAny(connect, Task.Delay(timeoutMs));
                 sw.Stop();
                 if (finished == connect && client.Connected) times.Add(sw.Elapsed.TotalMilliseconds);
@@ -557,12 +564,17 @@ public class NetworkLatencyService
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
+                // netsh/ping escrevem na página de código do console (CP850 em português). Lido
+                // como UTF-8, "Taxa de recepção" e "Nível de Ajuste" viravam lixo e nunca batiam.
+                StandardOutputEncoding = ConsoleEncoding.Oem,
+                StandardErrorEncoding = ConsoleEncoding.Oem,
             };
             using var proc = Process.Start(psi)!;
-            string output = await proc.StandardOutput.ReadToEndAsync();
+            // Lê as duas saídas juntas: stderr redirecionado e não lido pode travar o processo.
+            var stdout = proc.StandardOutput.ReadToEndAsync();
+            var stderr = proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
-            return (proc.ExitCode, output);
+            return (proc.ExitCode, await stdout + await stderr);
         }
         catch (Exception ex) { return (1, ex.Message); }
     }

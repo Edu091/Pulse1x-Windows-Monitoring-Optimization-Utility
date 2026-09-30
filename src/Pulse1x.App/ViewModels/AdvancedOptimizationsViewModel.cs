@@ -349,10 +349,21 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
             Loc.S("AdvOpt_RevertAllTitle"), System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
+        // Uma alteração que falha não pode interromper as outras: antes, a primeira exceção parava o
+        // laço, deixava o resto sem desfazer e pulava a atualização da tela.
+        var failed = new List<string>();
         foreach (var change in _service.ChangeLog.GetAllActive())
-            await _service.RevertChangeAsync(change);
+        {
+            try { await _service.RevertChangeAsync(change); }
+            catch (Exception ex) { failed.Add($"{change.OptimizationTitle}: {ex.Message}"); }
+        }
 
         await RefreshAllAsync();
+
+        if (failed.Count > 0)
+            System.Windows.MessageBox.Show(
+                Loc.S("AdvOpt_RevertAllPartial") + "\n\n" + string.Join("\n", failed),
+                Loc.S("AdvOpt_RevertAllTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
     }
 
     partial void OnIsSectionExpandedChanged(bool value)

@@ -571,6 +571,7 @@
                                        Command="{Binding ApplyAllCommand}" IsEnabled="{Binding IsApplyingAll, Converter={StaticResource InvBool}}" />
                             <ui:Button Content="{Binding [Lat_RestoreAll], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding RestoreAllCommand}" Margin="8,0,0,0"
+                                       IsEnabled="{Binding IsApplyingAll, Converter={StaticResource InvBool}}"
                                        Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}}" />
                             <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20" Margin="10,0,0,0" VerticalAlignment="Center"
                                              Visibility="{Binding IsApplyingAll, Converter={StaticResource BoolToVis}}" />

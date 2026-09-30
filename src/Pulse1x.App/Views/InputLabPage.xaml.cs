@@ -25,6 +25,7 @@ public partial class InputLabPage : Page
 
     private DeviceKind _selectedDevice = DeviceKind.Keyboard;
     private bool _listening;
+    private bool _gamepadWasActive;
     private bool _keyboardDetected;
     private bool _mouseDetected;
     private ControllerIdentity? _controllerIdentity;
@@ -69,11 +70,17 @@ public partial class InputLabPage : Page
             _gamepad.ActiveControllerChanged += OnControllerChanged;
             _gamepad.Action += OnGamepadAction;
             _gamepad.SetMeasurementMode(true);
+            // Guarda o estado anterior: durante uma partida o GameHub suspende o controle de
+            // propósito, e sair do Input Lab deixava a leitura ligada no meio do jogo.
+            _gamepadWasActive = _gamepad.IsActive;
             _gamepad.SetActive(true);
             _controllerIdentity = _gamepad.ActiveController;
             _uiTimer.Start();
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                // Entrar e sair rápido: o Stop() já rodou, e iniciar agora deixaria o Raw Input
+                // registrado (e o foco preso) com a página escondida.
+                if (!_listening) return;
                 if (Window.GetWindow(this) is { } window) _rawInput.Start(window);
                 Keyboard.Focus(this);
             }));
@@ -87,19 +94,28 @@ public partial class InputLabPage : Page
             _gamepad.ActiveControllerChanged -= OnControllerChanged;
             _gamepad.Action -= OnGamepadAction;
             _gamepad.SetMeasurementMode(false);
+            _gamepad.SetActive(_gamepadWasActive);
             ClearVirtualKeyboard();
         }
 
         Refresh();
     }
 
+    // Teclas de sistema (Alt, Alt+F4, Alt+Tab) seguem para o Windows: engoli-las fazia Alt+F4 não
+    // fechar a janela enquanto o Input Lab estivesse aberto. As demais continuam sendo capturadas
+    // para a medição não disparar botões da página.
     private void Page_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.System) return;
         if (e.Key == Key.Escape) BackRequested?.Invoke();
         e.Handled = true;
     }
 
-    private void Page_PreviewKeyUp(object sender, KeyEventArgs e) => e.Handled = true;
+    private void Page_PreviewKeyUp(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.System) return;
+        e.Handled = true;
+    }
 
     private void OnRawInput(IReadOnlyList<RawInputSample> samples)
     {

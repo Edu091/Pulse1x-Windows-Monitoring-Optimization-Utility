@@ -304,6 +304,7 @@ public class HealthDiagnosticsService
             using var searcher = new ManagementObjectSearcher("SELECT Name, AdapterRAM FROM Win32_VideoController");
             string? best = null;
             long bestRam = 0;
+            bool bestDiscrete = false;
             foreach (ManagementObject mo in searcher.Get())
             {
                 var name = mo["Name"]?.ToString();
@@ -314,11 +315,17 @@ public class HealthDiagnosticsService
                 // o registro guarda o valor real (qwMemorySize), sem esse limite.
                 ulong vramFromRegistry = GpuVramReader.ReadVramBytes(name);
                 if (vramFromRegistry > 0) ram = (long)vramFromRegistry;
+                // "AMD Radeon(TM) Graphics" / "Radeon 780M Graphics" são a GPU integrada do Ryzen.
+                // Antes qualquer "AMD" contava como dedicada e sobrescrevia a RTX de um notebook
+                // híbrido quando o WMI a listava depois.
+                bool integratedAmd = name.EndsWith("Graphics", StringComparison.OrdinalIgnoreCase);
                 bool discrete = name.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("GeForce", StringComparison.OrdinalIgnoreCase)
-                    || name.Contains("Radeon", StringComparison.OrdinalIgnoreCase)
-                    || name.Contains("AMD", StringComparison.OrdinalIgnoreCase);
-                if (best is null || discrete || ram > bestRam) { best = name.Trim(); bestRam = ram; }
+                    || (name.Contains("Radeon", StringComparison.OrdinalIgnoreCase) && !integratedAmd);
+                bool better = best is null
+                    || (discrete && !bestDiscrete)
+                    || (discrete == bestDiscrete && ram > bestRam);
+                if (better) { best = name.Trim(); bestRam = ram; bestDiscrete = discrete; }
             }
             string vram = bestRam > 0 ? $"{bestRam / (1024.0 * 1024 * 1024):0.#} GB" : "N/D";
             return (best ?? sensorName ?? "GPU", vram);
@@ -1061,7 +1068,9 @@ public class HealthDiagnosticsService
             LifeRemainingPercent = nvme.PercentageUsed > 0 ? Math.Clamp(100 - nvme.PercentageUsed, 0, 100) : null,
             UncorrectableErrors = nvme.MediaErrors > 0 ? nvme.MediaErrors : null,
         };
-        if (nvme.AvailableSparePercent is > 0 and < 100)
+        // Reserva disponível abaixo de 100% é normal em qualquer SSD usado; o limiar de alerta dos
+        // fabricantes costuma ser 10%. Antes, 99% já aparecia como "⚠ Avisos" num disco saudável.
+        if (nvme.AvailableSparePercent is > 0 and <= 20)
             data.Warnings.Add(Loc.F("Health_Warn_AvailableSpare", nvme.AvailableSparePercent));
         return data.HasAnyData ? data : null;
     }
@@ -1544,7 +1553,7 @@ public class HealthDiagnosticsService
 
     private static int SafeProcessCount()
     {
-        try { return Process.GetProcesses().Length; }
+        try { return SystemInfoService.CountProcesses(); }
         catch { return -1; }
     }
 

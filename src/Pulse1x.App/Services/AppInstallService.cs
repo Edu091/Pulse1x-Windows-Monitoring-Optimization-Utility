@@ -123,7 +123,8 @@ public class AppInstallService
         {
             // winget usa muitas linhas de barra de progresso (só símbolos); filtramos para o log.
             if (string.IsNullOrWhiteSpace(data)) return;
-            sb.AppendLine(data);
+            // Saída e erro chegam em threads diferentes.
+            lock (sb) sb.AppendLine(data);
             string trimmed = data.Trim();
             if (trimmed.Length > 2 && !IsProgressNoise(trimmed))
                 onOutput?.Report(trimmed);
@@ -135,9 +136,19 @@ public class AppInstallService
         proc.Start();
         proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
-        await proc.WaitForExitAsync();
 
-        return new CommandResult(proc.ExitCode, sb.ToString());
+        // Um instalador que ignora o modo silencioso (ou espera um prompt escondido) travava a fila
+        // inteira para sempre. Depois de 20 minutos o pacote é dado como falho e a fila segue.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+        try { await proc.WaitForExitAsync(timeout.Token); }
+        catch (OperationCanceledException)
+        {
+            try { proc.Kill(entireProcessTree: true); } catch { }
+            lock (sb) sb.AppendLine("Timeout: a instalação não terminou em 20 minutos.");
+            lock (sb) return new CommandResult(-1, sb.ToString());
+        }
+
+        lock (sb) return new CommandResult(proc.ExitCode, sb.ToString());
     }
 
     // Linhas de barra de progresso do winget são compostas só de blocos/traços e porcentagem.
