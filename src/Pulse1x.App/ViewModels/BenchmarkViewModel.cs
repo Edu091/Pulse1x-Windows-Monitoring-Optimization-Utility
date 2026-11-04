@@ -467,7 +467,12 @@ public partial class BenchmarkCardViewModel : ObservableObject
     [RelayCommand]
     private Task Run() => _run(Kind);
 
-    [RelayCommand]
+    /// <summary>
+    /// Liga ou desliga o stress. AllowConcurrentExecutions é obrigatório: a primeira execução (o
+    /// stress inteiro) fica em andamento até ele parar, e sem isso o comando se declarava
+    /// indisponível nesse tempo — o WPF desabilitava justamente o botão Parar.
+    /// </summary>
+    [RelayCommand(AllowConcurrentExecutions = true)]
     private Task Stress() => _stress(this);
 
     public async Task LoadDrivesAsync()

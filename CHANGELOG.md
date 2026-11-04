@@ -1,5 +1,9 @@
 ﻿# Histórico de versões
 
+## 1.16.2 — 04/11/2026
+
+- **O botão Parar do stress voltou a funcionar.** Enquanto o stress rodava, o comando do botão se declarava indisponível e o Windows desabilitava o próprio botão Parar. Agora ele fica ativo e encerra o teste na hora, em todos os cartões (CPU, RAM, GPU e disco).
+
 ## 1.16.1 — 04/11/2026
 
 - **Stress corrigido:**

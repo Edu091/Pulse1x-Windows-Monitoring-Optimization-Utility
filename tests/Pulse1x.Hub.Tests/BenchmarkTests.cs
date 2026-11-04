@@ -108,6 +108,34 @@ internal static class BenchmarkTests
             catch (InvalidOperationException) { /* máquina sem Direct3D 11 (CI): o app mostra o erro no cartão */ }
         });
 
+        suite.Run("Stop button stays clickable while a stress runs and stops it", () =>
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"pulse1x-bench-{Guid.NewGuid():N}.json");
+            try
+            {
+                var vm = new Pulse1x.App.ViewModels.BenchmarkViewModel(new BenchmarkHistoryService(path), new NoSensors());
+                var card = vm.Cards.First(c => c.Kind == BenchmarkKind.CpuSingle);
+                var other = vm.Cards.First(c => c.Kind == BenchmarkKind.Memory);
+
+                card.StressCommand.Execute(null);
+                Pump(1500);
+                TestSuite.Equal(true, card.IsStressing);
+                // O que o WPF consulta para habilitar o botão: o comando E a propriedade ligada a IsEnabled.
+                TestSuite.Equal(true, card.StressCommand.CanExecute(null));
+                TestSuite.Equal(true, card.CanToggleStress);
+                // Os outros cartões ficam bloqueados enquanto isso.
+                TestSuite.Equal(false, other.CanToggleStress);
+
+                card.StressCommand.Execute(null);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                while (card.IsStressing && sw.Elapsed < TimeSpan.FromSeconds(5)) Pump(50);
+                TestSuite.Equal(false, card.IsStressing);
+                TestSuite.Equal(false, vm.IsBusy);
+                TestSuite.Equal(true, other.CanToggleStress && other.StressCommand.CanExecute(null));
+            }
+            finally { File.Delete(path); }
+        });
+
         suite.Run("Benchmark cancellation stops promptly", () =>
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
@@ -141,6 +169,15 @@ internal static class BenchmarkTests
             TestSuite.Equal(14, items.Count);
             TestSuite.Equal(true, items.All(i => i.Title.Length > 0 && i.Value.Length > 0));
         });
+    }
+
+    private static void Pump(int ms)
+    {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(ms) };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
     }
 
     private sealed class NoSensors : Pulse1x.App.Services.IHardwareMonitorService
