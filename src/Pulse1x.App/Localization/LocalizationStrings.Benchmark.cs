@@ -50,6 +50,7 @@ internal static partial class LocalizationStrings
         t["Bench_ColDisk"] = "Disco";
         t["Bench_Stress"] = "Stress";
         t["Bench_StressStop"] = "Parar";
+        t["Bench_StressStopping"] = "Parando...";
         t["Bench_StressTip"] = "Carga contínua com a pontuação atualizada a cada segundo (como o stress do CPU-Z): mostra se o desempenho cai quando a peça esquenta. No disco, o stress só lê, para não gastar o SSD.";
         t["Bench_StressRunning"] = "Stress de {0} rodando — clique em Parar para encerrar.";
         t["Bench_StressStopped"] = "Stress de {0} encerrado: {1}";
@@ -127,6 +128,7 @@ internal static partial class LocalizationStrings
         t["Bench_ColDisk"] = "Disk";
         t["Bench_Stress"] = "Stress";
         t["Bench_StressStop"] = "Stop";
+        t["Bench_StressStopping"] = "Stopping...";
         t["Bench_StressTip"] = "Continuous load with the score updated every second (like CPU-Z's stress): shows whether performance drops as the part heats up. On disks the stress only reads, so it doesn't wear the SSD.";
         t["Bench_StressRunning"] = "{0} stress running — click Stop to end it.";
         t["Bench_StressStopped"] = "{0} stress ended: {1}";

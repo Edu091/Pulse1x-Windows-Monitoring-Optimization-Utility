@@ -1,5 +1,15 @@
 ﻿# Histórico de versões
 
+## 1.16.1 — 04/11/2026
+
+- **Stress corrigido:**
+  - As threads de carga multi-thread rodavam acima da prioridade normal e tomavam a CPU da parte do Windows que desenha a janela. A tela travava e o botão Parar parecia não responder. Agora ficam em prioridade normal, como no CPU-Z.
+  - O Parar responde na hora: o botão muda para "Parando..." e o teste encerra em menos de 1 segundo.
+- **Pontuação ao vivo mais estável:** cada amostra agora cobre exatamente um ciclo das cinco cargas. Antes a pontuação pulava cerca de 25% entre um segundo e outro, agora cerca de 5%.
+- **Gráfico do stress** ocupa a largura toda desde as primeiras amostras.
+- **Testes de uma thread** ficam presos aos núcleos de desempenho em processadores híbridos (Intel 12ª geração ou mais nova). Antes o Windows às vezes os colocava num núcleo de eficiência e o resultado variava cerca de 20% entre execuções.
+- **Minimizar a janela** não para mais o stress (dá para acompanhar as temperaturas em outro programa). Ele só para quando a janela vai para a bandeja.
+
 ## 1.16.0 — 04/11/2026
 
 - **Benchmark de disco (SSD/HD):** escolha a unidade e meça a leitura e a escrita sequenciais e o 4K aleatório com fila 32 e com fila 1, como no CrystalDiskMark, sem o cache do Windows. O teste usa um arquivo temporário de 1 GB, apagado no final mesmo se o app fechar. O resultado fica no histórico, com comparação contra o mesmo disco, e não entra no resultado geral.

@@ -118,7 +118,7 @@
                                                    IsEnabled="{Binding CanRun}" Padding="12,4"
                                                    Visibility="{Binding IsStressing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
                                         <ui:Button Content="{Binding StressButtonText}" Command="{Binding StressCommand}"
-                                                   IsEnabled="{Binding CanRun}" Padding="12,4" Margin="6,0,0,0"
+                                                   IsEnabled="{Binding CanToggleStress}" Padding="12,4" Margin="6,0,0,0"
                                                    ToolTip="{Binding [Bench_StressTip], Source={x:Static loc:Loc.Instance}}" />
                                     </StackPanel>
                                 </Grid>

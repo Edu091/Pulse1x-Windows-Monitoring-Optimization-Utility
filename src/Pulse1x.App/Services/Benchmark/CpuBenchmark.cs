@@ -67,6 +67,7 @@ public static class CpuBenchmark
             workers[t] = new Thread(() =>
             {
                 PowerThrottlingScope.OptOutCurrentThread();
+                if (threads == 1) CpuSets.PinCurrentThreadToPerformanceCores();
                 var state = w.CreateState();
                 w.RunChunk(state); // aquecimento: caches, páginas de memória e código já otimizado
                 start.Wait();
@@ -79,10 +80,11 @@ public static class CpuBenchmark
             })
             {
                 IsBackground = true,
-                // Acima do normal para o teste não oscilar com tarefas do Windows em segundo plano.
-                // Nunca abaixo do normal: no Windows 11 com CPU híbrida, threads de prioridade baixa
-                // vão para os núcleos de eficiência e o multi-thread media menos da metade.
-                Priority = ThreadPriority.AboveNormal,
+                // Uma thread: acima do normal, para não oscilar com tarefas do Windows. Todas as
+                // threads: normal — acima disso elas tomam a CPU da thread de desenho do WPF (que é
+                // normal) e a janela congela até o teste acabar. Nunca abaixo do normal: em CPUs
+                // híbridas o Windows 11 manda threads de prioridade baixa para os núcleos de eficiência.
+                Priority = threads == 1 ? ThreadPriority.AboveNormal : ThreadPriority.Normal,
                 Name = "Pulse1x CPU benchmark",
             };
             workers[t].Start();
@@ -127,12 +129,11 @@ public static class CpuBenchmark
                 _workers[t] = new Thread(Loop)
                 {
                     IsBackground = true,
-                    // Acima do normal, como no benchmark: com prioridade normal ou menor, o Windows 11
-                    // em CPUs híbridas manda a carga para os núcleos de eficiência assim que a janela
-                    // perde o foco (o usuário abriu outro programa para ver temperaturas) e a
-                    // pontuação caía pela metade. Para a tela não congelar, cada thread cede 1 ms a
-                    // cada ~30 ms de trabalho (ver Loop).
-                    Priority = ThreadPriority.AboveNormal,
+                    // Todas as threads: normal, como o stress do CPU-Z. Acima disso a carga tomava a CPU
+                    // da thread de desenho do WPF e a janela parava de responder (inclusive o botão
+                    // Parar). Uma thread só não tem esse risco (sobram núcleos livres) e fica acima do
+                    // normal, como no benchmark.
+                    Priority = threads == 1 ? ThreadPriority.AboveNormal : ThreadPriority.Normal,
                     Name = "Pulse1x CPU stress",
                 };
                 _workers[t].Start();
@@ -142,6 +143,7 @@ public static class CpuBenchmark
         private void Loop()
         {
             PowerThrottlingScope.OptOutCurrentThread();
+            if (_threads == 1) CpuSets.PinCurrentThreadToPerformanceCores();
             var states = Workloads.Select(w => w.CreateState()).ToArray();
             for (int i = 0; i < Workloads.Length; i++) Workloads[i].RunChunk(states[i]); // aquecimento
             long yieldEvery = Stopwatch.Frequency * 30 / 1000;
@@ -166,8 +168,13 @@ public static class CpuBenchmark
 
         public BenchmarkResult Sample(CancellationToken ct)
         {
-            // Janela de ~1 s = todas as cinco cargas passam uma vez.
-            ct.WaitHandle.WaitOne(SliceMs * Workloads.Length);
+            // Janela alinhada ao ciclo de 1 s em que as cinco cargas passam uma vez cada: uma janela
+            // desalinhada pegava fatias de poucos milissegundos de alguma carga e a pontuação pulava.
+            long cycle = SliceMs * Workloads.Length;
+            long now = _clock.ElapsedMilliseconds;
+            long wait = cycle - now % cycle;
+            if (wait < cycle / 2) wait += cycle;
+            ct.WaitHandle.WaitOne((int)wait);
             ct.ThrowIfCancellationRequested();
 
             var ops = _ops.Select(o => Interlocked.Read(ref o)).ToArray();

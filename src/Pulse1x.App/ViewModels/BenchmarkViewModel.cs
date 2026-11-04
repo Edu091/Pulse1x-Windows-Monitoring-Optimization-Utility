@@ -80,7 +80,11 @@ public partial class BenchmarkViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(IsBusy))]
-    private void Cancel() => _cts?.Cancel();
+    private void Cancel()
+    {
+        if (_stressCard is not null) _stressCard.IsStopping = true;
+        _cts?.Cancel();
+    }
 
     [RelayCommand]
     private void ClearHistory()
@@ -190,7 +194,9 @@ public partial class BenchmarkViewModel : ObservableObject
     /// <summary>Encerra o stress em andamento (ex.: a janela foi para a bandeja).</summary>
     public void StopStress()
     {
-        if (_stressCard is not null) _cts?.Cancel();
+        if (_stressCard is null) return;
+        _stressCard.IsStopping = true;
+        _cts?.Cancel();
     }
 
     /// <summary>Liga o stress do cartão, ou desliga se ele já estiver rodando.</summary>
@@ -198,6 +204,8 @@ public partial class BenchmarkViewModel : ObservableObject
     {
         if (ReferenceEquals(_stressCard, card))
         {
+            // Resposta imediata no botão; o encerramento (fim do segundo atual) vem logo depois.
+            card.IsStopping = true;
             _cts?.Cancel();
             return;
         }
@@ -430,13 +438,26 @@ public partial class BenchmarkCardViewModel : ObservableObject
 
     // ---- stress ao vivo
     [ObservableProperty] private bool _isStressing;
+    /// <summary>Parar foi clicado e o stress está terminando o segundo atual.</summary>
+    [ObservableProperty] private bool _isStopping;
     [ObservableProperty] private string _liveScore = "";
     [ObservableProperty] private string _liveStats = "";
     [ObservableProperty] private string _liveSensor = "";
     [ObservableProperty] private PointCollection _spark = new();
     [ObservableProperty] private IReadOnlyList<string> _liveMetrics = Array.Empty<string>();
 
-    public string StressButtonText => Loc.S(IsStressing ? "Bench_StressStop" : "Bench_Stress");
+    public string StressButtonText => Loc.S(IsStopping ? "Bench_StressStopping" : IsStressing ? "Bench_StressStop" : "Bench_Stress");
+
+    /// <summary>O botão Stress/Parar fica ativo no próprio cartão durante o stress, exceto enquanto para.</summary>
+    public bool CanToggleStress => CanRun && !IsStopping;
+
+    partial void OnIsStoppingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(StressButtonText));
+        OnPropertyChanged(nameof(CanToggleStress));
+    }
+
+    partial void OnCanRunChanged(bool value) => OnPropertyChanged(nameof(CanToggleStress));
 
     /// <summary>Resumo do último stress ("méd 980 · mín 940 · máx 1.010 em 02:15").</summary>
     public string LiveSummary { get; private set; } = "";
@@ -469,6 +490,7 @@ public partial class BenchmarkCardViewModel : ObservableObject
         LiveSensor = "";
         LiveMetrics = Array.Empty<string>();
         _stressClock.Restart();
+        IsStopping = false;
         IsStressing = true;
     }
 
@@ -486,11 +508,13 @@ public partial class BenchmarkCardViewModel : ObservableObject
         LiveSummary = LiveStats;
 
         // Gráfico dos últimos 60 s, com a escala fixa em zero para quedas aparecerem do tamanho real.
+        // Ocupa a largura toda desde a segunda amostra (antes ficava espremido no canto esquerdo).
         var recent = _samples.Skip(Math.Max(0, _samples.Count - SparkPoints)).ToList();
         double top = Math.Max(1, recent.Max() * 1.1);
+        double step = SparkWidth / Math.Max(1, recent.Count - 1);
         var points = new PointCollection(recent.Count);
         for (int i = 0; i < recent.Count; i++)
-            points.Add(new Point(i * SparkWidth / (SparkPoints - 1), SparkHeight - recent[i] / top * SparkHeight));
+            points.Add(new Point(i * step, SparkHeight - recent[i] / top * SparkHeight));
         points.Freeze();
         Spark = points;
     }
@@ -499,6 +523,7 @@ public partial class BenchmarkCardViewModel : ObservableObject
     {
         _stressClock.Stop();
         IsStressing = false;
+        IsStopping = false;
     }
 
     public void Update(BenchmarkResult? result, DateTime? when, BenchmarkResult? previous)

@@ -19,9 +19,9 @@ public partial class BenchmarkPage : Page
             if ((bool)e.NewValue) viewModel.OnShown();
         };
 
-        // O stress continua ao trocar de página (dá para acompanhar as temperaturas no Dashboard),
-        // mas para quando a janela sai de vista: com "minimizar para a bandeja", fechar a janela
-        // deixaria a CPU a 100% escondida.
+        // O stress continua ao trocar de página e com a janela minimizada (dá para acompanhar as
+        // temperaturas no Dashboard ou em outro programa), mas para quando a janela vai para a
+        // bandeja: aí a CPU ficaria a 100% sem nada visível avisando.
         Loaded += (_, _) =>
         {
             if (_window is not null) return;
@@ -30,10 +30,6 @@ public partial class BenchmarkPage : Page
             _window.IsVisibleChanged += (_, e) =>
             {
                 if (!(bool)e.NewValue) _viewModel.StopStress();
-            };
-            _window.StateChanged += (_, _) =>
-            {
-                if (_window.WindowState == WindowState.Minimized) _viewModel.StopStress();
             };
         };
     }
