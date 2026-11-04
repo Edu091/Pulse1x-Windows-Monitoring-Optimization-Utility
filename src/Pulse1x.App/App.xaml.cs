@@ -305,6 +305,11 @@ public partial class App : Application
             gameHubViewModel, libraryService, profileStore, artService,
             powerPlanService, oemVendorService, audioService, displayService, settingsService, playMetricsService);
 
+        // Categoria Fps-In-Game: estimativa de FPS por jogo a partir da base embutida, com a GPU
+        // detectada e a biblioteca do GameHub (filtro "Na minha biblioteca").
+        var fpsInGamePage = new FpsInGamePage(new FpsInGameViewModel(
+            settingsService, systemInfoService, _hardwareMonitorService, libraryService));
+
         // Modo Gaming: enquanto um jogo estiver aberto, os painéis em tempo real do Pulse1x param
         // de atualizar. É um único sinal, consumido por quem gasta recursos.
         gamingModeService.StateChanged += active =>
@@ -314,7 +319,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, inputLabPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
+            latencyPage, inputLabPage, fpsInGamePage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {

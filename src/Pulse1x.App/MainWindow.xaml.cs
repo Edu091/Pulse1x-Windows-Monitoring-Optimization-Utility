@@ -19,6 +19,7 @@ public partial class MainWindow : FluentWindow
     private readonly HealthPage _healthPage;
     private readonly LatencyPage _latencyPage;
     private readonly InputLabPage _inputLabPage;
+    private readonly FpsInGamePage _fpsInGamePage;
     private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
     private readonly SettingsPage _settingsPage;
@@ -43,6 +44,7 @@ public partial class MainWindow : FluentWindow
         HealthPage healthPage,
         LatencyPage latencyPage,
         InputLabPage inputLabPage,
+        FpsInGamePage fpsInGamePage,
         Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
         SettingsPage settingsPage,
@@ -58,6 +60,7 @@ public partial class MainWindow : FluentWindow
         _healthPage = healthPage;
         _latencyPage = latencyPage;
         _inputLabPage = inputLabPage;
+        _fpsInGamePage = fpsInGamePage;
         _gameHubPage = gameHubPage;
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
@@ -69,13 +72,13 @@ public partial class MainWindow : FluentWindow
 
         _navButtons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, GameHubButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, GameHubButton,
             UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
         // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
         _navIndicators = new UIElement[]
         {
-            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, GameHubIndicator,
+            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, FpsInGameIndicator, GameHubIndicator,
             UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
         };
 
@@ -218,12 +221,12 @@ public partial class MainWindow : FluentWindow
 
         var pages = new System.Windows.Controls.Page[]
         {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage,
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage,
             _utilityPage, _settingsPage, _aboutPage, _donatePage,
         };
         var buttons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton,
             UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
 
@@ -236,11 +239,11 @@ public partial class MainWindow : FluentWindow
     {
         var pages = new System.Windows.Controls.Page[]
         {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _utilityPage, _settingsPage,
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _utilityPage, _settingsPage,
         };
         var buttons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, UtilityButton, SettingsButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, UtilityButton, SettingsButton,
         };
 
         int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
@@ -380,6 +383,8 @@ public partial class MainWindow : FluentWindow
     }
 
     public void NavigateToLatency() => NavigateTo(_latencyPage, LatencyButton);
+
+    private void FpsInGameButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_fpsInGamePage, FpsInGameButton);
 
     private void GameHubButton_Click(object sender, RoutedEventArgs e) => EnterGameHub();
 

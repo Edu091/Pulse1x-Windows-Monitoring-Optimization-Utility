@@ -1,0 +1,362 @@
+<Page
+    x:Class="Pulse1x.App.Views.FpsInGamePage"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    d:DataContext="{d:DesignInstance Type=vm:FpsInGameViewModel}"
+    mc:Ignorable="d"
+    Title="Fps-In-Game">
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:StringToBrushConverter x:Key="StrToBrush" />
+        <converters:StringToVisibilityConverter x:Key="StrToVis" />
+        <converters:NullToVisibilityConverter x:Key="NullToVis" />
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+        <Style x:Key="Value" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+
+        <!-- Selo colorido com o veredito ("Roda liso", "Não roda"...) -->
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Margin="24,16,24,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Título -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{Binding [Fps_Title], Source={x:Static loc:Loc.Instance}}" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding [Fps_Subtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,0,0" />
+        </StackPanel>
+
+        <!-- Seu PC + ajustes de resolução/preset -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,10">
+            <!-- WrapPanel: na janela no tamanho mínimo, resolução e gráficos descem para a linha de
+                 baixo em vez de espremer o nome da placa. -->
+            <WrapPanel>
+                <StackPanel Width="270" Margin="0,0,14,6">
+                    <TextBlock Style="{StaticResource Label}" Text="{Binding [Fps_YourGpu], Source={x:Static loc:Loc.Instance}}" />
+                    <!-- Editável com filtro por palavras ("4060", "rx 6600"): a busca nativa do
+                         ComboBox só casa o começo do nome ("GeForce..."). -->
+                    <ComboBox x:Name="GpuCombo" ItemsSource="{Binding Gpus}" SelectedItem="{Binding SelectedGpu}"
+                              Text="{Binding GpuSearchText, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                              DisplayMemberPath="Name" Margin="0,4,0,0"
+                              TextBoxBase.TextChanged="GpuCombo_TextChanged"
+                              DropDownClosed="GpuCombo_DropDownClosed"
+                              LostKeyboardFocus="GpuCombo_LostKeyboardFocus">
+                        <ComboBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ComboBox.ItemsPanel>
+                    </ComboBox>
+                    <TextBlock Text="{Binding [Fps_GpuApprox], Source={x:Static loc:Loc.Instance}}" FontSize="11" Foreground="#EAB308"
+                               TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding GpuIsApproximate, Converter={StaticResource BoolToVis}}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding GpuScoreText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                        <ui:Button Content="{Binding [Fps_UseDetected], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding UseDetectedGpuCommand}" Padding="8,2" FontSize="11" Margin="8,0,0,0"
+                                   Visibility="{Binding IsGpuOverridden, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                    <TextBlock FontSize="11" Foreground="#F97316" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding GpuNotRecognized, Converter={StaticResource BoolToVis}}">
+                        <Run Text="{Binding [Fps_GpuNotRecognized], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" />
+                        <Run Text="{Binding DetectedGpuName, Mode=OneWay}" FontWeight="SemiBold" />
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel Width="190" Margin="0,0,14,6">
+                    <TextBlock Style="{StaticResource Label}" Text="{Binding [Fps_YourCpu], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Style="{StaticResource Value}" Text="{Binding CpuName}" ToolTip="{Binding CpuName}" TextWrapping="Wrap" TextTrimming="None" FontSize="13" />
+                </StackPanel>
+
+                <StackPanel Width="80" Margin="0,0,14,6">
+                    <TextBlock Style="{StaticResource Label}" Text="{Binding [Fps_YourRam], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Style="{StaticResource Value}" Text="{Binding RamText}" />
+                </StackPanel>
+
+                <StackPanel Width="160" Margin="0,0,0,6">
+                    <TextBlock Style="{StaticResource Label}" Text="{Binding [Fps_Resolution], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox ItemsSource="{Binding Resolutions}" SelectedItem="{Binding SelectedResolution}" Margin="0,4,0,0" />
+                </StackPanel>
+            </WrapPanel>
+        </Border>
+
+        <!-- Busca, filtro e resumo -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBox Grid.Column="0" PlaceholderText="{Binding [Fps_SearchPlaceholder], Source={x:Static loc:Loc.Instance}}"
+                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ClearButtonEnabled="True"
+                        Icon="{ui:SymbolIcon Search24}" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" Margin="10,0,0,0" MinWidth="170" />
+        </Grid>
+
+        <!-- Lista + detalhes -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" MinWidth="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Carregando / erro -->
+            <StackPanel Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <ui:ProgressRing IsIndeterminate="True" Width="32" Height="32" />
+                <TextBlock Text="{Binding [Fps_Loading], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" Margin="0,10,0,0" HorizontalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Grid.ColumnSpan="3" Text="{Binding LoadError}" Foreground="#DC2626" TextWrapping="Wrap"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{Binding LoadError, Converter={StaticResource StrToVis}}" />
+
+            <Grid Grid.Column="0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="2,0,0,6">
+                    <TextBlock Text="{Binding PopularSummary}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding [Fps_ListHint], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.55" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ResultSummary}" FontSize="11" Opacity="0.55" />
+                </StackPanel>
+
+                <ListBox Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedGame}"
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel">
+                    <!-- Linha própria (sem o azul padrão de seleção do sistema): fundo sutil que
+                         segue o tema e a mesma barra de acento do menu lateral no item escolhido. -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="10,7" />
+                            <Setter Property="Margin" Value="0,0,4,2" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Row" CornerRadius="6" Background="{TemplateBinding Background}"
+                                                BorderThickness="1" BorderBrush="Transparent">
+                                            <Grid>
+                                                <Border x:Name="Bar" Width="3" Height="18" CornerRadius="2" HorizontalAlignment="Left"
+                                                        Background="{DynamicResource BrandAccentBrush}" Opacity="0" />
+                                                <ContentPresenter Margin="{TemplateBinding Padding}" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+                                                <Setter TargetName="Bar" Property="Opacity" Value="1" />
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:GameFpsItemViewModel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,10,0"
+                                         Fill="{Binding VerdictColor, Converter={StaticResource StrToBrush}}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <!-- DockPanel (e não StackPanel horizontal) para o nome longo
+                                         ganhar reticências em vez de invadir a coluna de FPS. -->
+                                    <DockPanel LastChildFill="True">
+                                        <ui:SymbolIcon DockPanel.Dock="Right" Symbol="Library20" FontSize="13" Margin="6,0,0,0" Opacity="0.7"
+                                                       ToolTip="{Binding [Fps_InLibrary], Source={x:Static loc:Loc.Instance}}"
+                                                       Visibility="{Binding IsInLibrary, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                    </DockPanel>
+                                    <TextBlock FontSize="11" Opacity="0.6">
+                                        <Run Text="{Binding VerdictText, Mode=OneWay}" Foreground="{Binding VerdictColor, Converter={StaticResource StrToBrush}}" />
+                                        <Run Text="{Binding Year, Mode=OneWay}" />
+                                    </TextBlock>
+                                </StackPanel>
+                                <!-- FPS no melhor preset para 60 FPS, com o preset logo abaixo. -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <TextBlock Text="{Binding RangeText}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding PresetText}" FontSize="11" Opacity="0.6" HorizontalAlignment="Right" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock Grid.Row="1" Text="{Binding [Fps_NoResults], Source={x:Static loc:Loc.Instance}}" Opacity="0.6"
+                           TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0"
+                           Visibility="{Binding HasNoResults, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+
+            <!-- Detalhes do jogo selecionado -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0"
+                    Visibility="{Binding Detail, Converter={StaticResource NullToVis}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,14">
+                    <StackPanel DataContext="{Binding Detail}">
+                        <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Year}" Opacity="0.55" FontSize="12" />
+
+                        <TextBlock Text="{Binding [Fps_EstimateHeader], Source={x:Static loc:Loc.Instance}}"
+                                   Style="{StaticResource Label}" Margin="0,14,0,6" />
+                        <ItemsControl ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PresetRowViewModel}">
+                                    <Border CornerRadius="8" Padding="10,7" Margin="0,0,0,4" BorderThickness="1">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="BorderBrush" Value="Transparent" />
+                                                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandAccentBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Preset}" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Style="{StaticResource Badge}" VerticalAlignment="Center"
+                                                    Background="{Binding VerdictColor, Converter={StaticResource StrToBrush}}">
+                                                <TextBlock Text="{Binding VerdictText}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2" Text="{Binding RangeText}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0" />
+
+                        <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,8,0,0"
+                                      Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <ui:SymbolIcon Symbol="Warning16" Foreground="#F97316" Margin="0,1,6,0" VerticalAlignment="Top" />
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" MaxWidth="420" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Requisitos oficiais (Steam) -->
+                        <TextBlock Text="{Binding [Fps_MinRequirements], Source={x:Static loc:Loc.Instance}}"
+                                   FontWeight="SemiBold" Margin="0,16,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="GPU" Style="{StaticResource Label}" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding MinGpu}" TextWrapping="Wrap" FontSize="12" />
+                                <TextBlock Text="{Binding MinGpuCompare}" FontSize="11" Opacity="0.6"
+                                           Visibility="{Binding MinGpuCompare, Converter={StaticResource StrToVis}}" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Text="CPU" Style="{StaticResource Label}" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MinCpu}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="2" Text="RAM" Style="{StaticResource Label}" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MinRam}" FontSize="12" Margin="0,4,0,0" />
+                        </Grid>
+
+                        <StackPanel Visibility="{Binding HasRecommended, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding [Fps_RecRequirements], Source={x:Static loc:Loc.Instance}}"
+                                       FontWeight="SemiBold" Margin="0,12,0,4" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="GPU" Style="{StaticResource Label}" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding RecGpu}" TextWrapping="Wrap" FontSize="12" />
+                                    <TextBlock Text="{Binding RecGpuCompare}" FontSize="11" Opacity="0.6"
+                                               Visibility="{Binding RecGpuCompare, Converter={StaticResource StrToVis}}" />
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="CPU" Style="{StaticResource Label}" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RecCpu}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="2" Text="RAM" Style="{StaticResource Label}" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RecRam}" FontSize="12" Margin="0,4,0,0" />
+                            </Grid>
+                        </StackPanel>
+
+                        <ui:Button Content="{Binding [Fps_OpenDetails], Source={x:Static loc:Loc.Instance}}"
+                                   Command="{Binding DataContext.OpenSourceCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                   CommandParameter="{Binding PageUrl}" Margin="0,14,0,0" Padding="12,6"
+                                   Icon="{ui:SymbolIcon Open20}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Fonte dos dados (exigência da licença CC BY 4.0) e aviso de que são estimativas -->
+        <TextBlock Grid.Row="4" FontSize="11" Opacity="0.55" TextWrapping="Wrap" Margin="0,8,0,0">
+            <Run Text="{Binding Attribution, Mode=OneWay}" />
+            <Hyperlink Command="{Binding OpenSourceCommand}" CommandParameter="https://pcgamebenchmarks.com">pcgamebenchmarks.com</Hyperlink>
+            <Run Text="(CC BY 4.0)" />
+        </TextBlock>
+    </Grid>
+</Page>

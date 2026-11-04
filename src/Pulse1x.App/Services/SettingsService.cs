@@ -33,6 +33,11 @@ public class AppSettings
     // Comandos do software do fabricante por modo, para máquinas sem integração nativa
     // (MSI Center, Alienware Command Center e afins). Ver OemCommandAdapter.
     public Profiles.OemCustomCommands OemCommands { get; set; } = new();
+
+    // Categoria Fps-In-Game: GPU escolhida à mão (null = a detectada) e a resolução usada nas
+    // estimativas (null = a do monitor principal).
+    public string? FpsInGameGpu { get; set; }
+    public string? FpsInGameResolution { get; set; }
 }
 
 public class SettingsService

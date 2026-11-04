@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.14.0 — 04/11/2026
+
+- **Nova categoria Fps-In-Game:** diz se um jogo roda no seu PC e com qual FPS médio (ex.: "55-65 FPS"), em mais de 16 mil jogos da Steam. A placa de vídeo é reconhecida sozinha, inclusive em notebooks híbridos, com a integrada ativa e com telas virtuais ou docks USB conectados. Também dá para escolher outra placa à mão para simular um upgrade.
+- Cada jogo mostra o melhor preset gráfico para manter 60 FPS na resolução do seu monitor. Os detalhes trazem o FPS nos quatro presets (Baixo, Médio, Alto e Ultra), os requisitos mínimo e recomendado da Steam, quanto a sua placa rende em relação à exigida, e avisos de RAM, memória de vídeo, limite de FPS do jogo e processador.
+- Filtros "Mais populares", "Na minha biblioteca" (os jogos do GameHub) e "Todos", com busca na base inteira. Tudo funciona offline.
+- Os requisitos e as estimativas vêm do conjunto aberto da [PCGameBenchmarks](https://pcgamebenchmarks.com) (CC BY 4.0), calibrado com cerca de 2 mil medições reais. São estimativas sem ray tracing, DLSS/FSR ou geração de quadros, com erro típico de cerca de 30%.
+
 ## 1.13.3 — 30/09/2026
 
 - **FPS de verdade no GameHub:** as estatísticas agora contam os quadros que o jogo apresenta via DirectX (DXGI e D3D9), como o PresentMon faz, e calculam média e 1% low a partir do tempo real de cada quadro. Antes, o valor era o uso da GPU multiplicado pela taxa de atualização: um jogo limitado pela GPU num monitor de 60 Hz sempre aparecia com ~60. Jogos que não passam pelo DirectX (alguns OpenGL/Vulkan) continuam com a estimativa, agora marcada como "(estimado)".

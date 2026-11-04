@@ -25,6 +25,7 @@ internal static class Program
         OptimizationTests.Register(suite);
         SessionRestoreTests.Register(suite);
         FrameTimeStatisticsTests.Register(suite);
+        FpsInGameTests.Register(suite);
         if (args.Contains("--ui")) HubVisualTests.Run(suite);
         return suite.Finish();
     }
