@@ -352,7 +352,11 @@ public partial class MainWindow : FluentWindow
         while (node is not null)
         {
             if (node is System.Windows.Controls.Button b) return b;
-            node = System.Windows.Media.VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node);
+            // Texto formatado (Run, Hyperlink) não faz parte da árvore visual: VisualTreeHelper
+            // lançava exceção ao clicar nele. Esses sobem pela árvore lógica.
+            node = node is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
         }
         return null;
     }
@@ -498,8 +502,9 @@ public partial class MainWindow : FluentWindow
             _gamepad?.SetActive(false);
             _gamepadSuspendedForMinimize = true;
 
-            if (_settingsService.Current.MinimizeToTray)
-                TrayIconService?.MinimizeToTray();
+            // O "-" minimiza para a barra de tarefas, como em qualquer programa. A bandeja fica só
+            // para o "X" (ver FluentWindow_Closing): antes o "-" também escondia a janela na
+            // bandeja e, sem nada na barra de tarefas, parecia que o Pulse1x tinha fechado.
             return;
         }
 

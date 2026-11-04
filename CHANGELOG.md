@@ -1,5 +1,10 @@
 ﻿# Histórico de versões
 
+## 1.16.3 — 04/11/2026
+
+- **Minimizar (−) minimiza para a barra de tarefas.** Antes, com "minimizar para a bandeja" ligado (o padrão), o − escondia a janela na bandeja do sistema e o Pulse1x parecia ter fechado. Agora só o fechar (X) leva para a bandeja, e a opção nas Configurações passou a dizer isso.
+- Clicar num texto formatado, como os da lista do Fps-In-Game ou o link da fonte, gerava um erro interno na animação de clique dos botões.
+
 ## 1.16.2 — 04/11/2026
 
 - **O botão Parar do stress voltou a funcionar.** Enquanto o stress rodava, o comando do botão se declarava indisponível e o Windows desabilitava o próprio botão Parar. Agora ele fica ativo e encerra o teste na hora, em todos os cartões (CPU, RAM, GPU e disco).

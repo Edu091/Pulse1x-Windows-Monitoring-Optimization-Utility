@@ -136,6 +136,19 @@ internal static class BenchmarkTests
             finally { File.Delete(path); }
         });
 
+        suite.Run("Click feedback finds the button behind formatted text (Run)", () =>
+        {
+            var run = new System.Windows.Documents.Run("texto");
+            var text = new System.Windows.Controls.TextBlock();
+            text.Inlines.Add(run);
+            var button = new System.Windows.Controls.Button { Content = text };
+            var find = typeof(Pulse1x.App.MainWindow).GetMethod("FindAncestorButton",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            // Antes: InvalidOperationException ("Run não é um Visual") a cada clique num texto assim.
+            TestSuite.Equal<object?>(button, find.Invoke(null, new object?[] { run }));
+            TestSuite.Equal<object?>(null, find.Invoke(null, new object?[] { new System.Windows.Documents.Run("solto") }));
+        });
+
         suite.Run("Benchmark cancellation stops promptly", () =>
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
