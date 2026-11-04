@@ -82,6 +82,13 @@
                         <TextBlock Text="{Binding [Nav_FpsInGame], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
+                <ui:Button x:Name="BenchmarkButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="BenchmarkButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="BenchmarkIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="DataTrending24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding [Nav_Benchmark], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
                 <ui:Button x:Name="GameHubButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="GameHubButton_Click">
                     <StackPanel Orientation="Horizontal">
                         <Border x:Name="GameHubIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />

@@ -39,6 +39,7 @@ public partial class FpsInGameViewModel : ObservableObject
     private readonly DispatcherTimer _searchDebounce;
 
     private FpsDatabase? _db;
+    private GameSearch? _search;
     private HashSet<string> _librarySteamIds = new();
     private HashSet<string> _libraryNames = new();
     private bool _initialized;
@@ -394,16 +395,11 @@ public partial class FpsInGameViewModel : ObservableObject
 
         if (query.Length > 0)
         {
-            // A busca sempre percorre a base inteira, independente do filtro.
-            var terms = query.Split(' ');
-            var matches = source.Where(g => terms.All(t => g.SearchKey.Contains(t, StringComparison.Ordinal)));
-            if (SelectedFilter?.Value == FpsGameFilter.Library) matches = matches.Where(IsInLibrary);
-            var list = matches
-                .OrderByDescending(g => g.SearchKey == query)
-                .ThenByDescending(g => g.SearchKey.StartsWith(query, StringComparison.Ordinal))
-                .ThenBy(g => g.Popularity ?? int.MaxValue)
-                .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            // A busca percorre a base inteira (só "Na minha biblioteca" restringe), aceitando siglas,
+            // números romanos, pedaços de palavra e erros de digitação.
+            _search ??= new GameSearch(_db.Games);
+            var list = _search.Search(SearchText ?? "",
+                SelectedFilter?.Value == FpsGameFilter.Library ? IsInLibrary : null);
             total = list.Count;
             source = list;
         }
@@ -460,9 +456,12 @@ public partial class FpsInGameViewModel : ObservableObject
                 FpsEstimator.Estimate(game, _db.ReferenceScores, score, _ramGb, p, res), p == recommended))
             .ToList();
 
+        bool lowEngineCap = game.FpsCap is > 0 and < 60;
         string suggestion = best is null
             ? Loc.S("Fps_NoPresetFor60")
-            : Loc.F("Fps_BestPresetFor60", PresetLabel(best.Value), SelectedResolution.Label);
+            : lowEngineCap
+                ? Loc.F("Fps_BestPresetAtCap", PresetLabel(best.Value), game.FpsCap!.Value)
+                : Loc.F("Fps_BestPresetFor60", PresetLabel(best.Value), SelectedResolution.Label);
 
         var warnings = new List<string>();
         if (current.BelowMinGpu) warnings.Add(Loc.S("Fps_WarnMinGpu"));

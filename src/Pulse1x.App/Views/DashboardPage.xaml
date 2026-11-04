@@ -18,6 +18,28 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:BoolOrVisibilityConverter x:Key="BoolOrVis" />
         <converters:HiddenSectionPlaceholderVisibilityConverter x:Key="HiddenPlaceholderVis" />
+        <converters:StringToBrushConverter x:Key="StrToBrush" />
+        <converters:StringToVisibilityConverter x:Key="StrToVis" />
+
+        <!-- Cartão de um item de BIOS/Windows: faixa colorida pelo estado, valor, compatibilidade e dica. -->
+        <DataTemplate x:Key="FirmwareTile" DataType="{x:Type vm:FirmwareItemViewModel}">
+            <Border Width="330" Margin="6" CornerRadius="8" Padding="12,9" BorderThickness="3,0,0,0"
+                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                    BorderBrush="{Binding Color, Converter={StaticResource StrToBrush}}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="{Binding Title}" FontSize="12" Opacity="0.65" />
+                        <TextBlock Text="{Binding StateText}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                   Foreground="{Binding Color, Converter={StaticResource StrToBrush}}" />
+                    </Grid>
+                    <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding Compatibility}" FontSize="11" Opacity="0.55" TextWrapping="Wrap" Margin="0,3,0,0"
+                               Visibility="{Binding Compatibility, Converter={StaticResource StrToVis}}" />
+                    <TextBlock Text="{Binding Tip}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="0,3,0,0"
+                               Visibility="{Binding Tip, Converter={StaticResource StrToVis}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
 
         <Style x:Key="SectionHeaderText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16" />
@@ -59,6 +81,7 @@
 
             <Grid x:Name="SectionsHost">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -118,6 +141,76 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===================== BIOS e desempenho ===================== -->
+                <StackPanel x:Name="FirmwareSectionRoot" Margin="0,0,0,16">
+                    <StackPanel.Visibility>
+                        <MultiBinding Converter="{StaticResource BoolOrVis}">
+                            <Binding Path="IsCustomizing" />
+                            <Binding Path="FirmwareSection.IsVisible" />
+                        </MultiBinding>
+                    </StackPanel.Visibility>
+
+                    <Grid Margin="6,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="{Binding FirmwareSection.Title}" Style="{StaticResource SectionHeaderText}" />
+                            <TextBlock Text="{Binding FirmwareSummary}" FontSize="12" Opacity="0.6" VerticalAlignment="Center" Margin="10,2,0,0" />
+                            <ui:ProgressRing IsIndeterminate="True" Width="14" Height="14" Margin="10,0,0,0"
+                                             Visibility="{Binding IsFirmwareLoading, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding FirmwareSection.IsVisible, Converter={StaticResource BoolToVis}}">
+                            <ui:Button Padding="10,4" Margin="2,0" FontSize="12" Content="{Binding [Fw_Refresh], Source={x:Static loc:Loc.Instance}}"
+                                       Command="{Binding RefreshFirmwareCommand}" Icon="{ui:SymbolIcon ArrowSync20}" />
+                            <ui:Button Padding="10,4" Margin="2,0" FontSize="12" Content="{Binding [Fw_RestartToBios], Source={x:Static loc:Loc.Instance}}"
+                                       Command="{Binding RestartToFirmwareCommand}" Icon="{ui:SymbolIcon ArrowReset20}"
+                                       Visibility="{Binding CanRestartToFirmware, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" anim:Anim.AnimateVisibility="True" Visibility="{Binding IsCustomizing, Converter={StaticResource BoolToVis}}">
+                            <ui:Button Style="{StaticResource SectionToolButton}" Content="↑" Command="{Binding MoveSectionUpCommand}" CommandParameter="{Binding FirmwareSection}" />
+                            <ui:Button Style="{StaticResource SectionToolButton}" Content="↓" Command="{Binding MoveSectionDownCommand}" CommandParameter="{Binding FirmwareSection}" />
+                            <ToggleButton Style="{StaticResource BrandToggle}" Padding="7,4" Margin="2,0" FontSize="13" Content="👁" IsChecked="{Binding FirmwareSection.IsVisible, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock
+                        Text="{Binding [Dashboard_HiddenSection], Source={x:Static loc:Loc.Instance}}"
+                        FontStyle="Italic" Opacity="0.5" Margin="6,0,0,8">
+                        <TextBlock.Visibility>
+                            <MultiBinding Converter="{StaticResource HiddenPlaceholderVis}">
+                                <Binding Path="IsCustomizing" />
+                                <Binding Path="FirmwareSection.IsVisible" />
+                            </MultiBinding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+
+                    <Border Visibility="{Binding FirmwareSection.IsVisible, Converter={StaticResource BoolToVis}}"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="10" Padding="8" Margin="6,0,6,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding [Fw_GroupBios], Source={x:Static loc:Loc.Instance}}" FontSize="12" FontWeight="SemiBold" Opacity="0.7" Margin="8,4,0,0" />
+                            <ItemsControl ItemsSource="{Binding FirmwareBiosItems}" ItemTemplate="{StaticResource FirmwareTile}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding [Fw_GroupWindows], Source={x:Static loc:Loc.Instance}}" FontSize="12" FontWeight="SemiBold" Opacity="0.7" Margin="8,8,0,0" />
+                            <ItemsControl ItemsSource="{Binding FirmwareWindowsItems}" ItemTemplate="{StaticResource FirmwareTile}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding [Fw_Footer], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.5" TextWrapping="Wrap" Margin="8,6,8,4" />
+                        </StackPanel>
                     </Border>
                 </StackPanel>
 

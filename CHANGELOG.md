@@ -1,5 +1,12 @@
 ﻿# Histórico de versões
 
+## 1.15.0 — 04/11/2026
+
+- **Nova categoria Benchmark:** mede a CPU em uma thread e em todas, a memória RAM (leitura, escrita, cópia e latência) e a placa de vídeo (cálculo FP32 e banda de memória, pelo Direct3D 11), e combina tudo num resultado geral. 1000 pontos = máquina de referência (Core i5-13420H, DDR5-5200, RTX 3050 Laptop). Cada execução vai para um histórico que mostra quanto o PC ganhou ou perdeu desde a anterior, para comparar antes e depois de otimizar. Também avisa quando o notebook está na bateria, que limita o resultado.
+- **BIOS e desempenho no Dashboard:** uma seção nova mostra Resizable BAR, perfil de memória (XMP/EXPO), Secure Boot, TPM, virtualização, modo de boot, Hyper-Threading, canais de memória e ventoinhas, mais integridade de memória, agendamento de GPU, Modo de Jogo, gravação em segundo plano e plano de energia. Cada item diz se está ativado, se o seu aparelho é compatível e o que fazer. É somente leitura, com um botão para reiniciar direto na BIOS.
+- **Fps-In-Game:** a busca aceita siglas ("gta", "rdr2", "bg3", "cs2"), números romanos ou arábicos ("gta 5" = GTA V), pedaços de palavra, palavras coladas e erros de digitação ("cyberpnuk", "witchr 3").
+- **Fps-In-Game:** jogos travados pelo próprio motor abaixo de 60 FPS, como GTA San Andreas, Vice City, GTA III e GTA 2, não aparecem mais como "roda com dificuldade". Rodar no limite do jogo é o máximo possível.
+
 ## 1.14.0 — 04/11/2026
 
 - **Nova categoria Fps-In-Game:** diz se um jogo roda no seu PC e com qual FPS médio (ex.: "55-65 FPS"), em mais de 16 mil jogos da Steam. A placa de vídeo é reconhecida sozinha, inclusive em notebooks híbridos, com a integrada ativa e com telas virtuais ou docks USB conectados. Também dá para escolher outra placa à mão para simular um upgrade.

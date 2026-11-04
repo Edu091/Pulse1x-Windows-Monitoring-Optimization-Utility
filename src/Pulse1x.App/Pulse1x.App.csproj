@@ -16,7 +16,7 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.14.0</Version>
+    <Version>1.15.0</Version>
   </PropertyGroup>
 
   <!-- O histórico de versões viaja dentro do executável, para a seção Sobre exibi-lo sem
@@ -37,6 +37,8 @@
          página do console, não em UTF-8. Sem isto, nomes com acento ("Desempenho Máximo") chegam
          corrompidos e as comparações de texto falham. -->
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
@@ -46,8 +48,7 @@
        não carrega nenhuma delas; tirá-las evita ~2,5 MB a mais no executável single-file. -->
   <Target Name="DropTraceEventHelperFiles" BeforeTargets="AssignTargetPaths">
     <ItemGroup>
-      <None Remove="@(None)"
-            Condition="$([System.String]::Copy('%(None.FullPath)').ToLowerInvariant().Contains('microsoft.diagnostics.tracing.traceevent'))" />
+      <None Remove="@(None)" Condition="$([System.String]::Copy('%(None.FullPath)').ToLowerInvariant().Contains('microsoft.diagnostics.tracing.traceevent'))" />
     </ItemGroup>
   </Target>
 

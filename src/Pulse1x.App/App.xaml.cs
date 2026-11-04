@@ -310,6 +310,13 @@ public partial class App : Application
         var fpsInGamePage = new FpsInGamePage(new FpsInGameViewModel(
             settingsService, systemInfoService, _hardwareMonitorService, libraryService));
 
+        // Seção "BIOS e desempenho" do Dashboard (Resizable BAR, XMP, Secure Boot, ventoinhas...).
+        dashboardViewModel.Firmware = new FirmwareStatusService(_hardwareMonitorService, powerPlanService);
+
+        // Categoria Benchmark: CPU (1 e todas as threads), RAM e GPU, com histórico de execuções.
+        var benchmarkPage = new BenchmarkPage(new BenchmarkViewModel(
+            new Services.Benchmark.BenchmarkHistoryService(), _hardwareMonitorService));
+
         // Modo Gaming: enquanto um jogo estiver aberto, os painéis em tempo real do Pulse1x param
         // de atualizar. É um único sinal, consumido por quem gasta recursos.
         gamingModeService.StateChanged += active =>
@@ -319,7 +326,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, inputLabPage, fpsInGamePage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
+            latencyPage, inputLabPage, fpsInGamePage, benchmarkPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {

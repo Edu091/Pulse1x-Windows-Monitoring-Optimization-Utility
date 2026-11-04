@@ -1,0 +1,222 @@
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace Pulse1x.App.Services.Benchmark;
+
+/// <summary>
+/// Benchmark de processador. Cinco cargas de trabalho que representam o que jogos e programas
+/// fazem — inteiros (lógica, hashes), ponto flutuante (física), SIMD (vetores, áudio, IA),
+/// ordenação (dados com desvios imprevisíveis) e compressão (carregamento de assets) — cada uma
+/// rodando por um tempo fixo. Single-thread usa uma thread; multi-thread, uma por processador
+/// lógico, ao mesmo tempo. A pontuação compara a vazão com a da máquina de referência.
+/// </summary>
+public static class CpuBenchmark
+{
+    /// <summary>Uma carga de trabalho: cria o estado por thread e executa um pedaço curto, devolvendo o trabalho feito.</summary>
+    private sealed record Workload(string LabelKey, string Unit, double UnitDivisor, Func<object> CreateState, Func<object, long> RunChunk,
+        double ReferenceSingle, double ReferenceMulti);
+
+    // Vazão da máquina de referência (Core i5-13420H, 8 núcleos / 12 threads, no carregador, com a
+    // janela do Pulse1x em primeiro plano), na unidade exibida. Uma CPU igual pontua 1000; o dobro
+    // da vazão, 2000.
+    private static readonly Workload[] Workloads =
+    {
+        new("Bench_CpuInteger", "M op/s", 1e6, () => new IntegerState(), s => IntegerChunk((IntegerState)s), 1484, 12121),
+        new("Bench_CpuFloat", "M it/s", 1e6, () => new object(), _ => MandelbrotChunk(), 395.4, 3371),
+        new("Bench_CpuSimd", "GFLOPS", 1e9, () => new SimdState(), s => SimdChunk((SimdState)s), 16.35, 64.5),
+        new("Bench_CpuSort", "M elem/s", 1e6, () => new SortState(), s => SortChunk((SortState)s), 18.4, 134.6),
+        new("Bench_CpuCompress", "MB/s", 1024 * 1024, () => new CompressState(), s => CompressChunk((CompressState)s), 35.2, 211.3),
+    };
+
+    public static BenchmarkResult RunSingle(TimeSpan perWorkload, CancellationToken ct, IProgress<double>? progress = null) =>
+        Run(BenchmarkKind.CpuSingle, 1, perWorkload, ct, progress);
+
+    public static BenchmarkResult RunMulti(TimeSpan perWorkload, CancellationToken ct, IProgress<double>? progress = null) =>
+        Run(BenchmarkKind.CpuMulti, Environment.ProcessorCount, perWorkload, ct, progress);
+
+    private static BenchmarkResult Run(BenchmarkKind kind, int threads, TimeSpan perWorkload, CancellationToken ct, IProgress<double>? progress)
+    {
+        var metrics = new List<BenchmarkMetric>();
+        var parts = new List<(double, double, bool)>();
+        for (int i = 0; i < Workloads.Length; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var w = Workloads[i];
+            double perSecond = Measure(w, threads, perWorkload, ct) / w.UnitDivisor;
+            metrics.Add(new BenchmarkMetric(w.LabelKey, perSecond, w.Unit));
+            parts.Add((perSecond, kind == BenchmarkKind.CpuSingle ? w.ReferenceSingle : w.ReferenceMulti, true));
+            progress?.Report((i + 1.0) / Workloads.Length);
+        }
+        metrics.Add(new BenchmarkMetric("Bench_Threads", threads, "", 0));
+        return new BenchmarkResult { Kind = kind, Score = BenchmarkScoring.Score(parts), Metrics = metrics };
+    }
+
+    /// <summary>Executa a carga em <paramref name="threads"/> threads pelo tempo dado e devolve o trabalho por segundo.</summary>
+    private static double Measure(Workload w, int threads, TimeSpan duration, CancellationToken ct)
+    {
+        var totals = new long[threads];
+        var elapsed = new double[threads];
+        using var start = new ManualResetEventSlim(false);
+        var workers = new Thread[threads];
+        for (int t = 0; t < threads; t++)
+        {
+            int index = t;
+            workers[t] = new Thread(() =>
+            {
+                var state = w.CreateState();
+                w.RunChunk(state); // aquecimento: caches, páginas de memória e código já otimizado
+                start.Wait();
+                var sw = Stopwatch.StartNew();
+                long done = 0;
+                while (sw.Elapsed < duration && !ct.IsCancellationRequested)
+                    done += w.RunChunk(state);
+                elapsed[index] = sw.Elapsed.TotalSeconds;
+                totals[index] = done;
+            })
+            {
+                IsBackground = true,
+                // Acima do normal para o teste não oscilar com tarefas do Windows em segundo plano.
+                Priority = ThreadPriority.AboveNormal,
+                Name = "Pulse1x CPU benchmark",
+            };
+            workers[t].Start();
+        }
+        Thread.Sleep(50);
+        start.Set();
+        foreach (var worker in workers) worker.Join();
+        ct.ThrowIfCancellationRequested();
+
+        double sum = 0;
+        for (int t = 0; t < threads; t++)
+            if (elapsed[t] > 0) sum += totals[t] / elapsed[t];
+        return sum;
+    }
+
+    // ------------------------------------------------------------------ inteiros
+
+    private sealed class IntegerState { public ulong A = 0x9E3779B97F4A7C15, B = 0xBF58476D1CE4E5B9, C = 0x94D049BB133111EB, D = 0x2545F4914F6CDD1D; }
+
+    /// <summary>Mistura de bits (estilo splitmix/xorshift) em quatro cadeias independentes.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    private static long IntegerChunk(IntegerState s)
+    {
+        const int n = 1 << 20;
+        ulong a = s.A, b = s.B, c = s.C, d = s.D;
+        for (int i = 0; i < n; i++)
+        {
+            a ^= a << 13; a ^= a >> 7; a ^= a << 17; a *= 0xFF51AFD7ED558CCD;
+            b += 0x9E3779B97F4A7C15; b = (b ^ (b >> 30)) * 0xBF58476D1CE4E5B9;
+            c = BitOperations.RotateLeft(c ^ a, 21) + (ulong)i;
+            d = (d ^ (d >> 27)) * 0x94D049BB133111EB + (c >> 3);
+        }
+        s.A = a; s.B = b; s.C = c; s.D = d;
+        return n * 4L;
+    }
+
+    // ------------------------------------------------------------------ ponto flutuante
+
+    /// <summary>Mandelbrot em precisão dupla: multiplicações e somas dependentes, como física e geometria.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    private static long MandelbrotChunk()
+    {
+        const int size = 96, maxIter = 256;
+        long iterations = 0;
+        for (int py = 0; py < size; py++)
+        {
+            double ci = -1.2 + 2.4 * py / size;
+            for (int px = 0; px < size; px++)
+            {
+                double cr = -2.1 + 3.0 * px / size;
+                double zr = 0, zi = 0;
+                int it = 0;
+                while (it < maxIter && zr * zr + zi * zi <= 4.0)
+                {
+                    double t = zr * zr - zi * zi + cr;
+                    zi = 2 * zr * zi + ci;
+                    zr = t;
+                    it++;
+                }
+                iterations += it;
+            }
+        }
+        return iterations;
+    }
+
+    // ------------------------------------------------------------------ SIMD
+
+    private sealed class SimdState
+    {
+        public readonly float[] A = Enumerable.Range(0, 4096).Select(i => 1f + i * 1e-5f).ToArray();
+        public readonly float[] B = Enumerable.Range(0, 4096).Select(i => 0.999f - i * 1e-7f).ToArray();
+    }
+
+    /// <summary>Multiplica-e-soma em vetores (AVX/SSE quando disponível) sobre dados que cabem no cache L1.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    private static long SimdChunk(SimdState s)
+    {
+        const int passes = 256;
+        var a = s.A; var b = s.B;
+        int width = Vector<float>.Count;
+        var add = new Vector<float>(0.001f);
+        for (int p = 0; p < passes; p++)
+        {
+            for (int i = 0; i <= a.Length - width; i += width)
+            {
+                var va = new Vector<float>(a, i);
+                var vb = new Vector<float>(b, i);
+                (va * vb + add).CopyTo(a, i);
+            }
+        }
+        return (long)passes * a.Length * 2; // uma multiplicação e uma soma por elemento
+    }
+
+    // ------------------------------------------------------------------ ordenação
+
+    private sealed class SortState
+    {
+        public readonly int[] Template;
+        public readonly int[] Work;
+        public SortState()
+        {
+            var rng = new Random(1234);
+            Template = Enumerable.Range(0, 65536).Select(_ => rng.Next()).ToArray();
+            Work = new int[Template.Length];
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    private static long SortChunk(SortState s)
+    {
+        s.Template.CopyTo(s.Work, 0);
+        Array.Sort(s.Work);
+        return s.Work.Length;
+    }
+
+    // ------------------------------------------------------------------ compressão
+
+    private sealed class CompressState
+    {
+        public readonly byte[] Input;
+        public readonly MemoryStream Output = new(1 << 20);
+        public CompressState()
+        {
+            // Texto com repetições parciais, parecido com arquivos de configuração e scripts.
+            var rng = new Random(42);
+            string[] words = { "player", "texture", "shader", "level", "health", "ammo", "vertex", "mesh", "audio", "frame", "0x1F", "true", "false", "{", "}", "=", ";" };
+            var sb = new System.Text.StringBuilder(1 << 19);
+            while (sb.Length < 1 << 19) sb.Append(words[rng.Next(words.Length)]).Append(rng.Next(3) == 0 ? '\n' : ' ').Append(rng.Next(1000));
+            Input = System.Text.Encoding.ASCII.GetBytes(sb.ToString());
+        }
+    }
+
+    private static long CompressChunk(CompressState s)
+    {
+        s.Output.SetLength(0);
+        using (var deflate = new DeflateStream(s.Output, CompressionLevel.Optimal, leaveOpen: true))
+            deflate.Write(s.Input, 0, s.Input.Length);
+        return s.Input.Length;
+    }
+}

@@ -231,6 +231,45 @@ public class HardwareMonitorService : IHardwareMonitorService, IDisposable
         HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel
     };
 
+    /// <summary>
+    /// Ventoinhas da placa-mãe e da GPU. A placa-mãe só é ligada no LibreHardwareMonitor na primeira
+    /// leitura: o monitoramento em tempo real atualiza só CPU e GPU, então ela não custa nada depois.
+    /// </summary>
+    public IReadOnlyList<FanReading> ReadFans()
+    {
+        var fans = new List<FanReading>();
+        lock (_lock)
+        {
+            if (_disposed) return fans;
+            try
+            {
+                if (!_computer.IsMotherboardEnabled) _computer.IsMotherboardEnabled = true;
+                foreach (var hardware in _computer.Hardware)
+                {
+                    if (hardware.HardwareType is not (HardwareType.Motherboard or HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel))
+                        continue;
+                    var all = new List<IHardware> { hardware };
+                    all.AddRange(hardware.SubHardware);
+                    foreach (var h in all)
+                    {
+                        h.Update();
+                        foreach (var sensor in h.Sensors)
+                        {
+                            if (sensor.Value is not { } value) continue;
+                            if (sensor.SensorType == SensorType.Fan && value > 0)
+                                fans.Add(new FanReading(sensor.Name, value, "RPM"));
+                            else if (sensor.SensorType == SensorType.Control && sensor.Name.Contains("Fan", StringComparison.OrdinalIgnoreCase)
+                                     && hardware.HardwareType != HardwareType.Motherboard)
+                                fans.Add(new FanReading(sensor.Name, value, "%"));
+                        }
+                    }
+                }
+            }
+            catch { /* sem driver de sensores (ex.: integridade de memória ligada): sem ventoinhas */ }
+        }
+        return fans;
+    }
+
     public IReadOnlyList<GpuReading> ReadGpus()
     {
         lock (_lock)

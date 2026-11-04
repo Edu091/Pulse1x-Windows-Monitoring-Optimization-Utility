@@ -2,6 +2,8 @@ namespace Pulse1x.App.Services;
 
 public record HardwareReading(double UsagePercent, double? TemperatureCelsius, double? ClockMHz = null, bool TemperatureIsApproximate = false);
 
+public record FanReading(string Name, double Value, string Unit);
+
 public record GpuReading(string Name, double UsagePercent, double? TemperatureCelsius, double? ClockMHz = null);
 
 public interface IHardwareMonitorService
@@ -19,4 +21,10 @@ public interface IHardwareMonitorService
 
     HardwareReading ReadCpu();
     IReadOnlyList<GpuReading> ReadGpus();
+
+    /// <summary>
+    /// Ventoinhas que a placa-mãe (chip SuperIO) e a GPU expõem, em RPM ou %. Notebooks quase nunca
+    /// expõem: o fabricante controla pelo próprio app.
+    /// </summary>
+    IReadOnlyList<FanReading> ReadFans() => Array.Empty<FanReading>();
 }

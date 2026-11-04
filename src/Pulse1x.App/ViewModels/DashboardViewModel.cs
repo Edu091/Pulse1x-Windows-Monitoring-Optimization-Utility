@@ -68,6 +68,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     // "MetricsSection.IsVisible") que continuam válidos mesmo após o usuário reordenar.
     public ObservableCollection<DashboardSectionViewModel> Sections { get; } = new();
     public DashboardSectionViewModel SystemInfoSection { get; }
+    public DashboardSectionViewModel FirmwareSection { get; }
     public DashboardSectionViewModel MetricsSection { get; }
     public DashboardSectionViewModel ChartsSection { get; }
 
@@ -88,6 +89,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         BuildSystemInfo();
 
         SystemInfoSection = new DashboardSectionViewModel(DashboardSectionKind.SystemInfo, "Dashboard_SectionSystemInfo", true);
+        FirmwareSection = new DashboardSectionViewModel(DashboardSectionKind.Firmware, "Dashboard_SectionFirmware", true);
         MetricsSection = new DashboardSectionViewModel(DashboardSectionKind.Metrics, "Dashboard_SectionMetrics", true);
         ChartsSection = new DashboardSectionViewModel(DashboardSectionKind.Charts, "Dashboard_SectionCharts", true);
         InitializeSections();
@@ -138,16 +140,20 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void InitializeSections()
     {
-        var defaults = new[] { SystemInfoSection, MetricsSection, ChartsSection };
+        var defaults = new[] { SystemInfoSection, FirmwareSection, MetricsSection, ChartsSection };
 
         var savedOrder = _settingsService.Current.DashboardSectionOrder;
-        var orderedSections = savedOrder.Count > 0
-            ? savedOrder
-                .Select(name => defaults.FirstOrDefault(s => s.Kind.ToString() == name))
-                .Where(s => s is not null)
-                .Concat(defaults.Where(s => !savedOrder.Contains(s.Kind.ToString())))
-                .Cast<DashboardSectionViewModel>()
-            : defaults;
+        var orderedSections = savedOrder
+            .Select(name => defaults.FirstOrDefault(s => s.Kind.ToString() == name))
+            .Where(s => s is not null)
+            .Cast<DashboardSectionViewModel>()
+            .ToList();
+        // Seções novas (que a ordem salva ainda não conhece) entram na posição padrão delas, e não
+        // no fim — a de BIOS fica logo abaixo das informações do sistema também para quem já
+        // tinha reordenado o Dashboard.
+        for (int i = 0; i < defaults.Length; i++)
+            if (!orderedSections.Contains(defaults[i]))
+                orderedSections.Insert(Math.Min(i, orderedSections.Count), defaults[i]);
 
         var savedVisibility = _settingsService.Current.DashboardSectionVisibility;
         foreach (var section in orderedSections)

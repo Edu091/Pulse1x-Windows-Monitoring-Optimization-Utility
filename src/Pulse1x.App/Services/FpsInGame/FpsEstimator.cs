@@ -65,7 +65,11 @@ public static class FpsEstimator
         bool belowMinRam = ramGb is > 0 && game.MinRamGb is > 0 && ramGb.Value + 0.5 < game.MinRamGb.Value;
         bool belowRecRam = ramGb is > 0 && game.RecRamGb is > 0 && ramGb.Value + 0.5 < game.RecRamGb.Value;
 
-        var verdict = fps switch
+        // Jogos travados pelo motor abaixo de 60 (GTA San Andreas a 25, Vice City a 30) foram feitos
+        // para rodar assim: a régua é proporcional ao limite deles, e bater no limite é o máximo
+        // possível — nunca "roda com dificuldade".
+        double judged = cap < 60 ? fps * 60.0 / cap : fps;
+        var verdict = judged switch
         {
             < 20 => RunVerdict.CannotRun,
             < 30 => RunVerdict.Struggles,
@@ -73,6 +77,7 @@ public static class FpsEstimator
             < 100 => RunVerdict.Smooth,
             _ => RunVerdict.VerySmooth,
         };
+        if (hitCap && cap < GlobalCap) verdict = RunVerdict.VerySmooth;
         // Abaixo do mínimo oficial (GPU ou RAM) o jogo pode nem abrir, por mais FPS que a curva dê.
         if (belowMinGpu && verdict > RunVerdict.Struggles) verdict = RunVerdict.Struggles;
         if (belowMinRam && verdict > RunVerdict.CannotRun) verdict--;

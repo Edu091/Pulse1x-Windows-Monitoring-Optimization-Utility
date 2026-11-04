@@ -16,7 +16,7 @@ internal static partial class LocalizationStrings
         t["Fps_GpuScore"] = "Score G3D: {0}";
         t["Fps_UseDetected"] = "Usar a detectada";
         t["Fps_GpuNotRecognized"] = "Não reconhecemos sua placa automaticamente — escolha-a na lista acima. Detectada:";
-        t["Fps_SearchPlaceholder"] = "Buscar jogo (ex.: Cyberpunk, Valorant, Elden Ring)";
+        t["Fps_SearchPlaceholder"] = "Buscar jogo (ex.: gta 5, cyberpunk, rdr2, bg3)";
         t["Fps_FilterPopular"] = "Mais populares";
         t["Fps_FilterLibrary"] = "Na minha biblioteca";
         t["Fps_FilterAll"] = "Todos os jogos";
@@ -29,6 +29,7 @@ internal static partial class LocalizationStrings
         t["Fps_InLibrary"] = "Na sua biblioteca do GameHub";
         t["Fps_EstimateHeader"] = "FPS MÉDIO ESTIMADO NA RESOLUÇÃO ESCOLHIDA";
         t["Fps_BestPresetFor60"] = "Sugestão: gráficos no {0} para manter 60 FPS em {1}.";
+        t["Fps_BestPresetAtCap"] = "Sugestão: gráficos no {0} — o jogo já roda no limite dele ({1} FPS), como foi feito para rodar.";
         t["Fps_NoPresetFor60"] = "Nem no Baixo este PC chega a 60 FPS nesta resolução — tente uma resolução menor ou upscaling (DLSS/FSR).";
         t["Fps_WarnMinGpu"] = "Sua placa de vídeo está abaixo da exigida no mínimo oficial: o jogo pode não abrir ou apresentar falhas.";
         t["Fps_WarnMinRam"] = "O mínimo pede {0} GB de RAM e você tem {1}: espere travamentos.";
@@ -71,7 +72,7 @@ internal static partial class LocalizationStrings
         t["Fps_GpuScore"] = "G3D score: {0}";
         t["Fps_UseDetected"] = "Use detected";
         t["Fps_GpuNotRecognized"] = "We couldn't recognize your graphics card automatically — pick it from the list above. Detected:";
-        t["Fps_SearchPlaceholder"] = "Search game (e.g. Cyberpunk, Valorant, Elden Ring)";
+        t["Fps_SearchPlaceholder"] = "Search game (e.g. gta 5, cyberpunk, rdr2, bg3)";
         t["Fps_FilterPopular"] = "Most popular";
         t["Fps_FilterLibrary"] = "In my library";
         t["Fps_FilterAll"] = "All games";
@@ -84,6 +85,7 @@ internal static partial class LocalizationStrings
         t["Fps_InLibrary"] = "In your GameHub library";
         t["Fps_EstimateHeader"] = "ESTIMATED AVERAGE FPS AT THE CHOSEN RESOLUTION";
         t["Fps_BestPresetFor60"] = "Suggestion: {0} graphics to hold 60 FPS at {1}.";
+        t["Fps_BestPresetAtCap"] = "Suggestion: {0} graphics — the game already runs at its own cap ({1} FPS), as it was made to.";
         t["Fps_NoPresetFor60"] = "This PC doesn't reach 60 FPS at this resolution even on Low — try a lower resolution or upscaling (DLSS/FSR).";
         t["Fps_WarnMinGpu"] = "Your graphics card is below the official minimum: the game may not start or may glitch.";
         t["Fps_WarnMinRam"] = "The minimum asks for {0} GB of RAM and you have {1}: expect stutters.";

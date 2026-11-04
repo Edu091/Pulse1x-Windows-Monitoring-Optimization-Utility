@@ -21,7 +21,11 @@ public partial class DashboardPage : Page
 
         viewModel.Sections.CollectionChanged += (_, _) => ApplySectionOrder();
         ApplySectionOrder();
-        IsVisibleChanged += (_, e) => _viewModel?.SetActive((bool)e.NewValue);
+        IsVisibleChanged += (_, e) =>
+        {
+            _viewModel?.SetActive((bool)e.NewValue);
+            if ((bool)e.NewValue) _viewModel?.EnsureFirmwareLoaded();
+        };
     }
 
     // Ao clicar em qualquer card de métrica, abre a página de detalhes do componente
@@ -48,6 +52,7 @@ public partial class DashboardPage : Page
             var block = _viewModel.Sections[i].Kind switch
             {
                 DashboardSectionKind.SystemInfo => SystemInfoSectionRoot,
+                DashboardSectionKind.Firmware => FirmwareSectionRoot,
                 DashboardSectionKind.Metrics => MetricsSectionRoot,
                 DashboardSectionKind.Charts => ChartsSectionRoot,
                 _ => null

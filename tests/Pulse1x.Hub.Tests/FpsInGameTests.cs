@@ -155,6 +155,55 @@ internal static class FpsInGameTests
             TestSuite.Equal(60, at1080.RangeHigh);
         });
 
+        suite.Run("Games locked by their engine below 60 FPS run smooth at the cap", () =>
+        {
+            foreach (var name in new[] { "Grand Theft Auto: San Andreas", "Grand Theft Auto: Vice City", "Grand Theft Auto III" })
+            {
+                var game = db.Games.First(g => g.Name == name);
+                var e = FpsEstimator.Estimate(game, db.ReferenceScores, 10000, 16, GraphicsPreset.High, TargetResolution.R1080p);
+                if (e.Verdict != RunVerdict.VerySmooth || !e.HitCap)
+                    throw new InvalidOperationException($"{name}: {e.Verdict} hitCap={e.HitCap} fps={e.Fps}");
+            }
+            var gta2 = db.Games.Where(g => g.Name == "Grand Theft Auto 2").ToList();
+            TestSuite.Equal(true, gta2.Count > 0);
+            foreach (var game in gta2)
+            {
+                var e = FpsEstimator.Estimate(game, db.ReferenceScores, 10000, 16, GraphicsPreset.High, TargetResolution.R1080p);
+                TestSuite.Equal(true, e.Verdict >= RunVerdict.Smooth);
+            }
+        });
+
+        suite.Run("Search tolerates acronyms, roman numerals, partial words and typos", () =>
+        {
+            var search = new GameSearch(db.Games);
+            void Top(string query, string expected, int within = 3)
+            {
+                var hits = search.Search(query).Take(within).Select(g => g.Name).ToList();
+                if (!hits.Contains(expected))
+                    throw new InvalidOperationException($"'{query}': expected <{expected}> in top {within}, got [{string.Join(" | ", hits)}]");
+            }
+
+            Top("gta", "Grand Theft Auto V", 5);
+            Top("gta 5", "Grand Theft Auto V");
+            Top("gta v", "Grand Theft Auto V");
+            Top("gta san andreas", "Grand Theft Auto: San Andreas");
+            Top("gtasa", "Grand Theft Auto: San Andreas", 5);
+            Top("gta 2", "Grand Theft Auto 2");
+            Top("rdr2", "Red Dead Redemption 2");
+            Top("bg3", "Baldur's Gate III");
+            Top("baldurs gate 3", "Baldur's Gate III");
+            Top("cs2", "Counter-Strike 2");
+            Top("counterstrike 2", "Counter-Strike 2");
+            Top("yberpunk", "Cyberpunk 2077");      // sem a primeira letra
+            Top("cyberpnuk", "Cyberpunk 2077");     // letras trocadas
+            Top("cyberpnk 2077", "Cyberpunk 2077"); // letra faltando
+            Top("witcher 3", "The Witcher 3: Wild Hunt");
+            Top("witchr 3", "The Witcher 3: Wild Hunt");
+            Top("elden", "Elden Ring");
+            Top("eldn ring", "Elden Ring");
+            TestSuite.Equal(0, search.Search("qzxwvjk").Count);
+        });
+
         suite.Run("Below-minimum hardware is flagged", () =>
         {
             var game = db.Games.First(g => g.Name == "Cyberpunk 2077");
