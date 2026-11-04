@@ -140,7 +140,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void InitializeSections()
     {
-        var defaults = new[] { SystemInfoSection, FirmwareSection, MetricsSection, ChartsSection };
+        var defaults = new[] { SystemInfoSection, MetricsSection, FirmwareSection, ChartsSection };
 
         var savedOrder = _settingsService.Current.DashboardSectionOrder;
         var orderedSections = savedOrder
@@ -149,11 +149,24 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
             .Cast<DashboardSectionViewModel>()
             .ToList();
         // Seções novas (que a ordem salva ainda não conhece) entram na posição padrão delas, e não
-        // no fim — a de BIOS fica logo abaixo das informações do sistema também para quem já
-        // tinha reordenado o Dashboard.
+        // no fim.
         for (int i = 0; i < defaults.Length; i++)
             if (!orderedSections.Contains(defaults[i]))
                 orderedSections.Insert(Math.Min(i, orderedSections.Count), defaults[i]);
+
+        // Layout 2 (1.16): a seção de BIOS desce para logo abaixo do monitoramento em tempo real.
+        // Na 1.15 ela entrava acima dele; quem abriu essa versão é migrado uma única vez, e depois
+        // a ordem escolhida pelo usuário volta a ser respeitada.
+        if (_settingsService.Current.DashboardLayoutVersion < 2)
+        {
+            orderedSections.Remove(FirmwareSection);
+            orderedSections.Insert(orderedSections.IndexOf(MetricsSection) + 1, FirmwareSection);
+            _settingsService.Current.DashboardLayoutVersion = 2;
+            _settingsService.Current.DashboardSectionOrder = orderedSections.Select(s => s.Kind.ToString()).ToList();
+            _settingsService.Save();
+        }
+
+        _isFirmwareExpanded = _settingsService.Current.DashboardFirmwareExpanded;
 
         var savedVisibility = _settingsService.Current.DashboardSectionVisibility;
         foreach (var section in orderedSections)

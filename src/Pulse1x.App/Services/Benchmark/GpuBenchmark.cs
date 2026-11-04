@@ -17,7 +17,7 @@ namespace Pulse1x.App.Services.Benchmark;
 /// </summary>
 public static class GpuBenchmark
 {
-    // Máquina de referência: GeForce RTX 3050 6GB Laptop GPU.
+    // Máquina de referência: GeForce RTX 3050 6GB Laptop GPU (com a janela em primeiro plano).
     private const double RefGflops = 5520, RefBandwidthGBs = 85.4;
 
     private const string FlopsShader = @"
@@ -51,6 +51,9 @@ void main(uint3 id : SV_DispatchThreadID)
         Dst.Store4(i * 16, Src.Load4(i * 16));
 }";
 
+    private const uint Groups = 4096;
+    private const uint Threads = Groups * 256;
+
     [StructLayout(LayoutKind.Sequential)]
     private struct FlopsParams { public uint Iterations; public float A; public float B; public uint Pad; }
 
@@ -59,30 +62,115 @@ void main(uint3 id : SV_DispatchThreadID)
 
     public static BenchmarkResult Run(TimeSpan perTest, CancellationToken ct, IProgress<double>? progress = null)
     {
-        IDXGIAdapter1? adapter = null;
-        ID3D11Device? device = null;
-        ID3D11DeviceContext? context = null;
+        Session? session = null;
         try
         {
-            adapter = PickAdapter();
-            string name = adapter?.Description1.Description.Trim() ?? "GPU";
-            var result = D3D11.D3D11CreateDevice(adapter, adapter is null ? DriverType.Hardware : DriverType.Unknown,
-                DeviceCreationFlags.None, new[] { FeatureLevel.Level_11_1, FeatureLevel.Level_11_0 }, out device, out context);
-            if (result.Failure || device is null || context is null)
-                return Failed(name, "Direct3D 11");
+            session = Session.Create(ct, out var error);
+            if (session is null) return error!;
+            progress?.Report(0.1);
+            return session.Measure(perTest, ct, progress);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { return Failed(session?.Name ?? "GPU", ex.Message); }
+        finally { session?.Dispose(); }
+    }
 
-            double gflops = MeasureFlops(device, context, perTest, ct);
-            progress?.Report(0.5);
+    /// <summary>Stress contínuo da GPU: meio segundo de cálculo + meio de banda por amostra.</summary>
+    public static IStressSession StartStress(CancellationToken ct)
+    {
+        var session = Session.Create(ct, out var error)
+                      ?? throw new InvalidOperationException(error?.Error ?? "Direct3D 11");
+        return new Stress(session);
+    }
+
+    private sealed class Stress : IStressSession
+    {
+        private readonly Session _session;
+        public Stress(Session session) => _session = session;
+        public BenchmarkResult Sample(CancellationToken ct) => _session.Measure(TimeSpan.FromMilliseconds(500), ct, null);
+        public void Dispose() => _session.Dispose();
+    }
+
+    private static BenchmarkResult Failed(string device, string error) =>
+        new() { Kind = BenchmarkKind.Gpu, Device = device, Error = error };
+
+    /// <summary>Device, shaders e buffers criados uma vez e reaproveitados a cada medida.</summary>
+    private sealed class Session : IDisposable
+    {
+        private readonly IDXGIAdapter1? _adapter;
+        private readonly ID3D11Device _device;
+        private readonly ID3D11DeviceContext _context;
+        private readonly ID3D11Query _done;
+        private readonly ID3D11ComputeShader _flopsShader, _copyShader;
+        private readonly ID3D11Buffer _flopsOut, _flopsParams, _copySrc, _copyDst, _copyParams;
+        private readonly ID3D11UnorderedAccessView _flopsView, _dstView;
+        private readonly ID3D11ShaderResourceView _srcView;
+        private readonly uint _copyBytes;
+        private FlopsParams _flops = new() { Iterations = 32, A = 0.9999f, B = 0.0001f };
+        private bool _calibrated;
+
+        public string Name { get; }
+
+        private Session(IDXGIAdapter1? adapter, ID3D11Device device, ID3D11DeviceContext context)
+        {
+            _adapter = adapter;
+            _device = device;
+            _context = context;
+            Name = adapter?.Description1.Description.Trim() ?? "GPU";
+            _done = device.CreateQuery(QueryType.Event, QueryFlags.None);
+
+            using (var code = Compile(FlopsShader)) _flopsShader = device.CreateComputeShader(code);
+            _flopsOut = device.CreateBuffer(new BufferDescription(Threads * 4, BindFlags.UnorderedAccess, ResourceUsage.Default,
+                CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, 4));
+            _flopsView = device.CreateUnorderedAccessView(_flopsOut, null);
+            _flopsParams = device.CreateBuffer(new BufferDescription(16, BindFlags.ConstantBuffer, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.None, 0));
+
+            // Dois buffers de 256 MB (128 MB em placas com pouca memória dedicada ou integradas).
             ulong vram = adapter?.Description1.DedicatedVideoMemory ?? 0;
-            double bandwidth = MeasureBandwidth(device, context, perTest, vram, ct);
-            progress?.Report(1);
+            _copyBytes = vram >= 2UL << 30 ? 256u << 20 : 128u << 20;
+            using (var code = Compile(CopyShader)) _copyShader = device.CreateComputeShader(code);
+            // A origem é lida por SRV (somente leitura, com cache de textura), como os jogos leem dados.
+            var desc = new BufferDescription(_copyBytes, BindFlags.UnorderedAccess | BindFlags.ShaderResource, ResourceUsage.Default,
+                CpuAccessFlags.None, ResourceOptionFlags.BufferAllowRawViews, 0);
+            _copySrc = device.CreateBuffer(desc);
+            _copyDst = device.CreateBuffer(desc);
+            _srcView = device.CreateShaderResourceView(_copySrc,
+                new ShaderResourceViewDescription(_copySrc, Format.R32_Typeless, 0, _copyBytes / 4, BufferExtendedShaderResourceViewFlags.Raw));
+            _dstView = device.CreateUnorderedAccessView(_copyDst,
+                new UnorderedAccessViewDescription(_copyDst, Format.R32_Typeless, 0, _copyBytes / 4, BufferUnorderedAccessViewFlags.Raw));
+            _copyParams = device.CreateBuffer(new BufferDescription(16, BindFlags.ConstantBuffer, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.None, 0));
+            var cp = new CopyParams { Count = _copyBytes / 16, Stride = Threads };
+            _context.UpdateSubresource(in cp, _copyParams, 0, 0, 0, null);
+        }
 
-            int score = BenchmarkScoring.Score(new[] { (gflops, RefGflops, true), (bandwidth, RefBandwidthGBs, true) });
+        public static Session? Create(CancellationToken ct, out BenchmarkResult? error)
+        {
+            error = null;
+            var adapter = PickAdapter();
+            string name = adapter?.Description1.Description.Trim() ?? "GPU";
+            var hr = D3D11.D3D11CreateDevice(adapter, adapter is null ? DriverType.Hardware : DriverType.Unknown,
+                DeviceCreationFlags.None, new[] { FeatureLevel.Level_11_1, FeatureLevel.Level_11_0 }, out ID3D11Device? device, out ID3D11DeviceContext? context);
+            if (hr.Failure || device is null || context is null)
+            {
+                adapter?.Dispose();
+                error = Failed(name, "Direct3D 11");
+                return null;
+            }
+            ct.ThrowIfCancellationRequested();
+            return new Session(adapter, device, context);
+        }
+
+        public BenchmarkResult Measure(TimeSpan perTest, CancellationToken ct, IProgress<double>? progress)
+        {
+            double gflops = MeasureFlops(perTest, ct);
+            progress?.Report(0.5);
+            double bandwidth = MeasureBandwidth(perTest, ct);
+            progress?.Report(1);
             return new BenchmarkResult
             {
                 Kind = BenchmarkKind.Gpu,
-                Score = score,
-                Device = name,
+                Score = BenchmarkScoring.Score(new[] { (gflops, RefGflops, true), (bandwidth, RefBandwidthGBs, true) }),
+                Device = Name,
                 Metrics = new()
                 {
                     new("Bench_GpuCompute", gflops, "GFLOPS", 0),
@@ -90,22 +178,95 @@ void main(uint3 id : SV_DispatchThreadID)
                 },
             };
         }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+
+        private double MeasureFlops(TimeSpan duration, CancellationToken ct)
         {
-            return Failed(adapter?.Description1.Description ?? "GPU", ex.Message);
+            _context.CSSetShader(_flopsShader);
+            _context.CSSetUnorderedAccessView(0, _flopsView, 0);
+            _context.CSSetConstantBuffer(0, _flopsParams);
+
+            double TimeDispatches(int count)
+            {
+                _context.UpdateSubresource(in _flops, _flopsParams, 0, 0, 0, null);
+                var sw = Stopwatch.StartNew();
+                for (int i = 0; i < count; i++) _context.Dispatch(Groups, 1, 1);
+                Wait(ct);
+                return sw.Elapsed.TotalSeconds;
+            }
+
+            if (!_calibrated)
+            {
+                TimeDispatches(1); // aquecimento: compilação no driver e clocks subindo
+                // Ajusta as iterações para cada despacho levar ~25 ms nesta GPU.
+                double t = TimeDispatches(1);
+                _flops.Iterations = (uint)Math.Clamp(_flops.Iterations * 0.025 / Math.Max(t, 1e-5), 16, 200_000);
+                TimeDispatches(2);
+                _calibrated = true;
+            }
+
+            double flops = 0, seconds = 0;
+            var total = Stopwatch.StartNew();
+            do
+            {
+                ct.ThrowIfCancellationRequested();
+                seconds += TimeDispatches(4);
+                flops += 4.0 * Threads * _flops.Iterations * FlopsPerIteration;
+            }
+            while (total.Elapsed < duration);
+            return flops / seconds / 1e9;
         }
-        finally
+
+        private double MeasureBandwidth(TimeSpan duration, CancellationToken ct)
         {
-            context?.ClearState();
-            context?.Dispose();
-            device?.Dispose();
-            adapter?.Dispose();
+            _context.CSSetShader(_copyShader);
+            _context.CSSetShaderResource(0, _srcView);
+            _context.CSSetUnorderedAccessView(0, _dstView, 0);
+            _context.CSSetConstantBuffer(0, _copyParams);
+
+            double Pass(int count)
+            {
+                var sw = Stopwatch.StartNew();
+                for (int i = 0; i < count; i++) _context.Dispatch(Groups, 1, 1);
+                Wait(ct);
+                return sw.Elapsed.TotalSeconds;
+            }
+
+            Pass(1); // aquecimento
+            double moved = 0, seconds = 0;
+            var total = Stopwatch.StartNew();
+            do
+            {
+                ct.ThrowIfCancellationRequested();
+                seconds += Pass(4);
+                moved += 4.0 * _copyBytes * 2; // cada byte é lido e escrito
+            }
+            while (total.Elapsed < duration);
+            _context.ClearState();
+            return moved / seconds / 1e9;
+        }
+
+        private void Wait(CancellationToken ct)
+        {
+            _context.End(_done);
+            _context.Flush();
+            var sw = Stopwatch.StartNew();
+            while (!_context.IsDataAvailable(_done))
+            {
+                if (sw.Elapsed > TimeSpan.FromSeconds(10)) throw new TimeoutException("GPU");
+                ct.ThrowIfCancellationRequested();
+                Thread.Yield();
+            }
+        }
+
+        public void Dispose()
+        {
+            _context.ClearState();
+            _context.Flush();
+            foreach (var d in new IDisposable[] { _srcView, _dstView, _flopsView, _copySrc, _copyDst, _copyParams, _flopsOut, _flopsParams, _flopsShader, _copyShader, _done, _context, _device })
+                d.Dispose();
+            _adapter?.Dispose();
         }
     }
-
-    private static BenchmarkResult Failed(string device, string error) =>
-        new() { Kind = BenchmarkKind.Gpu, Device = device, Error = error };
 
     /// <summary>A GPU que o Windows considera de alto desempenho, ignorando o renderizador por software.</summary>
     private static IDXGIAdapter1? PickAdapter()
@@ -130,114 +291,11 @@ void main(uint3 id : SV_DispatchThreadID)
         return null;
     }
 
-    private static double MeasureFlops(ID3D11Device device, ID3D11DeviceContext context, TimeSpan duration, CancellationToken ct)
-    {
-        const uint groups = 4096;
-        const uint threads = groups * 256;
-        using var bytecode = Compile(FlopsShader);
-        using var shader = device.CreateComputeShader(bytecode);
-        using var output = device.CreateBuffer(new BufferDescription(threads * 4, BindFlags.UnorderedAccess, ResourceUsage.Default,
-            CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, 4));
-        using var uav = device.CreateUnorderedAccessView(output, null);
-        using var cb = device.CreateBuffer(new BufferDescription(16, BindFlags.ConstantBuffer, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.None, 0));
-        using var done = device.CreateQuery(QueryType.Event, QueryFlags.None);
-
-        context.CSSetShader(shader);
-        context.CSSetUnorderedAccessView(0, uav, 0);
-        context.CSSetConstantBuffer(0, cb);
-
-        var p = new FlopsParams { Iterations = 32, A = 0.9999f, B = 0.0001f };
-        double TimeDispatches(int count)
-        {
-            context.UpdateSubresource(in p, cb, 0, 0, 0, null);
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < count; i++) context.Dispatch(groups, 1, 1);
-            Wait(context, done, ct);
-            return sw.Elapsed.TotalSeconds;
-        }
-
-        TimeDispatches(1); // aquecimento: compilação no driver e clocks subindo
-        // Ajusta as iterações para cada despacho levar ~25 ms nesta GPU.
-        double t = TimeDispatches(1);
-        p.Iterations = (uint)Math.Clamp(p.Iterations * 0.025 / Math.Max(t, 1e-5), 16, 200_000);
-        TimeDispatches(2);
-
-        double flops = 0, seconds = 0;
-        var total = Stopwatch.StartNew();
-        while (total.Elapsed < duration)
-        {
-            ct.ThrowIfCancellationRequested();
-            seconds += TimeDispatches(4);
-            flops += 4.0 * threads * p.Iterations * FlopsPerIteration;
-        }
-        return flops / seconds / 1e9;
-    }
-
-    private static double MeasureBandwidth(ID3D11Device device, ID3D11DeviceContext context, TimeSpan duration, ulong dedicatedVram, CancellationToken ct)
-    {
-        // Dois buffers de 256 MB (128 MB em placas com pouca memória dedicada ou integradas).
-        uint bytes = dedicatedVram >= 2UL << 30 ? 256u << 20 : 128u << 20;
-        const uint groups = 4096;
-        using var bytecode = Compile(CopyShader);
-        using var shader = device.CreateComputeShader(bytecode);
-        // A origem é lida por SRV (somente leitura, com cache de textura), como os jogos leem dados.
-        var desc = new BufferDescription(bytes, BindFlags.UnorderedAccess | BindFlags.ShaderResource, ResourceUsage.Default,
-            CpuAccessFlags.None, ResourceOptionFlags.BufferAllowRawViews, 0);
-        using var src = device.CreateBuffer(desc);
-        using var dst = device.CreateBuffer(desc);
-        using var srcView = device.CreateShaderResourceView(src,
-            new ShaderResourceViewDescription(src, Format.R32_Typeless, 0, bytes / 4, BufferExtendedShaderResourceViewFlags.Raw));
-        using var dstView = device.CreateUnorderedAccessView(dst,
-            new UnorderedAccessViewDescription(dst, Format.R32_Typeless, 0, bytes / 4, BufferUnorderedAccessViewFlags.Raw));
-        using var cb = device.CreateBuffer(new BufferDescription(16, BindFlags.ConstantBuffer, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.None, 0));
-        using var done = device.CreateQuery(QueryType.Event, QueryFlags.None);
-
-        var p = new CopyParams { Count = bytes / 16, Stride = groups * 256 };
-        context.UpdateSubresource(in p, cb, 0, 0, 0, null);
-        context.CSSetShader(shader);
-        context.CSSetShaderResource(0, srcView);
-        context.CSSetUnorderedAccessView(0, dstView, 0);
-        context.CSSetConstantBuffer(0, cb);
-
-        double Pass(int count)
-        {
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < count; i++) context.Dispatch(groups, 1, 1);
-            Wait(context, done, ct);
-            return sw.Elapsed.TotalSeconds;
-        }
-
-        Pass(2); // aquecimento
-        double moved = 0, seconds = 0;
-        var total = Stopwatch.StartNew();
-        while (total.Elapsed < duration)
-        {
-            ct.ThrowIfCancellationRequested();
-            seconds += Pass(4);
-            moved += 4.0 * bytes * 2; // cada byte é lido e escrito
-        }
-        context.ClearState();
-        return moved / seconds / 1e9;
-    }
-
-    private static void Wait(ID3D11DeviceContext context, ID3D11Query query, CancellationToken ct)
-    {
-        context.End(query);
-        context.Flush();
-        var sw = Stopwatch.StartNew();
-        while (!context.IsDataAvailable(query))
-        {
-            if (sw.Elapsed > TimeSpan.FromSeconds(10)) throw new TimeoutException("GPU");
-            ct.ThrowIfCancellationRequested();
-            Thread.Yield();
-        }
-    }
-
-    private static Vortice.Direct3D.Blob Compile(string source)
+    private static Blob Compile(string source)
     {
         // Sem macros nem include: o Vortice aceita nulo nos dois (a anotação dele não marca isso).
         var hr = Compiler.Compile(source, null!, null!, "main", "pulse1x_bench.hlsl", "cs_5_0",
-            ShaderFlags.OptimizationLevel3, EffectFlags.None, out Vortice.Direct3D.Blob blob, out Vortice.Direct3D.Blob? errors);
+            ShaderFlags.OptimizationLevel3, EffectFlags.None, out Blob blob, out Blob? errors);
         if (hr.Failure || blob is null)
             throw new InvalidOperationException(errors?.AsString() ?? "HLSL");
         errors?.Dispose();

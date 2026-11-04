@@ -66,6 +66,7 @@ public static class CpuBenchmark
             int index = t;
             workers[t] = new Thread(() =>
             {
+                PowerThrottlingScope.OptOutCurrentThread();
                 var state = w.CreateState();
                 w.RunChunk(state); // aquecimento: caches, páginas de memória e código já otimizado
                 start.Wait();
@@ -79,6 +80,8 @@ public static class CpuBenchmark
             {
                 IsBackground = true,
                 // Acima do normal para o teste não oscilar com tarefas do Windows em segundo plano.
+                // Nunca abaixo do normal: no Windows 11 com CPU híbrida, threads de prioridade baixa
+                // vão para os núcleos de eficiência e o multi-thread media menos da metade.
                 Priority = ThreadPriority.AboveNormal,
                 Name = "Pulse1x CPU benchmark",
             };
@@ -93,6 +96,110 @@ public static class CpuBenchmark
         for (int t = 0; t < threads; t++)
             if (elapsed[t] > 0) sum += totals[t] / elapsed[t];
         return sum;
+    }
+
+    /// <summary>Inicia o stress contínuo da CPU (uma thread ou todas).</summary>
+    public static IStressSession StartStress(bool multi) => new CpuStress(multi ? Environment.ProcessorCount : 1);
+
+    /// <summary>
+    /// Stress contínuo: as threads ficam rodando as cinco cargas em rodízio, trocando todas juntas
+    /// a cada 200 ms (pelo mesmo relógio), como no benchmark. Cada janela mede a vazão de cada carga
+    /// pelo trabalho feito ÷ tempo gasto nela e devolve a pontuação na mesma escala do benchmark.
+    /// </summary>
+    private sealed class CpuStress : IStressSession
+    {
+        private const int SliceMs = 200;
+        private readonly int _threads;
+        private readonly Thread[] _workers;
+        private readonly long[] _ops = new long[Workloads.Length];
+        private readonly long[] _ticks = new long[Workloads.Length];
+        private readonly Stopwatch _clock = Stopwatch.StartNew();
+        private volatile bool _stop;
+        private long[] _lastOps = new long[Workloads.Length];
+        private long[] _lastTicks = new long[Workloads.Length];
+
+        public CpuStress(int threads)
+        {
+            _threads = threads;
+            _workers = new Thread[threads];
+            for (int t = 0; t < threads; t++)
+            {
+                _workers[t] = new Thread(Loop)
+                {
+                    IsBackground = true,
+                    // Acima do normal, como no benchmark: com prioridade normal ou menor, o Windows 11
+                    // em CPUs híbridas manda a carga para os núcleos de eficiência assim que a janela
+                    // perde o foco (o usuário abriu outro programa para ver temperaturas) e a
+                    // pontuação caía pela metade. Para a tela não congelar, cada thread cede 1 ms a
+                    // cada ~30 ms de trabalho (ver Loop).
+                    Priority = ThreadPriority.AboveNormal,
+                    Name = "Pulse1x CPU stress",
+                };
+                _workers[t].Start();
+            }
+        }
+
+        private void Loop()
+        {
+            PowerThrottlingScope.OptOutCurrentThread();
+            var states = Workloads.Select(w => w.CreateState()).ToArray();
+            for (int i = 0; i < Workloads.Length; i++) Workloads[i].RunChunk(states[i]); // aquecimento
+            long yieldEvery = Stopwatch.Frequency * 30 / 1000;
+            // Cada thread cede em um momento diferente, para sempre sobrar um núcleo livre por um
+            // instante para a interface, o desenho da tela e os sensores.
+            long nextYield = Stopwatch.GetTimestamp() + Random.Shared.NextInt64(yieldEvery);
+            while (!_stop)
+            {
+                int w = (int)(_clock.ElapsedMilliseconds / SliceMs % Workloads.Length);
+                long start = Stopwatch.GetTimestamp();
+                long done = Workloads[w].RunChunk(states[w]);
+                long end = Stopwatch.GetTimestamp();
+                Interlocked.Add(ref _ops[w], done);
+                Interlocked.Add(ref _ticks[w], end - start); // a pausa fica fora do tempo medido
+                if (end >= nextYield)
+                {
+                    Thread.Sleep(1);
+                    nextYield = Stopwatch.GetTimestamp() + yieldEvery;
+                }
+            }
+        }
+
+        public BenchmarkResult Sample(CancellationToken ct)
+        {
+            // Janela de ~1 s = todas as cinco cargas passam uma vez.
+            ct.WaitHandle.WaitOne(SliceMs * Workloads.Length);
+            ct.ThrowIfCancellationRequested();
+
+            var ops = _ops.Select(o => Interlocked.Read(ref o)).ToArray();
+            var ticks = _ticks.Select(t => Interlocked.Read(ref t)).ToArray();
+            bool multi = _threads > 1;
+            var metrics = new List<BenchmarkMetric>();
+            var parts = new List<(double, double, bool)>();
+            for (int i = 0; i < Workloads.Length; i++)
+            {
+                long dOps = ops[i] - _lastOps[i];
+                double dSeconds = (ticks[i] - _lastTicks[i]) / (double)Stopwatch.Frequency;
+                if (dOps <= 0 || dSeconds <= 0) continue;
+                // Vazão por thread × threads = vazão do processador inteiro.
+                double perSecond = dOps / dSeconds * _threads / Workloads[i].UnitDivisor;
+                metrics.Add(new BenchmarkMetric(Workloads[i].LabelKey, perSecond, Workloads[i].Unit));
+                parts.Add((perSecond, multi ? Workloads[i].ReferenceMulti : Workloads[i].ReferenceSingle, true));
+            }
+            _lastOps = ops;
+            _lastTicks = ticks;
+            return new BenchmarkResult
+            {
+                Kind = multi ? BenchmarkKind.CpuMulti : BenchmarkKind.CpuSingle,
+                Score = BenchmarkScoring.Score(parts),
+                Metrics = metrics,
+            };
+        }
+
+        public void Dispose()
+        {
+            _stop = true;
+            foreach (var w in _workers) w.Join(2000);
+        }
     }
 
     // ------------------------------------------------------------------ inteiros

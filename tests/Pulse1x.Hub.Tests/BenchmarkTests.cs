@@ -65,6 +65,49 @@ internal static class BenchmarkTests
             TestSuite.Equal(true, gpu.Error is not null || (gpu.Score > 10 && gpu.Device.Length > 0));
         });
 
+        suite.Run("Overall score ignores the disk", () =>
+        {
+            var core = BenchmarkScoring.CoreKinds.Select(k => Result(k, 1000)).ToList();
+            TestSuite.Equal<int?>(1000, BenchmarkScoring.Overall(core));
+            core.Add(Result(BenchmarkKind.Disk, 100)); // um HD lento não derruba o geral
+            TestSuite.Equal<int?>(1000, BenchmarkScoring.Overall(core));
+            TestSuite.Equal<int?>(null, BenchmarkScoring.Overall(new[] { Result(BenchmarkKind.Disk, 1000) }));
+        });
+
+        suite.Run("Disk list finds the system drive and scores against the reference", () =>
+        {
+            var drives = DiskBenchmark.ListDrives();
+            string systemRoot = Path.GetPathRoot(Environment.SystemDirectory)!;
+            var system = drives.FirstOrDefault(d => string.Equals(d.Root, systemRoot, StringComparison.OrdinalIgnoreCase));
+            TestSuite.Equal(true, system is not null && system.TotalBytes > 0 && system.Display.Contains(systemRoot.TrimEnd('\\')));
+            var atReference = DiskBenchmark.Result(system!, 5240, 4300, 1250, 1100, 50);
+            TestSuite.Equal(1000, atReference.Score);
+            TestSuite.Equal(5, atReference.Metrics.Count);
+            var hdd = DiskBenchmark.Result(system!, 160, 150, 1.5, 1.5, 0.5);
+            TestSuite.Equal(true, hdd.Score < 100);
+        });
+
+        suite.Run("Stress sessions return a live score every second", () =>
+        {
+            using (var cpu = CpuBenchmark.StartStress(multi: false))
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var first = cpu.Sample(default);
+                var second = cpu.Sample(default);
+                TestSuite.Equal(true, first.Score > 50 && second.Score > 50);
+                TestSuite.Equal(true, sw.Elapsed < TimeSpan.FromSeconds(4));
+                TestSuite.Equal(BenchmarkKind.CpuSingle, second.Kind);
+            }
+            using (var mem = MemoryBenchmark.StartStress(8, default))
+                TestSuite.Equal(true, mem.Sample(default).Score > 50);
+            try
+            {
+                using var gpu = GpuBenchmark.StartStress(default);
+                TestSuite.Equal(true, gpu.Sample(default).Score > 10);
+            }
+            catch (InvalidOperationException) { /* máquina sem Direct3D 11 (CI): o app mostra o erro no cartão */ }
+        });
+
         suite.Run("Benchmark cancellation stops promptly", () =>
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));

@@ -17,51 +17,126 @@ public static class MemoryBenchmark
 
     public static BenchmarkResult Run(TimeSpan perTest, double? totalRamGb, CancellationToken ct, IProgress<double>? progress = null)
     {
-        // Bem acima de qualquer cache L3 (até 128 MB nos X3D), sem pesar em PCs com pouca RAM.
-        long bufferBytes = (totalRamGb ?? 8) >= 12 ? 1L << 30 : 512L << 20;
-        int threads = Math.Max(1, Environment.ProcessorCount);
+        using var session = new Session(totalRamGb, ct);
+        progress?.Report(0.1);
+        return session.Measure(perTest, ct, progress);
+    }
 
-        double read, write, copy, latency;
+    public static IStressSession StartStress(double? totalRamGb, CancellationToken ct) => new Stress(totalRamGb, ct);
+
+    private sealed class Stress : IStressSession
+    {
+        private readonly Session _session;
+        public Stress(double? totalRamGb, CancellationToken ct) => _session = new Session(totalRamGb, ct);
+        // Quatro medidas de 250 ms = uma amostra por segundo.
+        public BenchmarkResult Sample(CancellationToken ct) => _session.Measure(TimeSpan.FromMilliseconds(250), ct, null);
+        public void Dispose() => _session.Dispose();
+    }
+
+    /// <summary>Buffers alocados uma vez (1 GB de banda + 256 MB de latência) e reaproveitados.</summary>
+    private sealed class Session : IDisposable
+    {
+        private long[]? _buffer;
+        private int[]? _chain;
+        private readonly long _bufferBytes;
+        private readonly int _threads = Math.Max(1, Environment.ProcessorCount);
+        private int _position;
+
+        public Session(double? totalRamGb, CancellationToken ct)
         {
-            var buffer = GC.AllocateUninitializedArray<long>((int)(bufferBytes / sizeof(long)));
-            Partitioned(buffer.Length, threads, (from, to) => buffer.AsSpan(from, to - from).Fill(1)); // aloca as páginas de verdade
+            // Bem acima de qualquer cache L3 (até 128 MB nos X3D), sem pesar em PCs com pouca RAM.
+            _bufferBytes = (totalRamGb ?? 8) >= 12 ? 1L << 30 : 512L << 20;
+            var buffer = GC.AllocateUninitializedArray<long>((int)(_bufferBytes / sizeof(long)));
+            Partitioned(buffer.Length, _threads, (from, to) => buffer.AsSpan(from, to - from).Fill(1)); // aloca as páginas de verdade
+            _buffer = buffer;
             ct.ThrowIfCancellationRequested();
+            _chain = BuildChain();
+        }
 
-            read = Bandwidth(perTest, ct, () => { Partitioned(buffer.Length, threads, (f, t) => Sum(buffer, f, t)); return bufferBytes; });
-            progress?.Report(0.25);
-            write = Bandwidth(perTest, ct, () => { Partitioned(buffer.Length, threads, (f, t) => buffer.AsSpan(f, t - f).Fill(7)); return bufferBytes; });
+        public BenchmarkResult Measure(TimeSpan perTest, CancellationToken ct, IProgress<double>? progress)
+        {
+            var buffer = _buffer!;
+            long bytes = _bufferBytes;
+            double read = Bandwidth(perTest, ct, () => { Partitioned(buffer.Length, _threads, (f, t) => Sum(buffer, f, t)); return bytes; });
+            progress?.Report(0.3);
+            double write = Bandwidth(perTest, ct, () => { Partitioned(buffer.Length, _threads, (f, t) => buffer.AsSpan(f, t - f).Fill(7)); return bytes; });
             progress?.Report(0.5);
-
             int half = buffer.Length / 2;
-            copy = Bandwidth(perTest, ct, () =>
+            double copy = Bandwidth(perTest, ct, () =>
             {
-                Partitioned(half, threads, (f, t) => buffer.AsSpan(f, t - f).CopyTo(buffer.AsSpan(half + f, t - f)));
+                Partitioned(half, _threads, (f, t) => buffer.AsSpan(f, t - f).CopyTo(buffer.AsSpan(half + f, t - f)));
                 return (long)half * sizeof(long);
             });
             progress?.Report(0.75);
-        }
-        GC.Collect();
+            double latency = Latency(perTest, ct);
+            progress?.Report(1);
 
-        latency = Latency(perTest, ct);
-        GC.Collect();
-        progress?.Report(1);
-
-        int score = BenchmarkScoring.Score(new[]
-        {
-            (read, RefReadGBs, true), (write, RefWriteGBs, true), (copy, RefCopyGBs, true), (latency, RefLatencyNs, false),
-        });
-        return new BenchmarkResult
-        {
-            Kind = BenchmarkKind.Memory,
-            Score = score,
-            Metrics = new()
+            return new BenchmarkResult
             {
-                new("Bench_MemRead", read, "GB/s"),
-                new("Bench_MemWrite", write, "GB/s"),
-                new("Bench_MemCopy", copy, "GB/s"),
-                new("Bench_MemLatency", latency, "ns"),
-            },
-        };
+                Kind = BenchmarkKind.Memory,
+                Score = BenchmarkScoring.Score(new[]
+                {
+                    (read, RefReadGBs, true), (write, RefWriteGBs, true), (copy, RefCopyGBs, true), (latency, RefLatencyNs, false),
+                }),
+                Metrics = new()
+                {
+                    new("Bench_MemRead", read, "GB/s"),
+                    new("Bench_MemWrite", write, "GB/s"),
+                    new("Bench_MemCopy", copy, "GB/s"),
+                    new("Bench_MemLatency", latency, "ns"),
+                },
+            };
+        }
+
+        /// <summary>
+        /// Latência: um ciclo aleatório único sobre 256 MB, percorrido salto a salto — cada leitura
+        /// depende da anterior, então mede o tempo real de ida à RAM.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+        private double Latency(TimeSpan duration, CancellationToken ct)
+        {
+            var next = _chain!;
+            int p = _position;
+            for (int i = 0; i < 200_000; i++) p = next[p]; // aquecimento
+            long hops = 0;
+            var sw = Stopwatch.StartNew();
+            while (sw.Elapsed < duration)
+            {
+                for (int i = 0; i < 1_000_000; i++) p = next[p];
+                hops += 1_000_000;
+                if (ct.IsCancellationRequested) break;
+            }
+            double ns = sw.Elapsed.TotalMilliseconds * 1e6 / hops;
+            _position = p;
+            ct.ThrowIfCancellationRequested();
+            return ns;
+        }
+
+        private static int[] BuildChain()
+        {
+            // Saltos de 64 bytes: um índice a cada linha de cache, para cada salto ser uma linha nova.
+            const int stride = 16; // ints
+            int lines = (256 << 20) / (stride * sizeof(int));
+            var next = new int[lines * stride];
+            var order = new int[lines];
+            for (int i = 0; i < lines; i++) order[i] = i;
+            var rng = new Random(7);
+            for (int i = lines - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (order[i], order[j]) = (order[j], order[i]);
+            }
+            // Ligar a ordem embaralhada em sequência forma um ciclo único que passa por todas as linhas.
+            for (int i = 0; i < lines; i++) next[order[i] * stride] = order[(i + 1) % lines] * stride;
+            return next;
+        }
+
+        public void Dispose()
+        {
+            _buffer = null;
+            _chain = null;
+            GC.Collect(); // devolve os 1,25 GB ao Windows na hora
+        }
     }
 
     /// <summary>Repete a passada até completar o tempo e devolve GB/s.</summary>
@@ -70,11 +145,12 @@ public static class MemoryBenchmark
         pass(); // aquecimento
         long bytes = 0;
         var sw = Stopwatch.StartNew();
-        while (sw.Elapsed < duration)
+        do
         {
             ct.ThrowIfCancellationRequested();
             bytes += pass();
         }
+        while (sw.Elapsed < duration);
         return bytes / sw.Elapsed.TotalSeconds / 1e9;
     }
 
@@ -103,43 +179,5 @@ public static class MemoryBenchmark
         long total = Vector.Sum(acc);
         for (; i < span.Length; i++) total += span[i];
         Interlocked.Add(ref _sink, total); // impede que o JIT descarte a leitura
-    }
-
-    /// <summary>
-    /// Latência: um ciclo aleatório único (algoritmo de Sattolo) sobre 256 MB, percorrido salto a
-    /// salto — cada leitura depende da anterior, então mede o tempo real de ida à RAM.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
-    private static double Latency(TimeSpan duration, CancellationToken ct)
-    {
-        // Saltos de 64 bytes: um índice a cada linha de cache, para cada salto ser uma linha nova.
-        const int stride = 16; // ints
-        int lines = (256 << 20) / (stride * sizeof(int));
-        var next = new int[lines * stride];
-        var order = new int[lines];
-        for (int i = 0; i < lines; i++) order[i] = i;
-        var rng = new Random(7);
-        for (int i = lines - 1; i > 0; i--)
-        {
-            int j = rng.Next(i);
-            (order[i], order[j]) = (order[j], order[i]);
-        }
-        for (int i = 0; i < lines; i++) next[order[i] * stride] = order[(i + 1) % lines] * stride;
-        ct.ThrowIfCancellationRequested();
-
-        int p = 0;
-        for (int i = 0; i < 1_000_000; i++) p = next[p]; // aquecimento
-        long hops = 0;
-        var sw = Stopwatch.StartNew();
-        while (sw.Elapsed < duration)
-        {
-            for (int i = 0; i < 1_000_000; i++) p = next[p];
-            hops += 1_000_000;
-            if (ct.IsCancellationRequested) break;
-        }
-        double ns = sw.Elapsed.TotalMilliseconds * 1e6 / hops;
-        Interlocked.Add(ref _sink, p);
-        ct.ThrowIfCancellationRequested();
-        return ns;
     }
 }

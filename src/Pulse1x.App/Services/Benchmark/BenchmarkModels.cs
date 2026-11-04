@@ -1,7 +1,20 @@
 namespace Pulse1x.App.Services.Benchmark;
 
-/// <summary>As quatro áreas medidas; o resultado geral é a média geométrica delas.</summary>
-public enum BenchmarkKind { CpuSingle, CpuMulti, Memory, Gpu }
+/// <summary>
+/// Áreas medidas. O resultado geral é a média geométrica das quatro primeiras; o disco fica de fora
+/// (um HD derrubaria o "geral" de um PC ótimo para jogos, e o teste escreve no disco escolhido).
+/// </summary>
+public enum BenchmarkKind { CpuSingle, CpuMulti, Memory, Gpu, Disk }
+
+/// <summary>
+/// Sessão de stress contínuo (como o "Stress CPU" do CPU-Z): mantém a carga rodando e devolve uma
+/// pontuação a cada ~1 s, na mesma escala do benchmark, para ver o desempenho cair com o calor.
+/// </summary>
+public interface IStressSession : IDisposable
+{
+    /// <summary>Mede a próxima janela (~1 s) e devolve a pontuação dela.</summary>
+    BenchmarkResult Sample(CancellationToken ct);
+}
 
 /// <summary>Uma medida concreta dentro de um teste (ex.: "Leitura: 45,2 GB/s").</summary>
 public sealed record BenchmarkMetric(string LabelKey, double Value, string Unit, int Decimals = 1);
@@ -53,9 +66,12 @@ public static class BenchmarkScoring
         return n == 0 ? 0 : (int)Math.Round(Math.Exp(logSum / n) * 1000);
     }
 
+    /// <summary>As áreas que entram no resultado geral.</summary>
+    public static readonly BenchmarkKind[] CoreKinds = { BenchmarkKind.CpuSingle, BenchmarkKind.CpuMulti, BenchmarkKind.Memory, BenchmarkKind.Gpu };
+
     public static int? Overall(IEnumerable<BenchmarkResult> results)
     {
-        var scores = Enum.GetValues<BenchmarkKind>()
+        var scores = CoreKinds
             .Select(k => results.FirstOrDefault(r => r.Kind == k && r.Error is null && r.Score > 0)?.Score)
             .ToList();
         if (scores.Any(s => s is null)) return null;

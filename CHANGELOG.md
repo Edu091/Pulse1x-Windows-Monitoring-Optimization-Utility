@@ -1,5 +1,16 @@
 ﻿# Histórico de versões
 
+## 1.16.0 — 04/11/2026
+
+- **Benchmark de disco (SSD/HD):** escolha a unidade e meça a leitura e a escrita sequenciais e o 4K aleatório com fila 32 e com fila 1, como no CrystalDiskMark, sem o cache do Windows. O teste usa um arquivo temporário de 1 GB, apagado no final mesmo se o app fechar. O resultado fica no histórico, com comparação contra o mesmo disco, e não entra no resultado geral.
+- **Stress em tempo real em cada benchmark:** o botão "Stress" mantém a carga rodando e atualiza a pontuação a cada segundo, como no CPU-Z. Mostra média, mínimo, máximo, tempo, um gráfico dos últimos 60 segundos e temperatura, clock e uso da CPU ou da GPU, para ver o desempenho cair quando a peça esquenta. No disco, o stress só lê, para não gastar o SSD. Ele continua ao trocar de página, mas para sozinho se a janela for para a bandeja.
+- **BIOS e desempenho** agora fica abaixo do monitoramento em tempo real e começa recolhida. O cabeçalho mostra o resumo, e "Mostrar detalhes" abre os cartões. A escolha fica salva.
+- **Correções:**
+  - O teste multi-thread não congela mais a interface e não cai pela metade quando o Windows tira a janela de foco em CPUs híbridas.
+  - O stress da GPU e da memória não recria buffers a cada amostra.
+  - Os textos da seção de BIOS acompanham a troca de idioma.
+  - O benchmark de disco funciona também no disco do sistema sem gravar na raiz.
+
 ## 1.15.0 — 04/11/2026
 
 - **Nova categoria Benchmark:** mede a CPU em uma thread e em todas, a memória RAM (leitura, escrita, cópia e latência) e a placa de vídeo (cálculo FP32 e banda de memória, pelo Direct3D 11), e combina tudo num resultado geral. 1000 pontos = máquina de referência (Core i5-13420H, DDR5-5200, RTX 3050 Laptop). Cada execução vai para um histórico que mostra quanto o PC ganhou ou perdeu desde a anterior, para comparar antes e depois de otimizar. Também avisa quando o notebook está na bateria, que limita o resultado.

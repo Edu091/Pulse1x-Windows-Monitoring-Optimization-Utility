@@ -35,6 +35,37 @@ public sealed class PowerThrottlingScope : IDisposable
         _applied = Set(ExecutionSpeed, 0);
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ThreadPowerThrottlingState
+    {
+        public uint Version;
+        public uint ControlMask;
+        public uint StateMask;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetThreadInformation(IntPtr thread, int infoClass, ref ThreadPowerThrottlingState info, int size);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentThread();
+
+    private const int ThreadPowerThrottling = 3;
+
+    /// <summary>
+    /// Marca a thread atual como "nunca reduzir velocidade" (QoS alta). Necessário nas threads de
+    /// carga: sem isso, com a janela fora de foco, o Windows 11 em CPUs híbridas as manda para os
+    /// núcleos de eficiência e o multi-thread media menos da metade.
+    /// </summary>
+    public static void OptOutCurrentThread()
+    {
+        try
+        {
+            var info = new ThreadPowerThrottlingState { Version = 1, ControlMask = ExecutionSpeed, StateMask = 0 };
+            SetThreadInformation(GetCurrentThread(), ThreadPowerThrottling, ref info, Marshal.SizeOf<ThreadPowerThrottlingState>());
+        }
+        catch { /* Windows antigo: sem o ajuste */ }
+    }
+
     public void Dispose()
     {
         // ControlMask = 0: o Windows volta a decidir sozinho.

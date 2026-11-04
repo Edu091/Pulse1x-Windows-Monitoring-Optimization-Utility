@@ -21,6 +21,10 @@ public class AppSettings
     // Ordem (lista de DashboardSectionKind, como string) e visibilidade das seções do
     // dashboard, definidas pelo usuário ao personalizar o layout.
     public List<string> DashboardSectionOrder { get; set; } = new();
+    // Versão do layout padrão do Dashboard, para migrar uma vez quando uma seção muda de lugar.
+    public int DashboardLayoutVersion { get; set; }
+    // Seção "BIOS e desempenho" aberta? Começa recolhida: são detalhes, não monitoramento.
+    public bool DashboardFirmwareExpanded { get; set; }
     public Dictionary<string, bool> DashboardSectionVisibility { get; set; } = new();
 
     // Personalização visual de todo o app (cores, transparência, blur, animações, plano de fundo).

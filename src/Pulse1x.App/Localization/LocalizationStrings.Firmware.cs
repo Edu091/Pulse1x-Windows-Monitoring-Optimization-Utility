@@ -10,6 +10,8 @@ internal static partial class LocalizationStrings
         t["Fw_GroupBios"] = "BIOS / UEFI e hardware";
         t["Fw_GroupWindows"] = "Windows";
         t["Fw_Refresh"] = "Atualizar";
+        t["Fw_Expand"] = "Mostrar detalhes";
+        t["Fw_Collapse"] = "Ocultar";
         t["Fw_RestartToBios"] = "Reiniciar na BIOS";
         t["Fw_RestartConfirm"] = "O PC vai reiniciar direto na tela de configuração da BIOS/UEFI em 5 segundos.\n\nSalve o que estiver aberto antes. Continuar?";
         t["Fw_RestartFailed"] = "Não foi possível reiniciar na BIOS por aqui. Use Configurações > Sistema > Recuperação > Inicialização avançada > Configurações de firmware UEFI, ou aperte Del/F2 ao ligar o PC.";
@@ -123,6 +125,8 @@ internal static partial class LocalizationStrings
         t["Fw_GroupBios"] = "BIOS / UEFI and hardware";
         t["Fw_GroupWindows"] = "Windows";
         t["Fw_Refresh"] = "Refresh";
+        t["Fw_Expand"] = "Show details";
+        t["Fw_Collapse"] = "Hide";
         t["Fw_RestartToBios"] = "Restart into BIOS";
         t["Fw_RestartConfirm"] = "The PC will restart straight into the BIOS/UEFI setup screen in 5 seconds.\n\nSave your open work first. Continue?";
         t["Fw_RestartFailed"] = "Couldn't restart into the BIOS from here. Use Settings > System > Recovery > Advanced startup > UEFI Firmware Settings, or press Del/F2 at power-on.";

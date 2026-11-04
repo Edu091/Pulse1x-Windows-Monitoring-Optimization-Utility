@@ -166,11 +166,12 @@
                                              Visibility="{Binding IsFirmwareLoading, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding FirmwareSection.IsVisible, Converter={StaticResource BoolToVis}}">
+                            <!-- A seção começa recolhida: é detalhe de configuração, não monitoramento. -->
+                            <ui:Button Padding="10,4" Margin="2,0" FontSize="12" Content="{Binding FirmwareToggleText}"
+                                       Command="{Binding ToggleFirmwareCommand}" Appearance="Secondary" />
                             <ui:Button Padding="10,4" Margin="2,0" FontSize="12" Content="{Binding [Fw_Refresh], Source={x:Static loc:Loc.Instance}}"
+                                       Visibility="{Binding IsFirmwareExpanded, Converter={StaticResource BoolToVis}}"
                                        Command="{Binding RefreshFirmwareCommand}" Icon="{ui:SymbolIcon ArrowSync20}" />
-                            <ui:Button Padding="10,4" Margin="2,0" FontSize="12" Content="{Binding [Fw_RestartToBios], Source={x:Static loc:Loc.Instance}}"
-                                       Command="{Binding RestartToFirmwareCommand}" Icon="{ui:SymbolIcon ArrowReset20}"
-                                       Visibility="{Binding CanRestartToFirmware, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" anim:Anim.AnimateVisibility="True" Visibility="{Binding IsCustomizing, Converter={StaticResource BoolToVis}}">
                             <ui:Button Style="{StaticResource SectionToolButton}" Content="↑" Command="{Binding MoveSectionUpCommand}" CommandParameter="{Binding FirmwareSection}" />
@@ -190,7 +191,8 @@
                         </TextBlock.Visibility>
                     </TextBlock>
 
-                    <Border Visibility="{Binding FirmwareSection.IsVisible, Converter={StaticResource BoolToVis}}"
+                    <Border Visibility="{Binding FirmwareSection.IsVisible, Converter={StaticResource BoolToVis}}">
+                    <Border Visibility="{Binding IsFirmwareExpanded, Converter={StaticResource BoolToVis}}"
                             Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="10" Padding="8" Margin="6,0,6,0">
                         <StackPanel>
                             <TextBlock Text="{Binding [Fw_GroupBios], Source={x:Static loc:Loc.Instance}}" FontSize="12" FontWeight="SemiBold" Opacity="0.7" Margin="8,4,0,0" />
@@ -209,8 +211,18 @@
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
-                            <TextBlock Text="{Binding [Fw_Footer], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.5" TextWrapping="Wrap" Margin="8,6,8,4" />
+                            <Grid Margin="8,6,8,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding [Fw_Footer], Source={x:Static loc:Loc.Instance}}" FontSize="11" Opacity="0.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                <ui:Button Grid.Column="1" Padding="10,4" Margin="8,0,0,0" FontSize="12" Content="{Binding [Fw_RestartToBios], Source={x:Static loc:Loc.Instance}}"
+                                           Command="{Binding RestartToFirmwareCommand}" Icon="{ui:SymbolIcon ArrowReset20}"
+                                           Visibility="{Binding CanRestartToFirmware, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
                         </StackPanel>
+                    </Border>
                     </Border>
                 </StackPanel>
 

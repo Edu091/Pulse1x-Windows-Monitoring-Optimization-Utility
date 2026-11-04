@@ -20,6 +20,20 @@ public partial class DashboardViewModel
     [ObservableProperty] private IReadOnlyList<FirmwareItemViewModel> _firmwareWindowsItems = Array.Empty<FirmwareItemViewModel>();
     [ObservableProperty] private bool _isFirmwareLoading;
     [ObservableProperty] private string _firmwareSummary = "";
+    /// <summary>Seção aberta? Começa recolhida — o cabeçalho já mostra o resumo.</summary>
+    [ObservableProperty] private bool _isFirmwareExpanded;
+
+    public string FirmwareToggleText => Loc.S(IsFirmwareExpanded ? "Fw_Collapse" : "Fw_Expand");
+
+    partial void OnIsFirmwareExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(FirmwareToggleText));
+        _settingsService.Current.DashboardFirmwareExpanded = value;
+        _settingsService.Save();
+    }
+
+    [RelayCommand]
+    private void ToggleFirmware() => IsFirmwareExpanded = !IsFirmwareExpanded;
 
     public bool CanRestartToFirmware => FirmwareStatusService.SupportsFirmwareRestart;
 
@@ -31,6 +45,12 @@ public partial class DashboardViewModel
     {
         if (_firmwareLoaded) return;
         _firmwareLoaded = true;
+        // Os textos dos itens saem no idioma da leitura: ao trocar o idioma, lê de novo.
+        Loc.Instance.LanguageChanged += () =>
+        {
+            OnPropertyChanged(nameof(FirmwareToggleText));
+            _ = RefreshFirmwareAsync();
+        };
         _ = RefreshFirmwareAsync();
     }
 
