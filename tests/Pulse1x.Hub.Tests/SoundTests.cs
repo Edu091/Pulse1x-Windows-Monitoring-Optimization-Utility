@@ -21,7 +21,8 @@ internal static class SoundTests
             TestSuite.Equal((100, 0.0), SoundPresets.SplitMicLevel(100));
             TestSuite.Equal((100, 6.02), SoundPresets.SplitMicLevel(200));
             TestSuite.Equal((100, 12.04), SoundPresets.SplitMicLevel(400));
-            TestSuite.Equal((100, 12.04), SoundPresets.SplitMicLevel(999));
+            TestSuite.Equal((100, 20.0), SoundPresets.SplitMicLevel(1000));
+            TestSuite.Equal((100, 20.0), SoundPresets.SplitMicLevel(5000));
         });
 
         suite.Run("Endpoint ids map to Equalizer APO device GUIDs", () =>
@@ -81,11 +82,45 @@ internal static class SoundTests
                 TestSuite.Equal(SoundPresets.EqFrequencies.Length, profile.Eq.Length);
         });
 
+        suite.Run("Impulse-response voice effects add a Convolution at the mic sample rate", () =>
+        {
+            var s = new SoundSettings { VoiceEffect = "Robot" };
+            var lines = Lines(EqualizerApoConfig.Build(s, null, "{mic}", 48000));
+            TestSuite.Equal(true, lines.Contains("Convolution: pulse1x-ir-robot-48000.wav"));
+            // Taxa desconhecida: sem a convolução (o motor recusaria um arquivo com a taxa errada).
+            var unknown = Lines(EqualizerApoConfig.Build(s, null, "{mic}"));
+            TestSuite.Equal(false, unknown.Any(l => l.StartsWith("Convolution:")));
+            // Eco não tem filtros, só a resposta ao impulso — o bloco do microfone ainda aparece.
+            var echo = Lines(EqualizerApoConfig.Build(new SoundSettings { VoiceEffect = "Echo" }, null, "{mic}", 44100));
+            TestSuite.Equal("Device: {mic}", echo[0]);
+            TestSuite.Equal(true, echo.Contains("Convolution: pulse1x-ir-echo-44100.wav"));
+        });
+
+        suite.Run("Impulse responses start with the direct sound and write a float WAV", () =>
+        {
+            foreach (var kind in ImpulseResponses.Kinds)
+            {
+                var ir = ImpulseResponses.Generate(kind, 48000);
+                TestSuite.Equal(true, ir[0] > 0.1f);
+                TestSuite.Equal(true, ir.All(float.IsFinite) && ir.Max(Math.Abs) <= 1.6f);
+                var wav = ImpulseResponses.ToWav(ir, 48000);
+                TestSuite.Equal("RIFF", System.Text.Encoding.ASCII.GetString(wav, 0, 4));
+                TestSuite.Equal(44 + ir.Length * 4, wav.Length);
+                TestSuite.Equal((short)3, BitConverter.ToInt16(wav, 20));
+                TestSuite.Equal(48000, BitConverter.ToInt32(wav, 24));
+            }
+            var robot = ImpulseResponses.Generate("robot", 48000);
+            TestSuite.Equal(true, robot[436] > 0.1f); // repetição a cada ~9 ms (110 Hz)
+        });
         suite.Run("Factory Equalizer APO config is recognized; user configs are kept", () =>
         {
             TestSuite.Equal(true, EqualizerApoService.IsFactoryConfig(""));
             TestSuite.Equal(true, EqualizerApoService.IsFactoryConfig("Preamp: -6 dB\r\nInclude: example.txt\r\n"));
             TestSuite.Equal(false, EqualizerApoService.IsFactoryConfig("Preamp: -6 dB\nInclude: my-room.txt\n"));
+            // Instalador 1.4.2: acrescenta um GraphicEQ zerado; e a 1.17.0 já tinha posto o Include.
+            TestSuite.Equal(true, EqualizerApoService.IsFactoryConfig(
+                "Preamp: -6 dB\nInclude: example.txt\nGraphicEQ: 25 0; 40 0; 63 0; 1000 0; 16000 0\nInclude: pulse1x.txt\n"));
+            TestSuite.Equal(false, EqualizerApoService.IsFactoryConfig("GraphicEQ: 25 0; 40 3\n"));
         });
 
         suite.Run("Sound settings survive a settings.json round-trip and are clamped", () =>

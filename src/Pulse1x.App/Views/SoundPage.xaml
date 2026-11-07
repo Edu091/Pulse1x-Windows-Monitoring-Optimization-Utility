@@ -59,10 +59,15 @@
             <Grid>
                 <StackPanel>
                     <TextBlock Text="{Binding [Snd_PageTitle], Source={x:Static loc:Loc.Instance}}" FontSize="26" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding [Snd_PageSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,140,12" />
+                    <TextBlock Text="{Binding [Snd_PageSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,300,12" />
                 </StackPanel>
-                <ui:Button Content="{Binding [Snd_Refresh], Source={x:Static loc:Loc.Instance}}" Command="{Binding RefreshCommand}"
-                           Icon="{ui:SymbolIcon ArrowSync24}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <ui:Button Content="{Binding [Snd_Restore], Source={x:Static loc:Loc.Instance}}" Command="{Binding RestoreDefaultsCommand}"
+                               Icon="{ui:SymbolIcon ArrowReset24}" Margin="0,0,8,0"
+                               ToolTip="{Binding [Snd_RestoreTip], Source={x:Static loc:Loc.Instance}}" />
+                    <ui:Button Content="{Binding [Snd_Refresh], Source={x:Static loc:Loc.Instance}}" Command="{Binding RefreshCommand}"
+                               Icon="{ui:SymbolIcon ArrowSync24}" />
+                </StackPanel>
             </Grid>
 
             <!-- Motor de áudio -->
@@ -115,9 +120,9 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ComboBox ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}" DisplayMemberPath="Display" />
-                            <ui:Button Grid.Column="1" Content="{Binding [Snd_MakeDefault], Source={x:Static loc:Loc.Instance}}"
-                                       Command="{Binding MakeOutputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
-                                       ToolTip="{Binding [Snd_MakeDefaultTip], Source={x:Static loc:Loc.Instance}}" />
+                            <ui:Button Grid.Column="1" Content="{Binding OutputDefaultText}"
+                                       Command="{Binding ToggleOutputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
+                                       ToolTip="{Binding OutputDefaultTip}" />
                         </Grid>
 
                         <Grid Margin="0,12,0,0">
@@ -160,9 +165,9 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ComboBox ItemsSource="{Binding Inputs}" SelectedItem="{Binding SelectedInput}" DisplayMemberPath="Display" />
-                            <ui:Button Grid.Column="1" Content="{Binding [Snd_MakeDefault], Source={x:Static loc:Loc.Instance}}"
-                                       Command="{Binding MakeInputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
-                                       ToolTip="{Binding [Snd_MakeDefaultTip], Source={x:Static loc:Loc.Instance}}" />
+                            <ui:Button Grid.Column="1" Content="{Binding InputDefaultText}"
+                                       Command="{Binding ToggleInputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
+                                       ToolTip="{Binding InputDefaultTip}" />
                         </Grid>
 
                         <Grid Margin="0,12,0,0">
@@ -175,7 +180,7 @@
                                           ToolTip="{Binding [Snd_Mute], Source={x:Static loc:Loc.Instance}}">
                                 <ui:SymbolIcon Symbol="MicOff24" />
                             </ToggleButton>
-                            <Slider Grid.Column="1" Minimum="0" Maximum="400" Value="{Binding MicLevel}" VerticalAlignment="Center"
+                            <Slider Grid.Column="1" Minimum="0" Maximum="1000" Value="{Binding MicLevel}" VerticalAlignment="Center"
                                     IsMoveToPointEnabled="True" TickFrequency="100" TickPlacement="BottomRight" />
                             <TextBlock Grid.Column="2" Text="{Binding MicLevelText}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" />
                         </Grid>
@@ -317,7 +322,7 @@
                                 <TextBlock Text="{Binding [Snd_Gain], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding OutputGainText}" HorizontalAlignment="Right" Opacity="0.8" />
                             </Grid>
-                            <Slider Minimum="-12" Maximum="6" Value="{Binding OutputGain}" TickFrequency="0.5" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" />
+                            <Slider Minimum="-12" Maximum="12" Value="{Binding OutputGain}" TickFrequency="0.5" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" />
                             <TextBlock Text="{Binding [Snd_GainHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" />
                         </StackPanel>
                     </Grid>

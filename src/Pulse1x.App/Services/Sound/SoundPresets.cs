@@ -1,4 +1,4 @@
-namespace Pulse1x.App.Services.Sound;
+﻿namespace Pulse1x.App.Services.Sound;
 
 /// <summary>Um perfil de som pronto: as dez bandas do equalizador, os graves e o som 3D.</summary>
 public sealed record SoundProfile(string Key, double[] Eq, double BassBoostDb, double Surround);
@@ -8,15 +8,15 @@ public sealed record SoundProfile(string Key, double[] Eq, double BassBoostDb, d
 /// próprio driver de áudio do Windows com latência praticamente zero — por isso funciona em
 /// qualquer app (Discord, WhatsApp, Meet, jogos) sem trocar o microfone escolhido neles.
 /// </summary>
-public sealed record VoiceEffect(string Key, double PreampDb, string[] Filters);
+public sealed record VoiceEffect(string Key, double PreampDb, string[] Filters, string? Impulse = null);
 
 public static class SoundPresets
 {
     /// <summary>Frequências centrais do equalizador gráfico de 10 bandas (padrão ISO por oitava).</summary>
     public static readonly int[] EqFrequencies = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
 
-    /// <summary>Teto do volume do microfone (400% = +12 dB de ganho digital).</summary>
-    public const int MaxMicPercent = 400;
+    /// <summary>Teto do volume do microfone (1000% = +20 dB de ganho digital).</summary>
+    public const int MaxMicPercent = 1000;
 
     public static readonly IReadOnlyList<SoundProfile> Profiles = new[]
     {
@@ -33,29 +33,31 @@ public static class SoundPresets
     public static SoundProfile? FindProfile(string key) => Profiles.FirstOrDefault(p => p.Key == key);
 
     /// <summary>
-    /// Efeitos do modificador de voz. Os filtros seguem a sintaxe do Equalizer APO. Filtros iguais
-    /// em sequência ficam mais íngremes (ex.: dois passa-altas = corte de 24 dB/oitava), o que dá o
-    /// som "de aparelho" do rádio e do telefone.
+    /// Efeitos do modificador de voz. Os filtros seguem a sintaxe do Equalizer APO; filtros iguais
+    /// em sequência ficam mais íngremes (dois passa-altas = 24 dB/oitava), o que dá o som "de
+    /// aparelho" do rádio e do telefone. Robô, caverna, eco e alienígena usam também uma resposta
+    /// ao impulso (ver <see cref="ImpulseResponses"/>), que faz o que filtro nenhum faz: repetir a voz.
     /// </summary>
     public static readonly IReadOnlyList<VoiceEffect> VoiceEffects = new[]
     {
         new VoiceEffect("None", 0, Array.Empty<string>()),
 
-        // Voz grossa: mais corpo nos graves e menos brilho em cima.
-        new VoiceEffect("Deep", -4, new[]
+        // Voz grossa: muito corpo nos graves e quase nada de brilho.
+        new VoiceEffect("Deep", -7, new[]
         {
-            "ON LS Fc 220 Hz Gain 9 dB",
-            "ON PK Fc 120 Hz Gain 3 dB Q 1",
-            "ON HS Fc 2500 Hz Gain -7 dB",
+            "ON LS Fc 280 Hz Gain 11 dB",
+            "ON PK Fc 140 Hz Gain 4 dB Q 1",
+            "ON HS Fc 1800 Hz Gain -12 dB",
+            "ON LPQ Fc 4500 Hz Q 0.7",
         }),
 
-        // Voz fina: tira o corpo e abre os agudos.
-        new VoiceEffect("Thin", 2, new[]
+        // Voz fina: sem corpo e com agudos bem abertos.
+        new VoiceEffect("Thin", 0, new[]
         {
-            "ON HPQ Fc 380 Hz Q 0.9",
-            "ON HPQ Fc 380 Hz Q 0.9",
-            "ON HS Fc 3000 Hz Gain 8 dB",
-            "ON PK Fc 5500 Hz Gain 3 dB Q 1",
+            "ON HPQ Fc 550 Hz Q 0.9",
+            "ON HPQ Fc 550 Hz Q 0.9",
+            "ON HS Fc 2500 Hz Gain 10 dB",
+            "ON PK Fc 6000 Hz Gain 4 dB Q 1",
         }),
 
         // Rádio: faixa estreita com uma "buzina" nos médios.
@@ -88,20 +90,12 @@ public static class SoundPresets
             "ON PK Fc 2200 Hz Gain 12 dB Q 1.5",
         }),
 
-        // Robô: ressonâncias estreitas em série harmônica dão o timbre metálico de "lata".
-        new VoiceEffect("Robot", -10, new[]
+        // Robô: a voz repetida 26 vezes a cada 9 ms vira um zumbido metálico de 110 Hz.
+        new VoiceEffect("Robot", -3, new[]
         {
-            "ON HPQ Fc 200 Hz Q 0.7",
-            "ON PK Fc 300 Hz Gain 12 dB Q 18",
-            "ON PK Fc 600 Hz Gain 12 dB Q 18",
-            "ON PK Fc 900 Hz Gain 12 dB Q 18",
-            "ON PK Fc 1200 Hz Gain 12 dB Q 18",
-            "ON PK Fc 1500 Hz Gain 12 dB Q 18",
-            "ON PK Fc 1800 Hz Gain 12 dB Q 18",
-            "ON PK Fc 2400 Hz Gain 12 dB Q 18",
-            "ON PK Fc 3000 Hz Gain 12 dB Q 18",
-            "ON LPQ Fc 5000 Hz Q 0.7",
-        }),
+            "ON HPQ Fc 180 Hz Q 0.7",
+            "ON LPQ Fc 6000 Hz Q 0.7",
+        }, Impulse: "robot"),
 
         // Abafado: como se a pessoa falasse do outro lado da parede.
         new VoiceEffect("Muffled", 4, new[]
@@ -111,23 +105,29 @@ public static class SoundPresets
             "ON PK Fc 250 Hz Gain 3 dB Q 1",
         }),
 
-        // Alienígena: graves fora, um vale nos médios e agudos ressonantes.
-        new VoiceEffect("Alien", 0, new[]
+        // Caverna: reflexões nas paredes e uma cauda longa de reverberação.
+        new VoiceEffect("Cave", -6, new[]
         {
-            "ON HPQ Fc 500 Hz Q 1.5",
-            "ON NO Fc 1200 Hz Q 2",
-            "ON PK Fc 2800 Hz Gain 12 dB Q 6",
-            "ON PK Fc 4200 Hz Gain 10 dB Q 6",
-            "ON HS Fc 6000 Hz Gain 4 dB",
-        }),
-    };
+            "ON HPQ Fc 120 Hz Q 0.7",
+        }, Impulse: "cave"),
 
+        // Eco: a frase volta quatro vezes, cada vez mais baixa.
+        new VoiceEffect("Echo", -3, Array.Empty<string>(), Impulse: "echo"),
+
+        // Alienígena: voz fina e metálica ao mesmo tempo.
+        new VoiceEffect("Alien", -2, new[]
+        {
+            "ON HPQ Fc 600 Hz Q 1",
+            "ON HPQ Fc 600 Hz Q 1",
+            "ON HS Fc 3000 Hz Gain 8 dB",
+        }, Impulse: "robot"),
+    };
     public static VoiceEffect FindVoice(string key) =>
         VoiceEffects.FirstOrDefault(v => v.Key == key) ?? VoiceEffects[0];
 
     /// <summary>
     /// Converte o volume do microfone (0 a 400%) nas duas partes que o compõem: o volume do Windows
-    /// (0 a 100%) e o ganho digital extra em dB (0 dB até 100%; 400% = +12 dB).
+    /// (0 a 100%) e o ganho digital extra em dB (0 dB até 100%; 1000% = +20 dB).
     /// </summary>
     public static (int WindowsPercent, double ExtraGainDb) SplitMicLevel(int percent)
     {

@@ -105,6 +105,20 @@ public class SoundDeviceService
         return true;
     });
 
+    /// <summary>Taxa de amostragem em que o Windows processa o dispositivo (formato de mixagem).</summary>
+    public int? GetSampleRate(string? id) => With(id, d => (int?)d.AudioClient.MixFormat.SampleRate);
+
+    /// <summary>
+    /// Tira o dispositivo de padrão: o Windows sempre tem um padrão, então outro assume — o anterior
+    /// (se ainda estiver conectado) ou o primeiro disponível. Devolve o Id que virou padrão.
+    /// </summary>
+    public string? RemoveDefault(string id, bool input, string? preferred)
+    {
+        var others = List(input).Where(d => d.Id != id).ToList();
+        var next = others.FirstOrDefault(d => d.Id == preferred) ?? others.FirstOrDefault();
+        return next is not null && SetDefault(next.Id) ? next.Id : null;
+    }
+
     /// <summary>Nível de pico atual (0 a 1) medido pelo próprio Windows no dispositivo.</summary>
     public float GetPeak(string? id) => With(id, d => d.AudioMeterInformation.MasterPeakValue);
 

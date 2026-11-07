@@ -51,8 +51,20 @@ public class SoundEngine
         {
             string? output = Devices.Resolve(s.OutputDeviceId, input: false);
             string? input = Devices.Resolve(s.InputDeviceId, input: true);
+
+            // Efeitos com resposta ao impulso: o arquivo é gerado na taxa exata do microfone.
+            int rate = 0;
+            var voice = SoundPresets.FindVoice(s.VoiceEffect);
+            if (s.MicEffectsEnabled && voice.Impulse is string impulse && input is not null)
+            {
+                rate = Devices.GetSampleRate(input) ?? 0;
+                if (rate > 0)
+                    Apo.WriteAuxFile(ImpulseResponses.FileName(impulse, rate),
+                        ImpulseResponses.ToWav(ImpulseResponses.Generate(impulse, rate), rate));
+            }
+
             string text = EqualizerApoConfig.Build(s,
-                EqualizerApoConfig.ExtractGuid(output), EqualizerApoConfig.ExtractGuid(input));
+                EqualizerApoConfig.ExtractGuid(output), EqualizerApoConfig.ExtractGuid(input), rate);
             Apo.Write(text);
             return new SoundApplyResult(true, null);
         }

@@ -99,25 +99,40 @@ public class EqualizerApoService
 
         string config = Path.Combine(dir, "config.txt");
         string current = File.Exists(config) ? File.ReadAllText(config) : "";
-        if (current.Split('\n').Any(l => l.Trim().Equals(IncludeLine, StringComparison.OrdinalIgnoreCase)))
-            return;
+        bool hasInclude = current.Split('\n').Any(l => l.Trim().Equals(IncludeLine, StringComparison.OrdinalIgnoreCase));
 
+        // Mesmo com a linha já presente, o resto pode ser o exemplo de fábrica (a 1.17.0 não
+        // reconhecia o GraphicEQ zerado da 1.4.2 e o deixava ativo: -6 dB em todos os aparelhos).
         if (IsFactoryConfig(current))
         {
-            if (current.Length > 0)
+            if (hasInclude && current.Trim().Equals(IncludeLine, StringComparison.OrdinalIgnoreCase)) return;
+            if (current.Length > 0 && !File.Exists(config + ".pulse1x-backup"))
             {
-                try { File.Copy(config, config + ".pulse1x-backup", overwrite: true); } catch { }
+                try { File.Copy(config, config + ".pulse1x-backup"); } catch { }
             }
             AtomicFile.WriteAllText(config, IncludeLine + Environment.NewLine);
+            return;
         }
-        else
-        {
-            string separator = current.Length == 0 || current.EndsWith('\n') ? "" : Environment.NewLine;
-            AtomicFile.WriteAllText(config, current + separator + IncludeLine + Environment.NewLine);
-        }
+        if (hasInclude) return;
+
+        string separator = current.Length == 0 || current.EndsWith('\n') ? "" : Environment.NewLine;
+        AtomicFile.WriteAllText(config, current + separator + IncludeLine + Environment.NewLine);
     }
 
-    /// <summary>config.txt vazio ou apenas com o exemplo de fábrica (Preamp -6 dB + example.txt).</summary>
+    /// <summary>Grava um arquivo auxiliar (resposta ao impulso dos efeitos) na pasta do motor.</summary>
+    public void WriteAuxFile(string name, byte[] content)
+    {
+        string dir = ConfigPath ?? throw new InvalidOperationException("Equalizer APO não instalado.");
+        string path = Path.Combine(dir, name);
+        if (File.Exists(path) && new FileInfo(path).Length == content.Length) return;
+        File.WriteAllBytes(path, content);
+    }
+
+    /// <summary>
+    /// config.txt vazio ou apenas com o exemplo de fábrica: "Preamp: -6 dB", "Include: example.txt"
+    /// e o GraphicEQ zerado que o instalador 1.4 acrescenta. A nossa própria linha de Include não
+    /// conta — o que importa é se sobra alguma configuração feita pelo usuário.
+    /// </summary>
     public static bool IsFactoryConfig(string content)
     {
         foreach (var raw in content.Split('\n'))
@@ -126,7 +141,22 @@ public class EqualizerApoService
             if (line.Length == 0 || line.StartsWith('#')) continue;
             if (line.Equals("Preamp: -6 dB", StringComparison.OrdinalIgnoreCase)) continue;
             if (line.Equals("Include: example.txt", StringComparison.OrdinalIgnoreCase)) continue;
+            if (line.Equals(IncludeLine, StringComparison.OrdinalIgnoreCase)) continue;
+            if (IsFlatGraphicEq(line)) continue;
             return false;
+        }
+        return true;
+    }
+
+    private static bool IsFlatGraphicEq(string line)
+    {
+        if (!line.StartsWith("GraphicEQ:", StringComparison.OrdinalIgnoreCase)) return false;
+        foreach (var band in line["GraphicEQ:".Length..].Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = band.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2 || !double.TryParse(parts[1], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double gain) || Math.Abs(gain) > 0.001)
+                return false;
         }
         return true;
     }

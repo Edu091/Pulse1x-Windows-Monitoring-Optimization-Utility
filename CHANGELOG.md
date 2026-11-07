@@ -1,5 +1,12 @@
-﻿# Histórico de versões
+# Histórico de versões
 
+## 1.17.1 — 07/11/2026
+
+- **Microfone mais alto de verdade.** O exemplo de fábrica do Equalizer APO 1.4.2 (que baixa 6 dB e aplica um filtro de demonstração em todos os aparelhos) não era reconhecido e continuava ativo, comendo parte do ganho e distorcendo os efeitos de voz. Agora ele é desativado sozinho, com cópia de segurança em config.txt.pulse1x-backup. O volume do microfone também vai até 1000% (+20 dB).
+- **Volume extra da saída até +12 dB**, além dos 100% do Windows.
+- **Modificador de voz refeito:** Robô agora repete a voz para criar um zumbido metálico de verdade. Novos efeitos Caverna (reverberação longa) e Eco. Voz grossa e voz fina ficaram mais fortes. Esses efeitos só mudam o timbre: o tom da voz continua o mesmo.
+- **Voltar ao padrão:** um botão desfaz tudo o que a categoria Som mudou (microfone em 100%, efeitos, equalizador, inicialização e trava), depois de pedir confirmação.
+- **Remover padrão:** no dispositivo que já é o padrão, o botão vira "Remover padrão" e devolve o Windows ao padrão anterior (ou a outro aparelho conectado).
 ## 1.17.0 — 06/11/2026
 
 - **Nova categoria Som.** Ajusta alto-falantes, fones e microfone num só lugar, e tudo pode ser testado ali mesmo.

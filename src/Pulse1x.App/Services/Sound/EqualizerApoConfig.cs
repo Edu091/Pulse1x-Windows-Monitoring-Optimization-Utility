@@ -15,7 +15,7 @@ public static class EqualizerApoConfig
 {
     public const string Header = "# Gerado pelo Pulse1x (categoria Som). Alteracoes feitas a mao aqui serao sobrescritas.";
 
-    public static string Build(SoundSettings settings, string? outputGuid, string? inputGuid)
+    public static string Build(SoundSettings settings, string? outputGuid, string? inputGuid, int inputSampleRate = 0)
     {
         var sb = new StringBuilder();
         sb.AppendLine(Header);
@@ -24,7 +24,7 @@ public static class EqualizerApoConfig
             AppendOutput(sb, settings, outputGuid);
 
         if (settings.MicEffectsEnabled && !string.IsNullOrEmpty(inputGuid))
-            AppendInput(sb, settings, inputGuid);
+            AppendInput(sb, settings, inputGuid, inputSampleRate);
 
         sb.AppendLine("Device: all");
         sb.AppendLine("Channel: all");
@@ -61,11 +61,11 @@ public static class EqualizerApoConfig
             sb.AppendLine($"Filter: ON LSC Fc 110 Hz Gain {N(s.BassBoostDb)} dB Q 0.7");
     }
 
-    private static void AppendInput(StringBuilder sb, SoundSettings s, string guid)
+    private static void AppendInput(StringBuilder sb, SoundSettings s, string guid, int sampleRate)
     {
         var voice = SoundPresets.FindVoice(s.VoiceEffect);
         double gain = s.MicLevelPercent is int level ? SoundPresets.SplitMicLevel(level).ExtraGainDb : 0;
-        if (gain <= 0 && voice.Filters.Length == 0 && !s.MicLowCut && !s.MicClarity) return;
+        if (gain <= 0 && voice.Filters.Length == 0 && voice.Impulse is null && !s.MicLowCut && !s.MicClarity) return;
 
         sb.AppendLine();
         sb.AppendLine("# Microfone: volume acima de 100%, filtros e modificador de voz");
@@ -79,6 +79,9 @@ public static class EqualizerApoConfig
             sb.AppendLine("Filter: ON PK Fc 3200 Hz Gain 4 dB Q 0.9");
         foreach (var filter in voice.Filters)
             sb.AppendLine("Filter: " + filter);
+        // A resposta ao impulso só vale na taxa exata do microfone; sem saber a taxa, fica de fora.
+        if (voice.Impulse is string impulse && sampleRate > 0)
+            sb.AppendLine("Convolution: " + ImpulseResponses.FileName(impulse, sampleRate));
     }
 
     /// <summary>

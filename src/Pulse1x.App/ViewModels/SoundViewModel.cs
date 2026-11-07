@@ -244,20 +244,103 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         Devices.SetMute(SelectedInput?.Id, value);
     }
 
+    /// <summary>Texto do botão: "Tornar padrão" ou, se o dispositivo já é o padrão, "Remover padrão".</summary>
+    public string OutputDefaultText => Loc.S(SelectedOutput?.IsDefault == true ? "Snd_RemoveDefault" : "Snd_MakeDefault");
+    public string InputDefaultText => Loc.S(SelectedInput?.IsDefault == true ? "Snd_RemoveDefault" : "Snd_MakeDefault");
+    public string OutputDefaultTip => Loc.S(SelectedOutput?.IsDefault == true ? "Snd_RemoveDefaultTip" : "Snd_MakeDefaultTip");
+    public string InputDefaultTip => Loc.S(SelectedInput?.IsDefault == true ? "Snd_RemoveDefaultTip" : "Snd_MakeDefaultTip");
+
     [RelayCommand]
-    private void MakeOutputDefault()
+    private void ToggleOutputDefault() => ToggleDefault(SelectedOutput, input: false);
+
+    [RelayCommand]
+    private void ToggleInputDefault() => ToggleDefault(SelectedInput, input: true);
+
+    private void ToggleDefault(SoundDevice? device, bool input)
     {
-        if (SelectedOutput is null) return;
-        StatusText = Devices.SetDefault(SelectedOutput.Id) ? Loc.F("Snd_DefaultSet", SelectedOutput.Name) : Loc.S("Snd_DefaultFailed");
+        if (device is null) return;
+
+        // A página continua mostrando o mesmo aparelho depois da troca.
+        if (input) S.InputDeviceId = device.Id; else S.OutputDeviceId = device.Id;
+
+        if (device.IsDefault)
+        {
+            string? preferred = input ? S.PreviousDefaultInputId : S.PreviousDefaultOutputId;
+            string? next = Devices.RemoveDefault(device.Id, input, preferred);
+            var nextName = (input ? Inputs : Outputs).FirstOrDefault(d => d.Id == next)?.Name;
+            StatusText = nextName is not null
+                ? Loc.F("Snd_DefaultRemoved", device.Name, nextName)
+                : Loc.S("Snd_DefaultRemoveFailed");
+        }
+        else
+        {
+            string? previous = Devices.GetDefaultId(input);
+            if (Devices.SetDefault(device.Id))
+            {
+                if (input) S.PreviousDefaultInputId = previous; else S.PreviousDefaultOutputId = previous;
+                StatusText = Loc.F("Snd_DefaultSet", device.Name);
+            }
+            else StatusText = Loc.S("Snd_DefaultFailed");
+        }
+        Save();
         Refresh();
     }
 
-    [RelayCommand]
-    private void MakeInputDefault()
+    partial void OnSelectedOutputChanged(SoundDevice? oldValue, SoundDevice? newValue)
     {
-        if (SelectedInput is null) return;
-        StatusText = Devices.SetDefault(SelectedInput.Id) ? Loc.F("Snd_DefaultSet", SelectedInput.Name) : Loc.S("Snd_DefaultFailed");
+        OnPropertyChanged(nameof(OutputDefaultText));
+        OnPropertyChanged(nameof(OutputDefaultTip));
+    }
+
+    partial void OnSelectedInputChanged(SoundDevice? oldValue, SoundDevice? newValue)
+    {
+        OnPropertyChanged(nameof(InputDefaultText));
+        OnPropertyChanged(nameof(InputDefaultTip));
+    }
+
+    // =====================================================================================
+    //  Voltar ao padrão
+    // =====================================================================================
+
+    /// <summary>
+    /// Desfaz tudo o que a categoria Som mudou: microfone de volta a 100% sem ganho extra,
+    /// amplificação de hardware no mínimo, equalizador/graves/3D/voz desligados, sem tarefa de
+    /// inicialização nem trava. Os dispositivos escolhidos na página continuam os mesmos.
+    /// </summary>
+    [RelayCommand]
+    private async Task RestoreDefaultsAsync()
+    {
+        var answer = System.Windows.MessageBox.Show(Loc.S("Snd_RestoreConfirm"), Loc.S("Snd_RestoreTitle"),
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        if (answer != System.Windows.MessageBoxResult.Yes) return;
+
+        StopTests();
+        string? mic = SelectedInput?.Id;
+        if (S.ApplyOnStartup)
+        {
+            try { SoundEngine.SetStartupTask(false); } catch { }
+        }
+
+        var fresh = new SoundSettings
+        {
+            OutputDeviceId = S.OutputDeviceId,
+            InputDeviceId = S.InputDeviceId,
+            PreviousDefaultOutputId = S.PreviousDefaultOutputId,
+            PreviousDefaultInputId = S.PreviousDefaultInputId,
+        };
+        _settings.Current.Sound = fresh;
+
+        if (mic is not null)
+        {
+            Devices.SetVolume(mic, 100);
+            var boost = Devices.GetHardwareBoost(mic);
+            if (boost is not null) Devices.SetHardwareBoost(mic, boost.MinDb);
+        }
+
+        Save();
         Refresh();
+        await ApplyEffectsNowAsync();
+        StatusText = Loc.S("Snd_Restored");
     }
 
     // =====================================================================================
@@ -281,9 +364,10 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         get
         {
             var (windows, extra) = SoundPresets.SplitMicLevel((int)Math.Round(MicLevel));
-            return extra > 0
+            string text = extra > 0
                 ? Loc.F("Snd_MicLevelSplit", windows, extra.ToString("0.0"))
                 : Loc.F("Snd_MicLevelWindows", windows);
+            return MicLevel > 400.5 ? text + Loc.S("Snd_MicLoudWarn") : text;
         }
     }
 
@@ -655,6 +739,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BassBoostText));
         OnPropertyChanged(nameof(SurroundText));
         OnPropertyChanged(nameof(MicLevelDetail));
+        OnPropertyChanged(nameof(OutputDefaultText));
+        OnPropertyChanged(nameof(InputDefaultText));
     }
 
     private static string VoiceIcon(string key) => key switch
@@ -668,6 +754,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         "Robot" => "🤖",
         "Muffled" => "🧱",
         "Alien" => "👽",
+        "Cave" => "🦇",
+        "Echo" => "🏔️",
         _ => "🎵",
     };
 

@@ -25,7 +25,7 @@ public class SoundSettings
     /// <summary>Som 3D (ampliação estéreo), de 0 (desligado) a 1 (máximo).</summary>
     public double Surround { get; set; }
 
-    /// <summary>Volume extra na saída, em dB (-12 a +6), somado à compensação automática anticlipping.</summary>
+    /// <summary>Volume extra na saída, em dB (-12 a +12; acima de 0 passa dos 100% do Windows), somado à compensação automática anticlipping.</summary>
     public double OutputGainDb { get; set; }
 
     // ---------------- Microfone ----------------
@@ -33,7 +33,7 @@ public class SoundSettings
     public string? InputDeviceId { get; set; }
 
     /// <summary>
-    /// Volume do microfone de 0 a 400%. Até 100% é o volume do próprio Windows; acima disso o
+    /// Volume do microfone de 0 a 1000%. Até 100% é o volume do próprio Windows; acima disso o
     /// Windows fica em 100% e o resto vira ganho digital no motor de áudio. null = não gerenciado.
     /// </summary>
     public int? MicLevelPercent { get; set; }
@@ -52,6 +52,12 @@ public class SoundSettings
 
     /// <summary>Realça a faixa de inteligibilidade da voz (~3 kHz).</summary>
     public bool MicClarity { get; set; }
+
+    // ---------------- Dispositivo padrão ----------------
+
+    /// <summary>Padrão anterior de cada tipo, para "Remover padrão" devolver o Windows a ele.</summary>
+    public string? PreviousDefaultOutputId { get; set; }
+    public string? PreviousDefaultInputId { get; set; }
 
     // ---------------- Inicialização ----------------
 
@@ -72,7 +78,7 @@ public class SoundSettings
         for (int i = 0; i < Eq.Length; i++) Eq[i] = Clamp(Eq[i], -12, 12);
         BassBoostDb = Clamp(BassBoostDb, 0, 12);
         Surround = Clamp(Surround, 0, 1);
-        OutputGainDb = Clamp(OutputGainDb, -12, 6);
+        OutputGainDb = Clamp(OutputGainDb, -12, 12);
         if (MicLevelPercent is int level) MicLevelPercent = Math.Clamp(level, 0, SoundPresets.MaxMicPercent);
         OutputProfile = string.IsNullOrWhiteSpace(OutputProfile) ? "Flat" : OutputProfile;
         VoiceEffect = SoundPresets.VoiceEffects.Any(v => v.Key == VoiceEffect) ? VoiceEffect : "None";
