@@ -388,10 +388,7 @@
                             <ui:Button Content="{Binding [Snd_SbStop], Source={x:Static loc:Loc.Instance}}" Command="{Binding StopSoundsCommand}"
                                        Icon="{ui:SymbolIcon Stop24}" Padding="10,3" Margin="0,0,8,0" />
                             <ui:Button Content="{Binding [Snd_SbImport], Source={x:Static loc:Loc.Instance}}" Command="{Binding ImportSoundCommand}"
-                                       Icon="{ui:SymbolIcon Add24}" Padding="10,3" Margin="0,0,8,0" />
-                            <ui:Button Content="{Binding [Snd_SbMemes], Source={x:Static loc:Loc.Instance}}" Command="{Binding OpenMemeSiteCommand}"
-                                       Icon="{ui:SymbolIcon Globe24}" Padding="10,3" Margin="0,0,10,0"
-                                       ToolTip="{Binding [Snd_SbMemesTip], Source={x:Static loc:Loc.Instance}}" />
+                                       Icon="{ui:SymbolIcon Add24}" Padding="10,3" Margin="0,0,10,0" />
                             <ui:ToggleSwitch Content="{Binding [Snd_EffectsOn], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding SoundboardEnabled}" />
                         </StackPanel>
                     </Grid>

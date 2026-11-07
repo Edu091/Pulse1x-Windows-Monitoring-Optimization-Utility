@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.18.2 — 07/11/2026
+
+- Removido o botão "Memes (Myinstants)" da mesa de sons e, junto, a importação automática da pasta Downloads. Os seus próprios sons continuam entrando por "Adicionar som".
+
 ## 1.18.1 — 07/11/2026
 
 - **Mesa de sons com gravações reais.** Os sons sintetizados foram trocados por 22 gravações reais do Freesound.org, todas em domínio público (CC0): peido, grito, risada, buzina, trombone triste, ba-dum-tss, grilos, aplausos, errou, acertou, explosão, boing, sirene, tiro, arroto, beijo, vaia, uau, rufar, cachorro, gato e pato. O botão "Créditos" lista os autores.

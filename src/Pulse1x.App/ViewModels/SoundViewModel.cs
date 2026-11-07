@@ -103,7 +103,6 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         catch { _hotkeys = null; }
         ReloadSoundboard();
         _hotkeys?.SetEnabled(S.SoundboardHotkeys);
-        _downloads.AudioDownloaded += OnAudioDownloaded;
 
         Loc.Instance.LanguageChanged += BuildOptions;
         BuildOptions();
@@ -857,42 +856,6 @@ public partial class SoundViewModel : ObservableObject, IDisposable
             : Loc.F("Snd_SbImportFailed", string.Join(", ", failed));
     }
 
-    /// <summary>
-    /// Abre o Myinstants no navegador. O Pulse1x não busca nem baixa de lá sozinho (os termos do
-    /// site proíbem acesso automatizado): o usuário baixa o meme e arrasta o arquivo para a mesa.
-    /// </summary>
-    [RelayCommand]
-    private void OpenMemeSite()
-    {
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://www.myinstants.com/pt/index/br/") { UseShellExecute = true });
-        }
-        catch { }
-
-        // Por 15 minutos, todo áudio baixado na pasta Downloads entra na mesa sozinho.
-        if (_downloads.Start(TimeSpan.FromMinutes(15)))
-            SoundboardStatus = Loc.S("Snd_SbMemeHowTo");
-        else
-            SoundboardStatus = Loc.S("Snd_SbMemeNoDownloads");
-    }
-
-    private readonly DownloadsWatcher _downloads = new();
-
-    private void OnAudioDownloaded(string path)
-    {
-        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
-        {
-            try
-            {
-                var item = _soundboard.Import(path);
-                ReloadSoundboard();
-                SoundboardStatus = Loc.F("Snd_SbMemeAdded", System.IO.Path.GetFileNameWithoutExtension(item.FilePath));
-            }
-            catch { SoundboardStatus = Loc.F("Snd_SbImportFailed", System.IO.Path.GetFileName(path)); }
-        });
-    }
-
     [RelayCommand]
     private void ShowSoundCredits()
     {
@@ -1095,6 +1058,5 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         _tester.Dispose();
         _hotkeys?.Dispose();
         _soundboard.Dispose();
-        _downloads.Dispose();
     }
 }

@@ -170,12 +170,7 @@ internal static partial class LocalizationStrings
         t["Snd_SbImported"] = "{0} som(ns) adicionado(s). Até 20 segundos de cada arquivo são usados.";
         t["Snd_SbImportFailed"] = "Não foi possível ler: {0}";
         t["Snd_SbHotkeysPartial"] = "Só {0} de 9 atalhos foram registrados: outro programa já usa os demais.";
-        t["Snd_SbHint"] = "Clique (ou use Ctrl+Alt+1 a 9) e o som entra na call junto com a sua voz: Discord, WhatsApp, jogos. Os sons prontos são gravações reais de domínio público. Para memes, clique em \"Memes (Myinstants)\" e baixe os que quiser: eles entram aqui sozinhos. Botão direito num som seu remove.";
-        t["Snd_SbMemes"] = "Memes (Myinstants)";
-        t["Snd_SbMemesTip"] = "Abre o Myinstants no navegador. Por 15 minutos, todo áudio que você baixar entra na mesa sozinho.";
-        t["Snd_SbMemeHowTo"] = "Baixe os memes no site (botão de download de cada som). Pelos próximos 15 minutos, cada áudio que chegar à pasta Downloads entra na mesa automaticamente.";
-        t["Snd_SbMemeNoDownloads"] = "Não encontrei a pasta Downloads. Baixe os memes e use \"Adicionar som\".";
-        t["Snd_SbMemeAdded"] = "\"{0}\" adicionado à mesa.";
+        t["Snd_SbHint"] = "Clique (ou use Ctrl+Alt+1 a 9) e o som entra na call junto com a sua voz: Discord, WhatsApp, jogos. Os sons prontos são gravações reais de domínio público. Para memes e outros sons seus, use \"Adicionar som\" (MP3, WAV, M4A, OGG, FLAC). Botão direito num som seu remove.";
         t["Snd_SbCredits"] = "Créditos";
         t["Snd_SbCreditsHeader"] = "Gravações do Freesound.org, todas em domínio público (Creative Commons 0). Obrigado aos autores:";
         t["Snd_Sb_fart"] = "Peido";
@@ -379,12 +374,7 @@ internal static partial class LocalizationStrings
         t["Snd_SbImported"] = "{0} sound(s) added. Up to 20 seconds of each file are used.";
         t["Snd_SbImportFailed"] = "Couldn't read: {0}";
         t["Snd_SbHotkeysPartial"] = "Only {0} of 9 shortcuts were registered: another program already uses the rest.";
-        t["Snd_SbHint"] = "Click (or use Ctrl+Alt+1 to 9) and the sound goes into the call along with your voice: Discord, WhatsApp, games. The built-in sounds are real public-domain recordings. For memes, click \"Memes (Myinstants)\" and download the ones you want: they show up here by themselves. Right-click one of your sounds to remove it.";
-        t["Snd_SbMemes"] = "Memes (Myinstants)";
-        t["Snd_SbMemesTip"] = "Opens Myinstants in the browser. For 15 minutes, every audio file you download is added to the soundboard.";
-        t["Snd_SbMemeHowTo"] = "Download memes on the site (each sound's download button). For the next 15 minutes, every audio file that lands in Downloads is added to the soundboard automatically.";
-        t["Snd_SbMemeNoDownloads"] = "Couldn't find the Downloads folder. Download the memes and use \"Add sound\".";
-        t["Snd_SbMemeAdded"] = "\"{0}\" added to the soundboard.";
+        t["Snd_SbHint"] = "Click (or use Ctrl+Alt+1 to 9) and the sound goes into the call along with your voice: Discord, WhatsApp, games. The built-in sounds are real public-domain recordings. For memes and other sounds of your own, use \"Add sound\" (MP3, WAV, M4A, OGG, FLAC). Right-click one of your sounds to remove it.";
         t["Snd_SbCredits"] = "Credits";
         t["Snd_SbCreditsHeader"] = "Recordings from Freesound.org, all in the public domain (Creative Commons 0). Thanks to the authors:";
         t["Snd_Sb_fart"] = "Fart";

@@ -202,31 +202,6 @@ internal static class SoundTests
                 }
             }
         });
-        suite.Run("Downloads watcher picks up an audio file once the browser finishes it", () =>
-        {
-            string dir = Path.Combine(Path.GetTempPath(), $"pulse1x-dl-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(dir);
-            try
-            {
-                using var watcher = new DownloadsWatcher();
-                var got = new List<string>();
-                using var signal = new ManualResetEventSlim();
-                watcher.AudioDownloaded += p => { lock (got) got.Add(p); signal.Set(); };
-                TestSuite.Equal(true, watcher.Start(TimeSpan.FromMinutes(1), dir));
-
-                File.WriteAllText(Path.Combine(dir, "notes.txt"), "ignored");
-                // Como um navegador: grava em .crdownload e renomeia para .mp3 no fim.
-                string partial = Path.Combine(dir, "bruh.mp3.crdownload");
-                using (var src = SoundboardLibrary.Open("boing")) using (var dst = File.Create(partial)) src.CopyTo(dst);
-                File.Move(partial, Path.Combine(dir, "bruh.mp3"));
-
-                TestSuite.Equal(true, signal.Wait(TimeSpan.FromSeconds(10)));
-                lock (got) TestSuite.SequenceEqual(new[] { Path.Combine(dir, "bruh.mp3") }, got);
-                watcher.Stop();
-                TestSuite.Equal(false, watcher.IsWatching);
-            }
-            finally { Directory.Delete(dir, true); }
-        });
         suite.Run("Soundboard channel mixes overlapping sounds and the plugin layout matches", () =>
         {
             using var channel = new SoundboardChannel($"Local\\pulse1x-sb-test-{Guid.NewGuid():N}", capacity: 4800);
