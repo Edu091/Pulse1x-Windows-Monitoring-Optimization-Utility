@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.18.0 — 07/11/2026
+
+- **Mesa de sons na categoria Som.** Dispare sons que entram na call junto com a sua voz, no Discord, no WhatsApp ou em jogos, sem microfone virtual. O plugin de voz do Pulse1x mistura o som ao microfone dentro do próprio som do Windows.
+  - **14 sons embutidos:** peido, grito, buzina, boom, trombone triste, ba-dum-tss, grilos, aplausos, boing, errou, acertou, explosão, sirene e laser. Todos são sintetizados pelo app, sem gravações de terceiros.
+  - **Seus próprios sons:** o botão "Adicionar som" aceita MP3, WAV, M4A, OGG e FLAC (até 20 segundos cada). Para remover um som, clique nele com o botão direito.
+  - **Atalhos globais Ctrl+Alt+1 a 9,** que funcionam com o Pulse1x minimizado ou atrás do jogo.
+  - Volume próprio na call, opção de ouvir o som também e botão Parar. Se o som não chegar ao microfone, a página avisa.
+- Corrigido o título "Iniciar com o Windows", que desde a 1.17.7 aparecia como "Snd_StartupTitle". Um teste novo confere todos os textos da categoria Som em português e inglês.
 ## 1.17.7 — 07/11/2026
 
 - **Dica do Discord corrigida.** O que impede o modificador de voz e o volume extra de chegarem ao Discord é a opção "Contornar sistema de processamento de entrada de áudio" (Voz e vídeo), que faz o Discord pegar o microfone sem passar pelos efeitos do Windows, e não o subsistema de áudio. O aviso e o botão "Ajustar o Discord" da 1.17.6, que trocavam o subsistema, foram removidos. O modificador de voz agora explica a opção certa.

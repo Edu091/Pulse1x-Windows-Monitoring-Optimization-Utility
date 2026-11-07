@@ -21,6 +21,8 @@
 #include <string.h>
 #include <math.h>
 #include <xmmintrin.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #define PI 3.14159265358979323846
 #define MAXCH 2
@@ -66,6 +68,7 @@ typedef struct {
     float pitch, vib, vibRate, robotHz, ringHz, ringMix, drive, crushHz, crushBits;
     float echoMs, echoFb, echoMix, gainDb, gateDb;
     int whisper;
+    int sb; /* mesa de sons: só a instância do microfone lê a memória compartilhada */
 } Params;
 
 static void params_default(Params *p) {
@@ -109,6 +112,7 @@ static void params_parse(Params *p, const char *text, size_t len) {
         else if (!strcmp(key, "echomix")) p->echoMix = clampf(f, 0, 1);
         else if (!strcmp(key, "gain")) p->gainDb = clampf(f, -24, 30);
         else if (!strcmp(key, "gate")) p->gateDb = clampf(f, -90, 0);
+        else if (!strcmp(key, "sb")) p->sb = f > 0.5f;
     }
 }
 
@@ -173,6 +177,12 @@ typedef struct {
     float stftNorm;
     Channel *ch[MAXCH];
     char chunk[512];
+    /* mesa de sons */
+    HANDLE sbMap;
+    struct SbShared *sbView;
+    int sbRetry;
+    LONG sbFlushSeen;
+    float sbBuf[4096];
     int chunkLen;
 } Plugin;
 
@@ -354,7 +364,7 @@ static float stft_process(Plugin *pl, Channel *ch, float x) {
 }
 
 static float process_sample(Plugin *pl, Channel *ch, float x, float gain, float gateThr,
-                            float gateAtt, float gateRel, float limRel) {
+                            float gateAtt, float gateRel, float limRel, float extra) {
     Params *p = &pl->p;
 
     /* Portão de ruído antes de tudo: com muito ganho, o chiado do ambiente apareceria. */
@@ -404,6 +414,7 @@ static float process_sample(Plugin *pl, Channel *ch, float x, float gain, float 
     }
 
     x *= gain;
+    x += extra; /* mesa de sons: fora dos efeitos e do ganho da voz */
 
     /* Limitador de pico em -1 dBFS: permite muito ganho sem o estalo do clipping digital. */
     const float ceiling = 0.89f;
@@ -416,6 +427,79 @@ static float process_sample(Plugin *pl, Channel *ch, float x, float gain, float 
     return x;
 }
 
+/* ------------------------------------------------------------------ Mesa de sons
+ *
+ * O Pulse1x (elevado) cria "Global\Pulse1xSoundboard": um cabeçalho e um anel de amostras float
+ * na taxa do microfone. O plugin, dentro do serviço de áudio, mistura essas amostras à voz depois
+ * dos efeitos e antes do limitador — é assim que os sons chegam à call em qualquer app.
+ * Layout (fixo, espelhado em SoundboardChannel.cs):
+ *   0 magic | 4 version | 8 capacity | 12 sampleRate | 16 writePos | 24 readPos | 32 flushSeq
+ *   36 volume | 40 consumerRate | 44..79 reservado | 80 dados
+ */
+#define SB_NAME L"Global\\Pulse1xSoundboard"
+#define SB_MAGIC 0x31425350u /* 'PSB1' */
+
+typedef struct SbShared {
+    uint32_t magic, version, capacity, sampleRate;
+    volatile LONG64 writePos;
+    volatile LONG64 readPos;
+    volatile LONG flushSeq;
+    float volume;
+    volatile LONG consumerRate;
+    uint32_t reserved[9];
+    float data[1];
+} SbShared;
+
+static void sb_close(Plugin *pl) {
+    if (pl->sbView) UnmapViewOfFile(pl->sbView);
+    if (pl->sbMap) CloseHandle(pl->sbMap);
+    pl->sbView = NULL;
+    pl->sbMap = NULL;
+}
+
+static void sb_open(Plugin *pl) {
+    HANDLE map = OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, SB_NAME);
+    if (!map) return;
+    SbShared *view = (SbShared *)MapViewOfFile(map, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+    if (!view || view->magic != SB_MAGIC || view->capacity == 0) {
+        if (view) UnmapViewOfFile(view);
+        CloseHandle(map);
+        return;
+    }
+    pl->sbMap = map;
+    pl->sbView = view;
+    pl->sbFlushSeen = view->flushSeq;
+}
+
+/* Copia até n amostras pendentes da mesa de sons para dst; devolve quantas copiou. */
+static int sb_pull(Plugin *pl, float *dst, int n) {
+    if (!pl->p.sb) return 0;
+    if (!pl->sbView) {
+        pl->sbRetry -= n;
+        if (pl->sbRetry > 0) return 0;
+        pl->sbRetry = (int)(pl->sr / 2); /* tenta abrir de novo a cada ~0,5 s */
+        sb_open(pl);
+        if (!pl->sbView) return 0;
+    }
+    SbShared *s = pl->sbView;
+    if (s->magic != SB_MAGIC) return 0;
+    s->consumerRate = (LONG)pl->sr;
+
+    LONG flush = s->flushSeq;
+    LONG64 w = s->writePos, r = s->readPos;
+    if (flush != pl->sbFlushSeen) { pl->sbFlushSeen = flush; s->readPos = w; return 0; }
+    LONG64 cap = s->capacity;
+    if (w - r > cap) r = w - cap;
+    LONG64 avail = w - r;
+    if (avail <= 0) return 0;
+    if (avail > n) avail = n;
+    if ((uint32_t)(pl->sr + 0.5f) != s->sampleRate) { s->readPos = w; return 0; } /* taxa errada: descarta */
+    MemoryBarrier();
+    float vol = s->volume;
+    for (LONG64 i = 0; i < avail; i++) dst[i] = s->data[(r + i) % cap] * vol;
+    s->readPos = r + avail;
+    return (int)avail;
+}
 /* ------------------------------------------------------------------ Callbacks VST */
 
 static void process_replacing(AEffect *fx, float **inputs, float **outputs, int32_t frames) {
@@ -429,12 +513,18 @@ static void process_replacing(AEffect *fx, float **inputs, float **outputs, int3
     float gateRel = 1 - expf(-1.0f / (0.15f * pl->sr));
     float limRel = expf(-1.0f / (0.08f * pl->sr));
 
-    for (int c = 0; c < fx->numOutputs && c < MAXCH; c++) {
-        float *in = inputs[c], *out = outputs[c];
-        if (!in || !out) continue;
-        Channel *ch = pl->ch[c];
-        for (int i = 0; i < frames; i++)
-            out[i] = process_sample(pl, ch, in[i], gain, gateThr, gateAtt, gateRel, limRel);
+    /* Em blocos: o som da mesa é lido uma vez por bloco e somado a todos os canais. */
+    for (int start = 0; start < frames; start += 4096) {
+        int n = frames - start < 4096 ? frames - start : 4096;
+        int got = sb_pull(pl, pl->sbBuf, n);
+        for (int c = 0; c < fx->numOutputs && c < MAXCH; c++) {
+            float *in = inputs[c], *out = outputs[c];
+            if (!in || !out) continue;
+            Channel *ch = pl->ch[c];
+            for (int i = 0; i < n; i++)
+                out[start + i] = process_sample(pl, ch, in[start + i], gain, gateThr, gateAtt, gateRel, limRel,
+                                                i < got ? pl->sbBuf[i] : 0.0f);
+        }
     }
     _mm_setcsr(csr);
 }
@@ -453,6 +543,7 @@ static void copy_str(void *dst, const char *src, size_t max) {
 }
 
 static void plugin_free(Plugin *pl) {
+    sb_close(pl);
     for (int c = 0; c < MAXCH; c++) {
         if (pl->ch[c]) { free(pl->ch[c]->ebuf); free(pl->ch[c]); }
     }

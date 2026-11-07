@@ -56,6 +56,19 @@ public class SoundSettings
     /// <summary>Realça a faixa de inteligibilidade da voz (~3 kHz).</summary>
     public bool MicClarity { get; set; }
 
+    // ---------------- Mesa de sons ----------------
+
+    /// <summary>Mantém o plugin no microfone pronto para misturar os sons da mesa à voz.</summary>
+    public bool SoundboardEnabled { get; set; } = true;
+
+    /// <summary>Volume dos sons na call (0 a 1).</summary>
+    public double SoundboardVolume { get; set; } = 0.8;
+
+    /// <summary>Também tocar os sons na saída, para o próprio usuário ouvir.</summary>
+    public bool SoundboardMonitor { get; set; } = true;
+
+    /// <summary>Atalhos globais Ctrl+Alt+1 a 9.</summary>
+    public bool SoundboardHotkeys { get; set; } = true;
     // ---------------- Dispositivo padrão ----------------
 
     /// <summary>Padrão anterior de cada tipo, para "Remover padrão" devolver o Windows a ele.</summary>
@@ -82,6 +95,7 @@ public class SoundSettings
         BassBoostDb = Clamp(BassBoostDb, 0, 12);
         Surround = Clamp(Surround, 0, 1);
         OutputGainDb = Clamp(OutputGainDb, -12, 12);
+        SoundboardVolume = double.IsFinite(SoundboardVolume) ? Math.Clamp(SoundboardVolume, 0, 1) : 0.8;
         if (MicLevelPercent is int level) MicLevelPercent = Math.Clamp(level, 0, SoundPresets.MaxMicPercent);
         OutputProfile = string.IsNullOrWhiteSpace(OutputProfile) ? "Flat" : OutputProfile;
         VoiceEffect = SoundPresets.VoiceEffects.Any(v => v.Key == VoiceEffect) ? VoiceEffect : "None";

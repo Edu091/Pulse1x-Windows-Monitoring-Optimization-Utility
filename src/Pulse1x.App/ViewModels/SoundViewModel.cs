@@ -91,6 +91,19 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         Bands = new ObservableCollection<EqBandViewModel>(
             SoundPresets.EqFrequencies.Select((f, i) => new EqBandViewModel(f, S.Eq[i], OnBandChanged)));
 
+        // Mesa de sons: atalhos globais Ctrl+Alt+1..9 (precisam da thread de UI).
+        try
+        {
+            _hotkeys = new GlobalHotkeys();
+            _hotkeys.Pressed += index =>
+            {
+                if (index < SoundboardItems.Count) _ = PlaySoundAsync(SoundboardItems[index]);
+            };
+        }
+        catch { _hotkeys = null; }
+        ReloadSoundboard();
+        _hotkeys?.SetEnabled(S.SoundboardHotkeys);
+
         Loc.Instance.LanguageChanged += BuildOptions;
         BuildOptions();
         Refresh();
@@ -713,6 +726,175 @@ public partial class SoundViewModel : ObservableObject, IDisposable
     }
 
     // =====================================================================================
+    //  Mesa de sons
+    // =====================================================================================
+
+    /// <summary>Um botão da mesa de sons.</summary>
+    public sealed class SoundboardButton
+    {
+        public SoundboardButton(SoundboardItem item, string name, string icon, string hotkey)
+        {
+            Item = item; Name = name; Icon = icon; Hotkey = hotkey;
+        }
+        public SoundboardItem Item { get; }
+        public string Name { get; }
+        public string Icon { get; }
+        public string Hotkey { get; }
+        public bool HasHotkey => Hotkey.Length > 0;
+        public bool IsCustom => Item.IsCustom;
+    }
+
+    private readonly SoundboardService _soundboard = new();
+    private readonly GlobalHotkeys? _hotkeys;
+
+    public ObservableCollection<SoundboardButton> SoundboardItems { get; } = new();
+    [ObservableProperty] private bool _soundboardEnabled = true;
+    [ObservableProperty] private double _soundboardVolume = 80;
+    [ObservableProperty] private bool _soundboardMonitor = true;
+    [ObservableProperty] private bool _soundboardHotkeys = true;
+    [ObservableProperty] private string _soundboardStatus = "";
+
+    private void ReloadSoundboard()
+    {
+        SoundboardItems.Clear();
+        int index = 0;
+        foreach (var item in _soundboard.Items())
+        {
+            string name = item.FilePath is string path
+                ? System.IO.Path.GetFileNameWithoutExtension(path)
+                : Loc.S($"Snd_Sb_{item.Key}");
+            string hotkey = index < GlobalHotkeys.Count ? $"Ctrl+Alt+{index + 1}" : "";
+            SoundboardItems.Add(new SoundboardButton(item, name, SoundIcon(item.Key), hotkey));
+            index++;
+        }
+    }
+
+    private static string SoundIcon(string key) => key switch
+    {
+        "fart" => "💨",
+        "scream" => "😱",
+        "airhorn" => "📯",
+        "boom" => "🎬",
+        "sadtrombone" => "🎺",
+        "rimshot" => "🥁",
+        "crickets" => "🦗",
+        "applause" => "👏",
+        "boing" => "🌀",
+        "buzzer" => "❌",
+        "ding" => "✅",
+        "explosion" => "💥",
+        "siren" => "🚨",
+        "laser" => "⚡",
+        _ => "🎵",
+    };
+
+    [RelayCommand]
+    private async Task PlaySoundAsync(SoundboardButton? button)
+    {
+        if (button is null) return;
+        if (!SoundboardEnabled)
+        {
+            SoundboardStatus = Loc.S("Snd_SbDisabled");
+            return;
+        }
+        try
+        {
+            int micRate = Devices.GetSampleRate(SelectedInput?.Id) ?? 48000;
+            string? monitor = SoundboardMonitor ? SelectedOutput?.Id : null;
+            var result = await _soundboard.PlayAsync(button.Item, micRate, (float)(SoundboardVolume / 100),
+                monitor, 0.6f);
+            SoundboardStatus = result switch
+            {
+                SoundboardDelivery.Sent => Loc.F("Snd_SbSent", button.Name),
+                SoundboardDelivery.NotConsumed => Loc.S("Snd_SbNotConsumed"),
+                _ => Loc.S("Snd_SbNoChannel"),
+            };
+        }
+        catch (Exception ex) { SoundboardStatus = Loc.F("Snd_SbFailed", ex.Message); }
+    }
+
+    [RelayCommand]
+    private void StopSounds()
+    {
+        _soundboard.StopAll();
+        SoundboardStatus = "";
+    }
+
+    [RelayCommand]
+    private void ImportSound()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Loc.S("Snd_SbImportTitle"),
+            Filter = Loc.S("Snd_SbImportFilter") + "|*.mp3;*.wav;*.m4a;*.aac;*.wma;*.ogg;*.flac",
+            Multiselect = true,
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        int ok = 0;
+        var failed = new List<string>();
+        foreach (var file in dialog.FileNames)
+        {
+            try { _soundboard.Import(file); ok++; }
+            catch { failed.Add(System.IO.Path.GetFileName(file)); }
+        }
+        ReloadSoundboard();
+        SoundboardStatus = failed.Count == 0
+            ? Loc.F("Snd_SbImported", ok)
+            : Loc.F("Snd_SbImportFailed", string.Join(", ", failed));
+    }
+
+    [RelayCommand]
+    private void RemoveSound(SoundboardButton? button)
+    {
+        if (button is null || !button.IsCustom) return;
+        _soundboard.Remove(button.Item);
+        ReloadSoundboard();
+    }
+
+    [RelayCommand]
+    private void OpenSoundFolder()
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(_soundboard.CustomFolder);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_soundboard.CustomFolder) { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    partial void OnSoundboardEnabledChanged(bool value)
+    {
+        if (_loading) return;
+        S.SoundboardEnabled = value;
+        if (!value) _soundboard.StopAll();
+        ScheduleApply();
+    }
+
+    partial void OnSoundboardVolumeChanged(double value)
+    {
+        if (_loading) return;
+        S.SoundboardVolume = Math.Round(value / 100, 2);
+        Save();
+    }
+
+    partial void OnSoundboardMonitorChanged(bool value)
+    {
+        if (_loading) return;
+        S.SoundboardMonitor = value;
+        Save();
+    }
+
+    partial void OnSoundboardHotkeysChanged(bool value)
+    {
+        if (_loading) return;
+        S.SoundboardHotkeys = value;
+        Save();
+        int ok = _hotkeys?.SetEnabled(value) ?? 0;
+        if (value && ok < GlobalHotkeys.Count) SoundboardStatus = Loc.F("Snd_SbHotkeysPartial", ok);
+    }
+
+    // =====================================================================================
     //  Ciclo de vida da página
     // =====================================================================================
 
@@ -766,6 +948,10 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         MicNoiseGate = S.MicNoiseGate;
         ApplyOnStartup = S.ApplyOnStartup;
         LockMicLevel = S.LockMicLevel;
+        SoundboardEnabled = S.SoundboardEnabled;
+        SoundboardVolume = Math.Round(S.SoundboardVolume * 100);
+        SoundboardMonitor = S.SoundboardMonitor;
+        SoundboardHotkeys = S.SoundboardHotkeys;
     }
 
     private void BuildOptions()
@@ -851,5 +1037,7 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         _outMeter?.Dispose();
         _inMeter?.Dispose();
         _tester.Dispose();
+        _hotkeys?.Dispose();
+        _soundboard.Dispose();
     }
 }

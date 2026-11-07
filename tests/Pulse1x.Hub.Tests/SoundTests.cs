@@ -119,7 +119,7 @@ internal static class SoundTests
             var plugin = lines.Single(l => l.StartsWith("VSTPlugin:"));
             TestSuite.Equal(true, plugin.StartsWith("VSTPlugin: Library \"Pulse1x\\Pulse1xVoice-abc.dll\" ChunkData \""));
             string b64 = plugin.Split('"')[3];
-            TestSuite.Equal("pitch=-4;gain=6.02;gate=-52", System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(b64)));
+            TestSuite.Equal("pitch=-4;gain=6.02;gate=-52;sb=1", System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(b64)));
             // O ganho foi para o plugin (com limitador): nenhum Preamp positivo sobra.
             TestSuite.Equal(false, lines.Any(l => l.StartsWith("Preamp:") && !l.Contains("-")));
             TestSuite.Equal("VSTPlugin:", lines[^3][..10]); // plugin por último no bloco do microfone
@@ -159,6 +159,52 @@ internal static class SoundTests
             if (mic is null) return; // máquina sem microfone: nada a verificar
             using var key = EqualizerApoService.OpenFx(mic.Id, writable: true);
             TestSuite.Equal(true, key is not null);
+        });
+        suite.Run("Every Sound text used by the app exists in Portuguese and English", () =>
+        {
+            // Regressão da 1.17.7: uma edição apagou "Snd_StartupTitle" e a tela mostrava a chave crua.
+            var keys = new HashSet<string>();
+            string root = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(root, "Pulse1x.sln"))) root = Path.GetDirectoryName(root)!;
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "src", "Pulse1x.App"), "*.*", SearchOption.AllDirectories)
+                         .Where(p => (p.EndsWith(".cs") || p.EndsWith(".xaml")) && !p.Contains("LocalizationStrings")
+                                     && !p.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)))
+                foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
+                             File.ReadAllText(file), @"[""\[](Snd_[A-Za-z0-9_]+)[""\]](?!\s*\+)"))
+                    if (!m.Groups[1].Value.EndsWith("_")) keys.Add(m.Groups[1].Value);
+            foreach (var v in SoundPresets.VoiceEffects) { keys.Add($"Snd_Voice_{v.Key}"); keys.Add($"Snd_VoiceDesc_{v.Key}"); }
+            foreach (var p in SoundPresets.Profiles.Select(p => p.Key).Append("Custom")) { keys.Add($"Snd_Profile_{p}"); keys.Add($"Snd_ProfileDesc_{p}"); }
+            foreach (var k in SoundboardSynth.Keys) keys.Add($"Snd_Sb_{k}");
+            foreach (var t in Enum.GetNames<TestTone>()) keys.Add($"Snd_Tone{t}");
+
+            var missing = keys.Where(k => !Pulse1x.App.Localization.LocalizationStrings.Pt.ContainsKey(k)
+                                          || !Pulse1x.App.Localization.LocalizationStrings.En.ContainsKey(k)).OrderBy(k => k).ToList();
+            if (missing.Count > 0) throw new Exception("Missing: " + string.Join(", ", missing));
+            TestSuite.Equal(true, keys.Count > 100);
+        });
+
+        suite.Run("Every soundboard sound synthesizes clean audio at call sample rates", () =>
+        {
+            foreach (var rate in new[] { 16000, 48000 })
+                foreach (var key in SoundboardSynth.Keys)
+                {
+                    var s = SoundboardSynth.Generate(key, rate);
+                    if (s.Length < rate / 4 || s.Length > rate * 4) throw new Exception($"{key}@{rate}: {s.Length} samples");
+                    float peak = s.Max(Math.Abs);
+                    if (!s.All(float.IsFinite) || peak < 0.85f || peak > 0.91f) throw new Exception($"{key}@{rate}: peak {peak}");
+                }
+        });
+
+        suite.Run("Soundboard channel mixes overlapping sounds and the plugin layout matches", () =>
+        {
+            using var channel = new SoundboardChannel($"Local\\pulse1x-sb-test-{Guid.NewGuid():N}", capacity: 4800);
+            TestSuite.Equal(0, channel.ConsumerRate);
+            var a = Enumerable.Repeat(0.25f, 1000).ToArray();
+            channel.Play(a, 48000);
+            channel.Play(a, 48000); // segundo som por cima: os dois se somam, não enfileiram
+            channel.Volume = 0.5f;
+            TestSuite.Equal(0.5f, channel.Volume);
+            channel.StopAll();
         });
         suite.Run("Embedded voice plugin loads as a VST2 and shifts pitch", () => VoicePluginProbe.Run());
         suite.Run("Factory Equalizer APO config is recognized; user configs are kept", () =>

@@ -74,7 +74,8 @@ public static class EqualizerApoConfig
         var voice = SoundPresets.FindVoice(s.VoiceEffect);
         double gain = s.MicLevelPercent is int level ? SoundPresets.SplitMicLevel(level).ExtraGainDb : 0;
         bool impulse = voice.Impulse is not null && sampleRate > 0;
-        bool usePlugin = plugin is not null && (voice.Dsp is not null || gain > 0 || s.MicNoiseGate);
+        // A mesa de sons também precisa do plugin no microfone (é ele que mistura os sons à voz).
+        bool usePlugin = plugin is not null && (voice.Dsp is not null || gain > 0 || s.MicNoiseGate || s.SoundboardEnabled);
         if (gain <= 0 && voice.Filters.Length == 0 && !impulse && !usePlugin && !s.MicLowCut && !s.MicClarity) return;
 
         sb.AppendLine();
@@ -100,6 +101,7 @@ public static class EqualizerApoConfig
             if (voice.Dsp is not null) parts.Add(voice.Dsp);
             if (gain > 0) parts.Add($"gain={N(gain)}");
             if (s.MicNoiseGate) parts.Add("gate=-52");
+            if (s.SoundboardEnabled) parts.Add("sb=1");
             sb.AppendLine(PluginLine(plugin!, string.Join(";", parts)));
         }
     }
