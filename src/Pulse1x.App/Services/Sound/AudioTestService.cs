@@ -47,12 +47,64 @@ public sealed class AudioTestService : IDisposable
             using var enumerator = new MMDeviceEnumerator();
             var device = enumerator.GetDevice(micId);
             var capture = new WasapiCapture(device, useEventSync: true, audioBufferMillisecondsLength: 30);
+            // Mesmo caminho do Discord/WhatsApp: o teste só ouve o efeito se a call também ouvir.
+            UseCommunicationsCategory(capture);
             capture.DataAvailable += OnData;
             capture.RecordingStopped += (_, _) => StateChanged?.Invoke();
             capture.StartRecording();
             _capture = capture;
             _captureId = micId;
         }
+    }
+
+    /// <summary>
+    /// Marca o stream como "Comunicações" (IAudioClient2::SetClientProperties), o modo em que apps
+    /// de chamada abrem o microfone. O NAudio não expõe isso, então a interface COM é obtida do
+    /// campo interno antes da inicialização. Se falhar, o teste segue no modo padrão.
+    /// </summary>
+    private static void UseCommunicationsCategory(WasapiCapture capture)
+    {
+        try
+        {
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var client = typeof(WasapiCapture).GetField("audioClient", flags)?.GetValue(capture);
+            var com = client?.GetType().GetField("audioClientInterface", flags)?.GetValue(client);
+            if (com is IAudioClient2 client2)
+            {
+                var props = new AudioClientProperties { cbSize = 16, eCategory = 3 /* Communications */ };
+                client2.SetClientProperties(ref props);
+            }
+        }
+        catch { }
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct AudioClientProperties
+    {
+        public int cbSize;
+        public int bIsOffload;
+        public int eCategory;
+        public int Options;
+    }
+
+    [System.Runtime.InteropServices.ComImport, System.Runtime.InteropServices.Guid("726778CD-F60A-4EDA-82DE-E47610CD78AA"),
+     System.Runtime.InteropServices.InterfaceType(System.Runtime.InteropServices.ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioClient2
+    {
+        [System.Runtime.InteropServices.PreserveSig] int Initialize(int shareMode, int flags, long bufferDuration, long periodicity, IntPtr format, IntPtr session);
+        [System.Runtime.InteropServices.PreserveSig] int GetBufferSize(out int frames);
+        [System.Runtime.InteropServices.PreserveSig] int GetStreamLatency(out long latency);
+        [System.Runtime.InteropServices.PreserveSig] int GetCurrentPadding(out int padding);
+        [System.Runtime.InteropServices.PreserveSig] int IsFormatSupported(int shareMode, IntPtr format, out IntPtr closest);
+        [System.Runtime.InteropServices.PreserveSig] int GetMixFormat(out IntPtr format);
+        [System.Runtime.InteropServices.PreserveSig] int GetDevicePeriod(out long defaultPeriod, out long minimumPeriod);
+        [System.Runtime.InteropServices.PreserveSig] int Start();
+        [System.Runtime.InteropServices.PreserveSig] int Stop();
+        [System.Runtime.InteropServices.PreserveSig] int Reset();
+        [System.Runtime.InteropServices.PreserveSig] int SetEventHandle(IntPtr handle);
+        [System.Runtime.InteropServices.PreserveSig] int GetService(ref Guid iid, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.IUnknown)] out object service);
+        [System.Runtime.InteropServices.PreserveSig] int IsOffloadCapable(int category, out int capable);
+        [System.Runtime.InteropServices.PreserveSig] int SetClientProperties(ref AudioClientProperties properties);
     }
 
     public void StopMeter()

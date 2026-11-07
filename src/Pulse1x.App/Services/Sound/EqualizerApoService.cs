@@ -157,6 +157,103 @@ public class EqualizerApoService
         catch { return null; }
     }
 
+    // =====================================================================================
+    //  Apps de chamada (modo Comunicações)
+    // =====================================================================================
+
+    // Modos de processamento de áudio do Windows (AUDIO_SIGNALPROCESSINGMODE_*).
+    private const string ModeDefault = "{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}";
+    private const string ModeCommunications = "{98951333-B9CD-48B1-A0A3-FF40682D73F7}";
+    private const string ModeSpeech = "{FC1CFC9B-B9D6-4CFA-B5E0-4BB2166878B2}";
+
+    // FxProperties: CLSID do efeito de stream (SFX) e a lista de modos em que ele roda.
+    private const string SfxClsidValue = "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5";
+    private const string SfxModesValue = "{d3993a3f-99c2-4402-b5ec-a92a0367664b},5";
+    private const string BackupKey = @"SOFTWARE\Pulse1x\SoundFxBackup";
+
+    /// <summary>
+    /// O efeito chega aos apps de chamada? Discord, WhatsApp, Teams e Meet abrem o microfone no modo
+    /// "Comunicações"; o Equalizer APO, por padrão, só se registra no modo padrão — então o teste do
+    /// Pulse1x ouvia o efeito e a call não. true = já vale nas calls; false = só no modo padrão;
+    /// null = não se aplica (motor instalado de outra forma, ou sem permissão de leitura).
+    /// </summary>
+    public bool? CallModesEnabled(string? endpointId)
+    {
+        try
+        {
+            using var fx = OpenFx(endpointId, writable: false);
+            if (fx?.GetValue(SfxClsidValue) is not string clsid ||
+                !clsid.Equals(ApoClsid, StringComparison.OrdinalIgnoreCase)) return null;
+            var modes = fx.GetValue(SfxModesValue) as string[] ?? Array.Empty<string>();
+            return modes.Contains(ModeCommunications, StringComparer.OrdinalIgnoreCase);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Registra o efeito também nos modos Comunicações e Speech do microfone (o modo Raw continua
+    /// sem processamento, como deve ser) e reinicia o serviço de áudio para valer na hora. A lista
+    /// original fica guardada para <see cref="RestoreCallModes"/>.
+    /// </summary>
+    public void EnableCallModes(string endpointId)
+    {
+        using (var fx = OpenFx(endpointId, writable: true) ?? throw new InvalidOperationException("Dispositivo não encontrado."))
+        {
+            var current = fx.GetValue(SfxModesValue) as string[] ?? new[] { ModeDefault };
+            using (var backup = Registry.LocalMachine.CreateSubKey(BackupKey))
+            {
+                string name = EqualizerApoConfig.ExtractGuid(endpointId)!;
+                if (backup.GetValue(name) is null)
+                    backup.SetValue(name, current, RegistryValueKind.MultiString);
+            }
+            var wanted = current.Concat(new[] { ModeDefault, ModeCommunications, ModeSpeech })
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            fx.SetValue(SfxModesValue, wanted, RegistryValueKind.MultiString);
+        }
+        RestartAudioService();
+    }
+
+    /// <summary>Devolve a lista de modos original (se o Pulse1x a tiver mudado) e reinicia o áudio.</summary>
+    public bool RestoreCallModes(string? endpointId)
+    {
+        string? guid = EqualizerApoConfig.ExtractGuid(endpointId);
+        if (guid is null || endpointId is null) return false;
+        using var backup = Registry.LocalMachine.OpenSubKey(BackupKey, writable: true);
+        if (backup?.GetValue(guid) is not string[] original) return false;
+        using (var fx = OpenFx(endpointId, writable: true))
+        {
+            if (fx is null) return false;
+            fx.SetValue(SfxModesValue, original, RegistryValueKind.MultiString);
+        }
+        backup.DeleteValue(guid, throwOnMissingValue: false);
+        RestartAudioService();
+        return true;
+    }
+
+    private static RegistryKey? OpenFx(string? endpointId, bool writable)
+    {
+        string? guid = EqualizerApoConfig.ExtractGuid(endpointId);
+        if (guid is null || endpointId is null) return null;
+        string flow = endpointId.StartsWith("{0.0.1.", StringComparison.Ordinal) ? "Capture" : "Render";
+        return Registry.LocalMachine.OpenSubKey(
+            $@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\{flow}\{guid}\FxProperties", writable);
+    }
+
+    /// <summary>
+    /// Reinicia o serviço de áudio do Windows para ele reler os efeitos do dispositivo. O som some
+    /// por 1 ou 2 segundos; Discord e afins reconectam o microfone sozinhos.
+    /// </summary>
+    private static void RestartAudioService()
+    {
+        using var proc = Process.Start(new ProcessStartInfo("powershell.exe",
+            "-NoProfile -NonInteractive -Command \"Restart-Service -Name audiosrv -Force\"")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        });
+        proc?.WaitForExit(30000);
+    }
+
     /// <summary>Grava um arquivo auxiliar (resposta ao impulso dos efeitos) na pasta do motor.</summary>
     public void WriteAuxFile(string name, byte[] content)
     {

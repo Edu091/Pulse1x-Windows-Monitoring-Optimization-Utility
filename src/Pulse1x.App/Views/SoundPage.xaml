@@ -16,6 +16,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:StringToBrushConverter x:Key="StrToBrush" />
         <converters:StringToVisibilityConverter x:Key="StrToVis" />
+        <converters:InverseBooleanConverter x:Key="InverseBool" />
 
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
@@ -93,6 +94,26 @@
                                    Icon="{ui:SymbolIcon Settings24}" HorizontalAlignment="Stretch"
                                    Visibility="{Binding ApoInstalled, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Efeito ainda não chega às calls (modo Comunicações) -->
+            <Border Background="#33F97316" CornerRadius="10" Padding="14,10" Margin="0,0,0,12"
+                    Visibility="{Binding CallModesNeeded, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="Call24" Foreground="#F97316" VerticalAlignment="Top" Margin="0,2,10,0" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding [Snd_CallModesTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding [Snd_CallModesHint], Source={x:Static loc:Loc.Instance}}" FontSize="12" TextWrapping="Wrap" Opacity="0.85" />
+                    </StackPanel>
+                    <ui:Button Grid.Column="2" Content="{Binding [Snd_CallModesButton], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding EnableCallModesCommand}" Appearance="Primary" VerticalAlignment="Center" Margin="12,0,0,0"
+                               IsEnabled="{Binding IsFixingCallModes, Converter={StaticResource InverseBool}}" />
                 </Grid>
             </Border>
 

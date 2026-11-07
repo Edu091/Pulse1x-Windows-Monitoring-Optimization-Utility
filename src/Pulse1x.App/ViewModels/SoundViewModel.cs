@@ -134,6 +134,41 @@ public partial class SoundViewModel : ObservableObject, IDisposable
             ApoStatus = Loc.F("Snd_ApoNotOnDevice", string.Join(" · ", missing));
             ApoStatusColor = "#F97316";
         }
+
+        RefreshCallModes();
+        if (CallModesNeeded) ApoStatusColor = "#F97316";
+    }
+
+    /// <summary>O motor está no microfone, mas só no modo padrão: Discord/WhatsApp não recebem o efeito.</summary>
+    [ObservableProperty] private bool _callModesNeeded;
+    [ObservableProperty] private bool _isFixingCallModes;
+
+    private void RefreshCallModes()
+    {
+        CallModesNeeded = ApoInstalled && SelectedInput is not null
+            && _engine.Apo.IsActiveOn(SelectedInput.Id) == true
+            && _engine.Apo.CallModesEnabled(SelectedInput.Id) == false;
+    }
+
+    [RelayCommand]
+    private async Task EnableCallModesAsync()
+    {
+        if (SelectedInput is null) return;
+        var answer = System.Windows.MessageBox.Show(Loc.S("Snd_CallModesConfirm"), Loc.S("Snd_CallModesTitle"),
+            System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Information);
+        if (answer != System.Windows.MessageBoxResult.OK) return;
+
+        StopTests();
+        IsFixingCallModes = true;
+        string id = SelectedInput.Id;
+        try
+        {
+            await Task.Run(() => _engine.Apo.EnableCallModes(id));
+            StatusText = _engine.Apo.CallModesEnabled(id) == true ? Loc.S("Snd_CallModesDone") : Loc.S("Snd_CallModesFailed");
+        }
+        catch (Exception ex) { StatusText = Loc.F("Snd_CallModesError", ex.Message); }
+        finally { IsFixingCallModes = false; }
+        Refresh();
     }
 
     [RelayCommand]
