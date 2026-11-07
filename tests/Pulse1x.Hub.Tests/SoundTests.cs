@@ -151,6 +151,15 @@ internal static class SoundTests
             TestSuite.Equal(SoundPresets.VoiceEffects.Count, SoundPresets.VoiceEffects.Select(v => v.Key).Distinct().Count());
         });
 
+        suite.Run("Mic FxProperties opens for writing with only the rights the key grants", () =>
+        {
+            // Regressão da 1.17.3: OpenSubKey(path, writable: true) pede também "criar subchave",
+            // que essa chave nega até a administradores, e o botão "Ativar em apps de chamada" falhava.
+            var mic = new SoundDeviceService().List(input: true).FirstOrDefault();
+            if (mic is null) return; // máquina sem microfone: nada a verificar
+            using var key = EqualizerApoService.OpenFx(mic.Id, writable: true);
+            TestSuite.Equal(true, key is not null);
+        });
         suite.Run("Embedded voice plugin loads as a VST2 and shifts pitch", () => VoicePluginProbe.Run());
         suite.Run("Factory Equalizer APO config is recognized; user configs are kept", () =>
         {

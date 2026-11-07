@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.17.4 — 07/11/2026
+
+- **"Ativar em apps de chamada" funciona.** O botão pedia ao Windows mais permissão do que a configuração do microfone concede (até a administradores) e sempre mostrava "Não foi possível ativar nos apps de chamada". Agora ele pede só a permissão de alterar a configuração.
+
 ## 1.17.3 — 07/11/2026
 
 - **Efeitos de voz no Discord, WhatsApp e outras calls.** Apps de chamada abrem o microfone no modo "Comunicações" do Windows, e o Equalizer APO vem ativo só no modo padrão. Por isso o efeito aparecia no teste do Pulse1x e não chegava à call. Agora a categoria Som detecta isso e mostra o botão "Ativar em apps de chamada", que ativa o motor também nesse modo e reinicia o serviço de som (o som some por 1 ou 2 segundos).

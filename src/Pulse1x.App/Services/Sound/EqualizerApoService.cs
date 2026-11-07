@@ -230,13 +230,19 @@ public class EqualizerApoService
         return true;
     }
 
-    private static RegistryKey? OpenFx(string? endpointId, bool writable)
+    internal static RegistryKey? OpenFx(string? endpointId, bool writable)
     {
         string? guid = EqualizerApoConfig.ExtractGuid(endpointId);
         if (guid is null || endpointId is null) return null;
         string flow = endpointId.StartsWith("{0.0.1.", StringComparison.Ordinal) ? "Capture" : "Render";
-        return Registry.LocalMachine.OpenSubKey(
-            $@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\{flow}\{guid}\FxProperties", writable);
+        string path = $@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\{flow}\{guid}\FxProperties";
+        if (!writable) return Registry.LocalMachine.OpenSubKey(path);
+
+        // Esta chave só dá a Administradores "ler e gravar valores". OpenSubKey(path, true) pede
+        // também criar subchaves e o Windows nega o acesso inteiro (SecurityException): aqui se
+        // pede só o que a chave permite.
+        return Registry.LocalMachine.OpenSubKey(path, RegistryKeyPermissionCheck.ReadWriteSubTree,
+            System.Security.AccessControl.RegistryRights.QueryValues | System.Security.AccessControl.RegistryRights.SetValue);
     }
 
     /// <summary>
