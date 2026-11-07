@@ -145,11 +145,31 @@ public partial class SoundViewModel : ObservableObject, IDisposable
 
     private void RefreshCallModes()
     {
-        // O motor precisa rodar como efeito de endpoint para valer em qualquer app — inclusive os que
-        // capturam em modo Raw, como o subsistema experimental do Discord.
         CallModesNeeded = ApoInstalled && SelectedInput is not null
             && _engine.Apo.IsActiveOn(SelectedInput.Id) == true
-            && _engine.Apo.UniversalEnabled(SelectedInput.Id) == false;
+            && _engine.Apo.CallModesEnabled(SelectedInput.Id) == false;
+        DiscordExperimental = ApoInstalled && DiscordAudioSettings.GetSubsystem() == "experimental";
+    }
+
+    /// <summary>O Discord captura em modo Raw (subsistema experimental) e não recebe os efeitos.</summary>
+    [ObservableProperty] private bool _discordExperimental;
+
+    [RelayCommand]
+    private void FixDiscord()
+    {
+        if (DiscordAudioSettings.IsDiscordRunning())
+        {
+            System.Windows.MessageBox.Show(Loc.S("Snd_DiscordCloseFirst"), "Discord",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            return;
+        }
+        try
+        {
+            DiscordAudioSettings.SetStandard();
+            StatusText = Loc.S("Snd_DiscordFixed");
+        }
+        catch (Exception ex) { StatusText = Loc.F("Snd_DiscordFixFailed", ex.Message); }
+        RefreshCallModes();
     }
 
     [RelayCommand]
@@ -165,8 +185,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         string id = SelectedInput.Id;
         try
         {
-            await Task.Run(() => _engine.Apo.EnableUniversal(id));
-            StatusText = _engine.Apo.UniversalEnabled(id) == true ? Loc.S("Snd_CallModesDone") : Loc.S("Snd_CallModesFailed");
+            await Task.Run(() => _engine.Apo.EnableCallModes(id));
+            StatusText = _engine.Apo.CallModesEnabled(id) == true ? Loc.S("Snd_CallModesDone") : Loc.S("Snd_CallModesFailed");
         }
         catch (Exception ex) { StatusText = Loc.F("Snd_CallModesError", ex.Message); }
         finally { IsFixingCallModes = false; }

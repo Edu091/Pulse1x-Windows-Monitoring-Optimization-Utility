@@ -160,6 +160,25 @@ internal static class SoundTests
             using var key = EqualizerApoService.OpenFx(mic.Id, writable: true);
             TestSuite.Equal(true, key is not null);
         });
+        suite.Run("Discord audio subsystem is read and switched to standard, keeping the rest", () =>
+        {
+            string dir = Path.Combine(Path.GetTempPath(), $"pulse1x-discord-{Guid.NewGuid():N}");
+            string path = Path.Combine(dir, "discord", "settings.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            try
+            {
+                File.WriteAllText(path, "{\n  \"audioSubsystem\": \"experimental\",\n  \"IS_MAXIMIZED\": true,\n  \"WINDOW_BOUNDS\": { \"x\": -1743, \"width\": 940 }\n}");
+                TestSuite.Equal("experimental", DiscordAudioSettings.GetSubsystem(path));
+                DiscordAudioSettings.SetStandard(path);
+                TestSuite.Equal("standard", DiscordAudioSettings.GetSubsystem(path));
+                var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+                TestSuite.Equal(true, json["IS_MAXIMIZED"]!.GetValue<bool>());
+                TestSuite.Equal(-1743, json["WINDOW_BOUNDS"]!["x"]!.GetValue<int>());
+                TestSuite.Equal(true, File.Exists(path + ".pulse1x-backup"));
+                TestSuite.Equal<string?>(null, DiscordAudioSettings.GetSubsystem(Path.Combine(dir, "missing.json")));
+            }
+            finally { Directory.Delete(dir, true); }
+        });
         suite.Run("Embedded voice plugin loads as a VST2 and shifts pitch", () => VoicePluginProbe.Run());
         suite.Run("Factory Equalizer APO config is recognized; user configs are kept", () =>
         {

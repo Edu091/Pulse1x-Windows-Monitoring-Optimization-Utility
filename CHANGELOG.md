@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.17.6 — 07/11/2026
+
+- **Removido o "Ativar em todos os apps" da 1.17.5.** Com o driver de alguns fones Bluetooth, ele deixava o microfone mudo durante a call. O botão voltou a ser "Ativar em apps de chamada", como na 1.17.4. "Voltar ao padrão" continua desfazendo a mudança de quem chegou a usá-lo.
+- **Aviso do Discord:** quando o Discord está com o subsistema de áudio "experimental", que pega o microfone sem o processamento do Windows e por isso não recebe volume extra nem modificador de voz, a categoria Som avisa e o botão "Ajustar o Discord" o troca para "Padrão". O ajuste só é feito com o Discord fechado e guarda uma cópia da configuração.
+
 ## 1.17.5 — 07/11/2026
 
 - **Efeitos em qualquer app, inclusive no Discord com o subsistema experimental.** Esse subsistema captura o microfone em modo Raw, que o Windows entrega sem os efeitos de stream, onde o Equalizer APO fica por padrão. O botão agora se chama "Ativar em todos os apps" e coloca o motor como efeito de endpoint, que segundo a Microsoft vale até para o modo Raw. Ele sai do lugar antigo para não processar a voz duas vezes. A configuração anterior fica guardada, e "Voltar ao padrão" a restaura.

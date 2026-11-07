@@ -243,72 +243,9 @@ public class EqualizerApoService
     private static readonly string[] UniversalTouched =
         { SfxClsidValue, SfxModesValue, EfxClsidValue, EfxCompositeValue, EfxModesValue };
 
-    /// <summary>
-    /// O motor roda como efeito de endpoint? Segundo a Microsoft, "um efeito de endpoint é sempre
-    /// aplicado, mesmo a streams raw" — então ele vale para qualquer app, inclusive o subsistema de
-    /// áudio experimental do Discord, que captura em modo Raw e pula os efeitos de stream (SFX).
-    /// null = o motor não está neste dispositivo.
-    /// </summary>
-    public bool? UniversalEnabled(string? endpointId)
-    {
-        try
-        {
-            using var fx = OpenFx(endpointId, writable: false);
-            if (fx is null) return null;
-            bool inComposite = (fx.GetValue(EfxCompositeValue) as string[] ?? Array.Empty<string>())
-                .Contains(ApoClsid, StringComparer.OrdinalIgnoreCase);
-            bool inSingle = string.Equals(fx.GetValue(EfxClsidValue) as string, ApoClsid, StringComparison.OrdinalIgnoreCase);
-            if (inComposite || inSingle) return true;
-            return string.Equals(fx.GetValue(SfxClsidValue) as string, ApoClsid, StringComparison.OrdinalIgnoreCase) ? false : null;
-        }
-        catch { return null; }
-    }
-
-    /// <summary>
-    /// Move o motor de efeito de stream (SFX, pulado pelo modo Raw) para efeito de endpoint (EFX,
-    /// sempre aplicado). Ele sai do SFX para não processar a voz duas vezes. Se o driver já tem uma
-    /// lista composta de EFX (Windows 11), o motor entra no fim dela, depois do efeito do driver.
-    /// Todos os valores tocados ficam guardados para <see cref="DisableUniversal"/>.
-    /// </summary>
-    public void EnableUniversal(string endpointId)
-    {
-        string guid = EqualizerApoConfig.ExtractGuid(endpointId) ?? throw new ArgumentException("Id inválido.");
-        using (var fx = OpenFx(endpointId, writable: true) ?? throw new InvalidOperationException("Dispositivo não encontrado."))
-        {
-            using (var backup = Registry.LocalMachine.CreateSubKey($@"{BackupKey}\{guid}"))
-            {
-                if (backup.GetValue("Saved") is null)
-                {
-                    var absent = new List<string>();
-                    foreach (var name in UniversalTouched)
-                    {
-                        object? value = fx.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
-                        if (value is null) { absent.Add(name); continue; }
-                        backup.SetValue(name, value, fx.GetValueKind(name));
-                    }
-                    backup.SetValue(AbsentMarker, absent.ToArray(), RegistryValueKind.MultiString);
-                    backup.SetValue("Saved", 1, RegistryValueKind.DWord);
-                }
-            }
-
-            if (fx.GetValue(EfxCompositeValue) is string[] composite)
-            {
-                if (!composite.Contains(ApoClsid, StringComparer.OrdinalIgnoreCase))
-                    fx.SetValue(EfxCompositeValue, composite.Append(ApoClsid).ToArray(), RegistryValueKind.MultiString);
-            }
-            else
-            {
-                fx.SetValue(EfxClsidValue, ApoClsid, RegistryValueKind.String);
-            }
-            if (fx.GetValue(EfxModesValue) is null)
-                fx.SetValue(EfxModesValue, new[] { ModeDefault }, RegistryValueKind.MultiString);
-
-            if (string.Equals(fx.GetValue(SfxClsidValue) as string, ApoClsid, StringComparison.OrdinalIgnoreCase))
-                fx.DeleteValue(SfxClsidValue, throwOnMissingValue: false);
-        }
-        RestartAudioService();
-    }
-
+    // O "modo universal" (pôr o motor na lista de efeitos de endpoint) existiu na 1.17.5 e foi
+    // retirado: com o driver Bluetooth de teste, o Windows deixou o microfone mudo numa call.
+    // Sobra só a restauração, para quem chegou a ativá-lo.
     /// <summary>Devolve exatamente o registro de antes do modo universal e reinicia o áudio.</summary>
     public bool DisableUniversal(string? endpointId)
     {

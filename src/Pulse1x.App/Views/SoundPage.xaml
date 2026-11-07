@@ -117,6 +117,25 @@
                 </Grid>
             </Border>
 
+            <!-- Discord no subsistema experimental (modo Raw: não recebe efeitos) -->
+            <Border Background="#335865F2" CornerRadius="10" Padding="14,10" Margin="0,0,0,12"
+                    Visibility="{Binding DiscordExperimental, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="Headset24" Foreground="#5865F2" VerticalAlignment="Top" Margin="0,2,10,0" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding [Snd_DiscordTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding [Snd_DiscordHint], Source={x:Static loc:Loc.Instance}}" FontSize="12" TextWrapping="Wrap" Opacity="0.85" />
+                    </StackPanel>
+                    <ui:Button Grid.Column="2" Content="{Binding [Snd_DiscordButton], Source={x:Static loc:Loc.Instance}}"
+                               Command="{Binding FixDiscordCommand}" Appearance="Primary" VerticalAlignment="Center" Margin="12,0,0,0" />
+                </Grid>
+            </Border>
+
             <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#F97316" TextWrapping="Wrap" Margin="0,0,0,10"
                        Visibility="{Binding StatusText, Converter={StaticResource StrToVis}}" />
 
