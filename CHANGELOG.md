@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.17.5 — 07/11/2026
+
+- **Efeitos em qualquer app, inclusive no Discord com o subsistema experimental.** Esse subsistema captura o microfone em modo Raw, que o Windows entrega sem os efeitos de stream, onde o Equalizer APO fica por padrão. O botão agora se chama "Ativar em todos os apps" e coloca o motor como efeito de endpoint, que segundo a Microsoft vale até para o modo Raw. Ele sai do lugar antigo para não processar a voz duas vezes. A configuração anterior fica guardada, e "Voltar ao padrão" a restaura.
+
 ## 1.17.4 — 07/11/2026
 
 - **"Ativar em apps de chamada" funciona.** O botão pedia ao Windows mais permissão do que a configuração do microfone concede (até a administradores) e sempre mostrava "Não foi possível ativar nos apps de chamada". Agora ele pede só a permissão de alterar a configuração.

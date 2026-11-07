@@ -145,9 +145,11 @@ public partial class SoundViewModel : ObservableObject, IDisposable
 
     private void RefreshCallModes()
     {
+        // O motor precisa rodar como efeito de endpoint para valer em qualquer app — inclusive os que
+        // capturam em modo Raw, como o subsistema experimental do Discord.
         CallModesNeeded = ApoInstalled && SelectedInput is not null
             && _engine.Apo.IsActiveOn(SelectedInput.Id) == true
-            && _engine.Apo.CallModesEnabled(SelectedInput.Id) == false;
+            && _engine.Apo.UniversalEnabled(SelectedInput.Id) == false;
     }
 
     [RelayCommand]
@@ -163,8 +165,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         string id = SelectedInput.Id;
         try
         {
-            await Task.Run(() => _engine.Apo.EnableCallModes(id));
-            StatusText = _engine.Apo.CallModesEnabled(id) == true ? Loc.S("Snd_CallModesDone") : Loc.S("Snd_CallModesFailed");
+            await Task.Run(() => _engine.Apo.EnableUniversal(id));
+            StatusText = _engine.Apo.UniversalEnabled(id) == true ? Loc.S("Snd_CallModesDone") : Loc.S("Snd_CallModesFailed");
         }
         catch (Exception ex) { StatusText = Loc.F("Snd_CallModesError", ex.Message); }
         finally { IsFixingCallModes = false; }
@@ -370,6 +372,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
             Devices.SetVolume(mic, 100);
             var boost = Devices.GetHardwareBoost(mic);
             if (boost is not null) Devices.SetHardwareBoost(mic, boost.MinDb);
+            // Registro do microfone de volta ao que era (só age se o Pulse1x tiver mudado algo).
+            try { await Task.Run(() => _engine.Apo.DisableUniversal(mic)); } catch { }
         }
 
         Save();
