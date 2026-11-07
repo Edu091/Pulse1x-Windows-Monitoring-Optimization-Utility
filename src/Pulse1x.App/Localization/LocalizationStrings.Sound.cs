@@ -1,0 +1,257 @@
+namespace Pulse1x.App.Localization;
+
+/// <summary>Textos da categoria Som.</summary>
+internal static partial class LocalizationStrings
+{
+    internal static void AddSoundPortuguese()
+    {
+        var t = Pt;
+        t["Nav_Sound"] = "Som";
+        t["Snd_PageTitle"] = "Som";
+        t["Snd_PageSubtitle"] = "Ajuste alto-falantes, fones e microfone, aumente o microfone além de 100%, equalize o som e mude sua voz no Discord, WhatsApp e jogos. Teste tudo aqui mesmo.";
+        t["Snd_Refresh"] = "Atualizar";
+
+        t["Snd_EngineTitle"] = "Motor de áudio";
+        t["Snd_EngineExplain"] = "O Windows sozinho não passa de 100% no microfone nem tem equalizador. Para isso o Pulse1x usa o Equalizer APO, gratuito e de código aberto, que roda dentro do próprio som do Windows. Assim tudo vale em qualquer app, sem microfone virtual. Volume, mudo, dispositivo padrão, amplificação de hardware e os testes funcionam mesmo sem ele.";
+        t["Snd_ApoDownload"] = "Baixar Equalizer APO";
+        t["Snd_ApoDevices"] = "Escolher dispositivos";
+        t["Snd_ApoMissing"] = "Equalizer APO não instalado. Instale pelo site oficial, marque seus alto-falantes/fones e seu microfone na lista que aparece no fim da instalação, reinicie o PC e clique em Atualizar.";
+        t["Snd_ApoActive"] = "Ativo. Equalizador, graves, som 3D, microfone acima de 100% e modificador de voz funcionam nos dispositivos escolhidos.";
+        t["Snd_ApoNotOnDevice"] = "Instalado, mas ainda não ativado em: {0}. Clique em \"Escolher dispositivos\", marque-os e reinicie o PC.";
+        t["Snd_ApoSelectorFailed"] = "Não foi possível abrir o seletor de dispositivos do Equalizer APO.";
+
+        t["Snd_Output"] = "Saída (alto-falantes e fones)";
+        t["Snd_Input"] = "Microfone";
+        t["Snd_MakeDefault"] = "Tornar padrão";
+        t["Snd_MakeDefaultTip"] = "Usa este dispositivo para tudo no Windows (jogos, chamadas e sistema).";
+        t["Snd_DefaultSet"] = "{0} agora é o dispositivo padrão.";
+        t["Snd_DefaultFailed"] = "O Windows não aceitou trocar o dispositivo padrão.";
+        t["Snd_Mute"] = "Mudo";
+
+        t["Snd_TestOutput"] = "Testar a saída";
+        t["Snd_ToneLeftBtn"] = "◀ Esquerdo";
+        t["Snd_ToneRightBtn"] = "Direito ▶";
+        t["Snd_ToneBothBtn"] = "Ambos";
+        t["Snd_ToneBassBtn"] = "Graves";
+        t["Snd_ToneSweepBtn"] = "Varredura";
+        t["Snd_ToneLeft"] = "Tocando só no lado esquerdo...";
+        t["Snd_ToneRight"] = "Tocando só no lado direito...";
+        t["Snd_ToneBoth"] = "Tocando nos dois lados...";
+        t["Snd_ToneBass"] = "Tom grave de 60 Hz: bom para testar o reforço de graves.";
+        t["Snd_ToneSweep"] = "Varredura de 30 Hz a 16 kHz: escute como o equalizador muda cada faixa.";
+
+        t["Snd_MicLevelSplit"] = "Windows em {0}% + {1} dB de ganho digital";
+        t["Snd_MicLevelWindows"] = "Volume do Windows: {0}%";
+        t["Snd_MicNeedsEngine"] = "Acima de 100% precisa do motor de áudio. Enquanto isso, o microfone fica em 100%. Se o seu microfone tiver, use também a amplificação de hardware abaixo.";
+        t["Snd_HwBoost"] = "Amplificação de hardware";
+        t["Snd_HwBoostHint"] = "O \"Microphone Boost\" do driver. Aumenta muito, mas também aumenta o chiado.";
+        t["Snd_LowCut"] = "Reduzir ruído grave (ventoinha, mesa, ar-condicionado)";
+        t["Snd_Clarity"] = "Realçar a clareza da voz";
+
+        t["Snd_TestInput"] = "Testar o microfone";
+        t["Snd_MicTest"] = "Medir nível";
+        t["Snd_StopTest"] = "Parar";
+        t["Snd_RecordPlay"] = "Gravar 5 s e ouvir";
+        t["Snd_Monitor"] = "Ouvir minha voz";
+        t["Snd_MonitorStop"] = "Parar de ouvir";
+        t["Snd_MonitorTip"] = "Toca o microfone na saída ao vivo, já com volume e efeitos. Use fones para não dar microfonia.";
+        t["Snd_TestSpeak"] = "Fale normalmente: a barra mostra o nível do microfone com os ajustes aplicados.";
+        t["Snd_MonitorOn"] = "Você está se ouvindo ao vivo, com volume e efeito de voz. Use fones para não dar microfonia.";
+        t["Snd_Recording"] = "Gravando 5 segundos... fale agora.";
+        t["Snd_PlayingBack"] = "Reproduzindo a gravação...";
+        t["Snd_PlaybackDone"] = "Pronto. É assim que as outras pessoas ouvem você.";
+        t["Snd_TestFailed"] = "Não foi possível testar: {0}";
+
+        t["Snd_EqTitle"] = "Perfis de som e equalizador";
+        t["Snd_EqReset"] = "Zerar";
+        t["Snd_EffectsOn"] = "Ativado";
+        t["Snd_EqHint"] = "Vale para a saída escolhida acima. Escolha um perfil ou ajuste as 10 faixas: à esquerda os graves, à direita os agudos. O volume é compensado sozinho para o som não distorcer.";
+        t["Snd_Bass"] = "Reforço de graves";
+        t["Snd_BassHint"] = "Mais peso em explosões, batidas e baixo.";
+        t["Snd_Surround"] = "Som 3D";
+        t["Snd_SurroundHint"] = "Abre o palco estéreo. Fica melhor em fones.";
+        t["Snd_Gain"] = "Volume extra";
+        t["Snd_GainHint"] = "Ajuste fino do volume depois da compensação.";
+        t["Snd_Off"] = "Desligado";
+
+        t["Snd_Profile_Flat"] = "Padrão";
+        t["Snd_Profile_Music"] = "Música";
+        t["Snd_Profile_Movies"] = "Filmes";
+        t["Snd_Profile_Games"] = "Jogos (passos)";
+        t["Snd_Profile_Voice"] = "Voz / Podcast";
+        t["Snd_Profile_Bass"] = "Graves intensos";
+        t["Snd_Profile_Treble"] = "Agudos / Detalhes";
+        t["Snd_Profile_Night"] = "Noturno";
+        t["Snd_Profile_Custom"] = "Personalizado";
+        t["Snd_ProfileDesc_Flat"] = "Som original, sem alterações.";
+        t["Snd_ProfileDesc_Music"] = "Graves e agudos levemente realçados.";
+        t["Snd_ProfileDesc_Movies"] = "Impacto, diálogos claros e palco amplo.";
+        t["Snd_ProfileDesc_Games"] = "Destaca passos e recargas em jogos de tiro.";
+        t["Snd_ProfileDesc_Voice"] = "Foco na fala: aulas, chamadas e podcasts.";
+        t["Snd_ProfileDesc_Bass"] = "Muito grave, para batidas e explosões.";
+        t["Snd_ProfileDesc_Treble"] = "Mais brilho e detalhe nos agudos.";
+        t["Snd_ProfileDesc_Night"] = "Menos grave e diálogos à frente, para volume baixo.";
+        t["Snd_ProfileDesc_Custom"] = "Seus próprios ajustes.";
+
+        t["Snd_VoiceTitle"] = "Modificador de voz";
+        t["Snd_VoiceHint"] = "O efeito é aplicado no próprio microfone, então funciona no Discord, WhatsApp, Meet, Zoom e jogos sem trocar nada neles. Use \"Ouvir minha voz\" ou \"Gravar 5 s e ouvir\" para testar.";
+        t["Snd_VoiceApps"] = "Dica: no Discord, desligue a supressão de ruído (Krisp) e o \"Ajustar sensibilidade automaticamente\", senão ele pode filtrar o efeito. Exige o motor de áudio ativo no microfone.";
+        t["Snd_Voice_None"] = "Natural";
+        t["Snd_Voice_Deep"] = "Voz grossa";
+        t["Snd_Voice_Thin"] = "Voz fina";
+        t["Snd_Voice_Radio"] = "Rádio";
+        t["Snd_Voice_Phone"] = "Telefone";
+        t["Snd_Voice_Megaphone"] = "Megafone";
+        t["Snd_Voice_Robot"] = "Robô";
+        t["Snd_Voice_Muffled"] = "Abafado";
+        t["Snd_Voice_Alien"] = "Alienígena";
+        t["Snd_VoiceDesc_None"] = "Sua voz sem efeito.";
+        t["Snd_VoiceDesc_Deep"] = "Mais corpo e menos brilho: soa mais grave e encorpada.";
+        t["Snd_VoiceDesc_Thin"] = "Sem graves e com agudos abertos: soa mais fina e aguda.";
+        t["Snd_VoiceDesc_Radio"] = "Como um locutor no rádio AM ou num walkie-talkie.";
+        t["Snd_VoiceDesc_Phone"] = "Como uma ligação de telefone antiga.";
+        t["Snd_VoiceDesc_Megaphone"] = "Estourada e metálica, como num alto-falante de rua.";
+        t["Snd_VoiceDesc_Robot"] = "Timbre metálico e ressonante, como uma voz de lata.";
+        t["Snd_VoiceDesc_Muffled"] = "Como se você falasse do outro lado da parede.";
+        t["Snd_VoiceDesc_Alien"] = "Estranha e ressonante, de outro planeta.";
+        t["Snd_VoiceOff"] = "Modificador de voz desligado.";
+        t["Snd_VoiceOn"] = "Efeito \"{0}\" aplicado ao microfone.";
+
+        t["Snd_StartupTitle"] = "Iniciar com o Windows";
+        t["Snd_ApplyOnStartup"] = "Aplicar estes ajustes ao iniciar o Windows";
+        t["Snd_ApplyOnStartupHint"] = "A cada logon o Pulse1x reaplica o volume do microfone (inclusive acima de 100%), a amplificação de hardware e os efeitos, sem abrir janela. Útil quando o Windows, uma atualização de driver ou outro app volta o microfone ao normal.";
+        t["Snd_LockMic"] = "Travar o volume do microfone";
+        t["Snd_LockMicHint"] = "Se outro app mudar o volume (Discord, Teams e Zoom fazem isso no ajuste automático), o Pulse1x devolve o valor escolhido. Vale com o Pulse1x aberto e nos primeiros minutos após o logon.";
+        t["Snd_StartupOn"] = "Os ajustes de som serão reaplicados a cada logon.";
+        t["Snd_StartupOff"] = "Os ajustes de som não serão mais reaplicados no logon.";
+        t["Snd_StartupFailed"] = "Não foi possível criar a tarefa de inicialização: {0}";
+        t["Snd_ApplyFailed"] = "Não foi possível gravar a configuração do motor de áudio: {0}";
+        t["Snd_NeedsEngine"] = "Equalizador, graves, som 3D, microfone acima de 100% e modificador de voz precisam do motor de áudio (veja o cartão no topo).";
+    }
+
+    internal static void AddSoundEnglish()
+    {
+        var t = En;
+        t["Nav_Sound"] = "Sound";
+        t["Snd_PageTitle"] = "Sound";
+        t["Snd_PageSubtitle"] = "Tune speakers, headphones and microphone, boost the mic above 100%, equalize the sound and change your voice in Discord, WhatsApp and games. Test everything right here.";
+        t["Snd_Refresh"] = "Refresh";
+
+        t["Snd_EngineTitle"] = "Audio engine";
+        t["Snd_EngineExplain"] = "Windows alone can't push the mic above 100% and has no equalizer. For that Pulse1x uses Equalizer APO, free and open source, which runs inside Windows' own audio. Everything works in any app, with no virtual microphone. Volume, mute, default device, hardware boost and the tests work without it.";
+        t["Snd_ApoDownload"] = "Download Equalizer APO";
+        t["Snd_ApoDevices"] = "Choose devices";
+        t["Snd_ApoMissing"] = "Equalizer APO is not installed. Install it from the official site, tick your speakers/headphones and your microphone in the list shown at the end of setup, restart the PC and click Refresh.";
+        t["Snd_ApoActive"] = "Active. Equalizer, bass, 3D sound, mic above 100% and voice changer work on the chosen devices.";
+        t["Snd_ApoNotOnDevice"] = "Installed, but not enabled yet on: {0}. Click \"Choose devices\", tick them and restart the PC.";
+        t["Snd_ApoSelectorFailed"] = "Couldn't open the Equalizer APO device selector.";
+
+        t["Snd_Output"] = "Output (speakers and headphones)";
+        t["Snd_Input"] = "Microphone";
+        t["Snd_MakeDefault"] = "Make default";
+        t["Snd_MakeDefaultTip"] = "Use this device for everything in Windows (games, calls and system).";
+        t["Snd_DefaultSet"] = "{0} is now the default device.";
+        t["Snd_DefaultFailed"] = "Windows refused to change the default device.";
+        t["Snd_Mute"] = "Mute";
+
+        t["Snd_TestOutput"] = "Test the output";
+        t["Snd_ToneLeftBtn"] = "◀ Left";
+        t["Snd_ToneRightBtn"] = "Right ▶";
+        t["Snd_ToneBothBtn"] = "Both";
+        t["Snd_ToneBassBtn"] = "Bass";
+        t["Snd_ToneSweepBtn"] = "Sweep";
+        t["Snd_ToneLeft"] = "Playing on the left side only...";
+        t["Snd_ToneRight"] = "Playing on the right side only...";
+        t["Snd_ToneBoth"] = "Playing on both sides...";
+        t["Snd_ToneBass"] = "60 Hz bass tone: good for testing the bass boost.";
+        t["Snd_ToneSweep"] = "Sweep from 30 Hz to 16 kHz: hear how the equalizer changes each range.";
+
+        t["Snd_MicLevelSplit"] = "Windows at {0}% + {1} dB digital gain";
+        t["Snd_MicLevelWindows"] = "Windows volume: {0}%";
+        t["Snd_MicNeedsEngine"] = "Above 100% needs the audio engine. Until then the mic stays at 100%. If your mic has it, also use the hardware boost below.";
+        t["Snd_HwBoost"] = "Hardware boost";
+        t["Snd_HwBoostHint"] = "The driver's \"Microphone Boost\". Very loud, but it also raises hiss.";
+        t["Snd_LowCut"] = "Reduce low rumble (fans, desk, air conditioning)";
+        t["Snd_Clarity"] = "Enhance voice clarity";
+
+        t["Snd_TestInput"] = "Test the microphone";
+        t["Snd_MicTest"] = "Measure level";
+        t["Snd_StopTest"] = "Stop";
+        t["Snd_RecordPlay"] = "Record 5 s and play";
+        t["Snd_Monitor"] = "Hear my voice";
+        t["Snd_MonitorStop"] = "Stop listening";
+        t["Snd_MonitorTip"] = "Plays the mic on the output live, with volume and effects. Use headphones to avoid feedback.";
+        t["Snd_TestSpeak"] = "Speak normally: the bar shows the mic level with your settings applied.";
+        t["Snd_MonitorOn"] = "You're hearing yourself live, with volume and voice effect. Use headphones to avoid feedback.";
+        t["Snd_Recording"] = "Recording 5 seconds... speak now.";
+        t["Snd_PlayingBack"] = "Playing the recording back...";
+        t["Snd_PlaybackDone"] = "Done. This is how other people hear you.";
+        t["Snd_TestFailed"] = "Couldn't run the test: {0}";
+
+        t["Snd_EqTitle"] = "Sound profiles and equalizer";
+        t["Snd_EqReset"] = "Reset";
+        t["Snd_EffectsOn"] = "Enabled";
+        t["Snd_EqHint"] = "Applies to the output chosen above. Pick a profile or adjust the 10 bands: bass on the left, treble on the right. Volume is compensated automatically so the sound doesn't distort.";
+        t["Snd_Bass"] = "Bass boost";
+        t["Snd_BassHint"] = "More weight on explosions, beats and bass.";
+        t["Snd_Surround"] = "3D sound";
+        t["Snd_SurroundHint"] = "Widens the stereo stage. Best on headphones.";
+        t["Snd_Gain"] = "Extra volume";
+        t["Snd_GainHint"] = "Fine volume trim after compensation.";
+        t["Snd_Off"] = "Off";
+
+        t["Snd_Profile_Flat"] = "Default";
+        t["Snd_Profile_Music"] = "Music";
+        t["Snd_Profile_Movies"] = "Movies";
+        t["Snd_Profile_Games"] = "Games (footsteps)";
+        t["Snd_Profile_Voice"] = "Voice / Podcast";
+        t["Snd_Profile_Bass"] = "Heavy bass";
+        t["Snd_Profile_Treble"] = "Treble / Detail";
+        t["Snd_Profile_Night"] = "Night";
+        t["Snd_Profile_Custom"] = "Custom";
+        t["Snd_ProfileDesc_Flat"] = "Original sound, untouched.";
+        t["Snd_ProfileDesc_Music"] = "Slightly enhanced bass and treble.";
+        t["Snd_ProfileDesc_Movies"] = "Impact, clear dialogue and a wide stage.";
+        t["Snd_ProfileDesc_Games"] = "Brings out footsteps and reloads in shooters.";
+        t["Snd_ProfileDesc_Voice"] = "Speech focus: classes, calls and podcasts.";
+        t["Snd_ProfileDesc_Bass"] = "Lots of bass, for beats and explosions.";
+        t["Snd_ProfileDesc_Treble"] = "More sparkle and detail up top.";
+        t["Snd_ProfileDesc_Night"] = "Less bass and forward dialogue, for low volume.";
+        t["Snd_ProfileDesc_Custom"] = "Your own settings.";
+
+        t["Snd_VoiceTitle"] = "Voice changer";
+        t["Snd_VoiceHint"] = "The effect is applied to the microphone itself, so it works in Discord, WhatsApp, Meet, Zoom and games without changing anything in them. Use \"Hear my voice\" or \"Record 5 s and play\" to test.";
+        t["Snd_VoiceApps"] = "Tip: in Discord, turn off noise suppression (Krisp) and \"Automatically determine input sensitivity\", or it may filter the effect. Requires the audio engine enabled on the mic.";
+        t["Snd_Voice_None"] = "Natural";
+        t["Snd_Voice_Deep"] = "Deep voice";
+        t["Snd_Voice_Thin"] = "Thin voice";
+        t["Snd_Voice_Radio"] = "Radio";
+        t["Snd_Voice_Phone"] = "Telephone";
+        t["Snd_Voice_Megaphone"] = "Megaphone";
+        t["Snd_Voice_Robot"] = "Robot";
+        t["Snd_Voice_Muffled"] = "Muffled";
+        t["Snd_Voice_Alien"] = "Alien";
+        t["Snd_VoiceDesc_None"] = "Your voice with no effect.";
+        t["Snd_VoiceDesc_Deep"] = "More body and less sparkle: sounds deeper and fuller.";
+        t["Snd_VoiceDesc_Thin"] = "No bass and open treble: sounds thinner and higher.";
+        t["Snd_VoiceDesc_Radio"] = "Like an AM radio host or a walkie-talkie.";
+        t["Snd_VoiceDesc_Phone"] = "Like an old phone call.";
+        t["Snd_VoiceDesc_Megaphone"] = "Blown-out and metallic, like a street loudspeaker.";
+        t["Snd_VoiceDesc_Robot"] = "Metallic, resonant tone, like a tin-can voice.";
+        t["Snd_VoiceDesc_Muffled"] = "As if you were talking from behind a wall.";
+        t["Snd_VoiceDesc_Alien"] = "Strange and resonant, from another planet.";
+        t["Snd_VoiceOff"] = "Voice changer off.";
+        t["Snd_VoiceOn"] = "\"{0}\" effect applied to the microphone.";
+
+        t["Snd_StartupTitle"] = "Start with Windows";
+        t["Snd_ApplyOnStartup"] = "Apply these settings when Windows starts";
+        t["Snd_ApplyOnStartupHint"] = "At every sign-in Pulse1x reapplies the mic volume (including above 100%), the hardware boost and the effects, without opening a window. Useful when Windows, a driver update or another app resets the mic.";
+        t["Snd_LockMic"] = "Lock the microphone volume";
+        t["Snd_LockMicHint"] = "If another app changes the volume (Discord, Teams and Zoom do this with auto gain), Pulse1x restores your value. Works while Pulse1x is open and for the first minutes after sign-in.";
+        t["Snd_StartupOn"] = "Sound settings will be reapplied at every sign-in.";
+        t["Snd_StartupOff"] = "Sound settings will no longer be reapplied at sign-in.";
+        t["Snd_StartupFailed"] = "Couldn't create the startup task: {0}";
+        t["Snd_ApplyFailed"] = "Couldn't write the audio engine configuration: {0}";
+        t["Snd_NeedsEngine"] = "Equalizer, bass, 3D sound, mic above 100% and voice changer need the audio engine (see the card at the top).";
+    }
+}

@@ -7,7 +7,7 @@
 ; .exe num diretório temporário do runner, diferente do caminho fixo usado no publish local
 ; (atualizar_pulse1x.bat). Os #ifndef abaixo mantêm o build manual funcionando sem argumentos.
 #ifndef AppVersion
-  #define AppVersion "1.16.3"
+  #define AppVersion "1.17.0"
 #endif
 #ifndef SourceExeDir
   #define SourceExeDir "C:\Pulse1x\release-public"
@@ -90,3 +90,5 @@ Filename: "{app}\Pulse1x.App.exe"; Flags: nowait shellexec; Check: WizardSilent
 [UninstallRun]
 ; Tarefa de logon criada por "Iniciar com o Windows" (SettingsService.StartupTaskName).
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""Pulse1x"" /F"; Flags: runhidden; RunOnceId: "RemoveStartupTask"
+; Tarefa de logon da categoria Som, "Aplicar ao iniciar o Windows" (SoundEngine.StartupTaskName).
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""Pulse1x Som"" /F"; Flags: runhidden; RunOnceId: "RemoveSoundStartupTask"

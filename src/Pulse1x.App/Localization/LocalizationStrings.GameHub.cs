@@ -23,6 +23,8 @@ internal static partial class LocalizationStrings
         AddFpsInGameEnglish();
         AddBenchmarkPortuguese();
         AddBenchmarkEnglish();
+        AddSoundPortuguese();
+        AddSoundEnglish();
         AddFirmwarePortuguese();
         AddFirmwareEnglish();
     }

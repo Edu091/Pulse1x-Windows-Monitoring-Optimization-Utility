@@ -42,6 +42,9 @@ public class AppSettings
     // estimativas (null = a do monitor principal).
     public string? FpsInGameGpu { get; set; }
     public string? FpsInGameResolution { get; set; }
+
+    // Categoria Som: dispositivos, equalizador, microfone acima de 100%, voz e inicialização.
+    public Sound.SoundSettings Sound { get; set; } = new();
 }
 
 public class SettingsService
@@ -94,6 +97,8 @@ public class SettingsService
         settings.Appearance ??= new AppearanceSettings();
         settings.GameHub ??= new Models.GameHub.GameHubSettings();
         settings.OemCommands ??= new Profiles.OemCustomCommands();
+        settings.Sound ??= new Sound.SoundSettings();
+        settings.Sound.Normalize();
 
         settings.GameHub.SoundVolume = Math.Clamp(settings.GameHub.SoundVolume, 0, 1);
         settings.GameHub.CustomSounds ??= new Dictionary<string, string>();

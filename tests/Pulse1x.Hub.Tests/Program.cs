@@ -28,6 +28,7 @@ internal static class Program
         FpsInGameTests.Register(suite);
         BenchmarkTests.Register(suite);
         BenchmarkTests.RegisterFirmware(suite);
+        SoundTests.Register(suite);
         if (args.Contains("--ui")) HubVisualTests.Run(suite);
         return suite.Finish();
     }

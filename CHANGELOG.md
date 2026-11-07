@@ -1,5 +1,16 @@
 ﻿# Histórico de versões
 
+## 1.17.0 — 06/11/2026
+
+- **Nova categoria Som.** Ajusta alto-falantes, fones e microfone num só lugar, e tudo pode ser testado ali mesmo.
+  - **Dispositivos:** escolha a saída e o microfone, mude o volume, ative o mudo e defina o dispositivo padrão do Windows. Os medidores mostram o nível ao vivo.
+  - **Microfone acima de 100%:** o volume vai até 400% (+12 dB). Até 100% é o volume do próprio Windows, e o que passa disso vira ganho digital. Se o driver tiver, também dá para usar a amplificação de hardware ("Microphone Boost"). Há filtros opcionais para reduzir ruído grave e realçar a clareza da voz.
+  - **Perfis de som e equalizador de 10 bandas:** Padrão, Música, Filmes, Jogos (passos), Voz/Podcast, Graves intensos, Agudos e Noturno, além de reforço de graves, som 3D (ampliação estéreo) e volume extra. O volume é compensado sozinho para o som não distorcer.
+  - **Modificador de voz:** voz grossa, voz fina, rádio, telefone, megafone, robô, abafado e alienígena. O efeito é aplicado no próprio microfone, então vale no Discord, no WhatsApp, em chamadas e em jogos, sem trocar nada neles.
+  - **Testes:** tom no lado esquerdo, no direito e nos dois, tom grave, varredura de frequências, medidor do microfone, "Gravar 5 s e ouvir" e "Ouvir minha voz" ao vivo, já com os efeitos aplicados.
+  - **Iniciar com o Windows:** reaplica o volume do microfone, a amplificação e os efeitos a cada logon, sem abrir janela. A trava de volume devolve o valor escolhido quando o Discord, o Teams ou o Zoom mexem no microfone.
+  - O equalizador, o som 3D, o volume do microfone acima de 100% e o modificador de voz usam o Equalizer APO, gratuito e de código aberto. A categoria indica o que falta instalar ou ativar e leva ao site oficial dele.
+
 ## 1.16.3 — 04/11/2026
 
 - **Minimizar (−) minimiza para a barra de tarefas.** Antes, com "minimizar para a bandeja" ligado (o padrão), o − escondia a janela na bandeja do sistema e o Pulse1x parecia ter fechado. Agora só o fechar (X) leva para a bandeja, e a opção nas Configurações passou a dizer isso.

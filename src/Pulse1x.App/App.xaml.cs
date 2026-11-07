@@ -54,6 +54,7 @@ public partial class App : Application
     // Guardado para o OnExit: a sessão ETW de FPS sobrevive ao processo se não for encerrada.
     private FpsMonitorService? _fpsMonitorService;
     private TrayIconService? _trayIconService;
+    private SoundViewModel? _soundViewModel;
     private Mutex? _singleInstanceMutex;
     private EventWaitHandle? _showWindowSignal;
     private RegisteredWaitHandle? _showWindowWait;
@@ -77,6 +78,18 @@ public partial class App : Application
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             LogCrash("AppDomain.UnhandledException", args.ExceptionObject as Exception);
+
+        // Tarefa de logon da categoria Som: só reaplica volume do microfone, amplificação e efeitos
+        // e sai, sem janela e sem disputar a instância única com o Pulse1x "de verdade".
+        if (e.Args.Any(a => string.Equals(a, Services.Sound.SoundEngine.ApplyArgument, StringComparison.OrdinalIgnoreCase)))
+        {
+            Task.Run(() =>
+            {
+                try { Services.Sound.SoundEngine.RunStartupApply(); }
+                catch { /* melhor esforço: o som segue como estava */ }
+            }).ContinueWith(_ => Dispatcher.Invoke(Shutdown));
+            return;
+        }
 
         // Trava de instância única: se o Pulse1x já estiver rodando (inclusive
         // minimizado na bandeja), sinaliza a instância existente para aparecer e
@@ -317,6 +330,11 @@ public partial class App : Application
         var benchmarkPage = new BenchmarkPage(new BenchmarkViewModel(
             new Services.Benchmark.BenchmarkHistoryService(), _hardwareMonitorService));
 
+        // Categoria Som: dispositivos, microfone acima de 100%, equalizador, voz e testes ao vivo.
+        _soundViewModel = new SoundViewModel(settingsService, new Services.Sound.SoundEngine(
+            new Services.Sound.SoundDeviceService(), new Services.Sound.EqualizerApoService()));
+        var soundPage = new SoundPage(_soundViewModel);
+
         // Modo Gaming: enquanto um jogo estiver aberto, os painéis em tempo real do Pulse1x param
         // de atualizar. É um único sinal, consumido por quem gasta recursos.
         gamingModeService.StateChanged += active =>
@@ -326,7 +344,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, inputLabPage, fpsInGamePage, benchmarkPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
+            latencyPage, inputLabPage, fpsInGamePage, benchmarkPage, soundPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {
@@ -466,6 +484,7 @@ public partial class App : Application
         _trayIconService?.Dispose();
         _hardwareMonitorService?.Dispose();
         _fpsMonitorService?.Dispose();
+        try { _soundViewModel?.Dispose(); } catch { }
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
         // Criado sem posse (initiallyOwned: false), então só descartamos — liberar um mutex não
