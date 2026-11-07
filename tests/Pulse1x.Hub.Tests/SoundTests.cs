@@ -84,16 +84,16 @@ internal static class SoundTests
 
         suite.Run("Impulse-response voice effects add a Convolution at the mic sample rate", () =>
         {
-            var s = new SoundSettings { VoiceEffect = "Robot" };
+            var s = new SoundSettings { VoiceEffect = "Cyborg" };
             var lines = Lines(EqualizerApoConfig.Build(s, null, "{mic}", 48000));
             TestSuite.Equal(true, lines.Contains("Convolution: pulse1x-ir-robot-48000.wav"));
             // Taxa desconhecida: sem a convolução (o motor recusaria um arquivo com a taxa errada).
             var unknown = Lines(EqualizerApoConfig.Build(s, null, "{mic}"));
             TestSuite.Equal(false, unknown.Any(l => l.StartsWith("Convolution:")));
             // Eco não tem filtros, só a resposta ao impulso — o bloco do microfone ainda aparece.
-            var echo = Lines(EqualizerApoConfig.Build(new SoundSettings { VoiceEffect = "Echo" }, null, "{mic}", 44100));
-            TestSuite.Equal("Device: {mic}", echo[0]);
-            TestSuite.Equal(true, echo.Contains("Convolution: pulse1x-ir-echo-44100.wav"));
+            var cave = Lines(EqualizerApoConfig.Build(new SoundSettings { VoiceEffect = "Cave" }, null, "{mic}", 44100));
+            TestSuite.Equal("Device: {mic}", cave[0]);
+            TestSuite.Equal(true, cave.Contains("Convolution: pulse1x-ir-cave-44100.wav"));
         });
 
         suite.Run("Impulse responses start with the direct sound and write a float WAV", () =>
@@ -112,6 +112,46 @@ internal static class SoundTests
             var robot = ImpulseResponses.Generate("robot", 48000);
             TestSuite.Equal(true, robot[436] > 0.1f); // repetição a cada ~9 ms (110 Hz)
         });
+        suite.Run("Voice plugin line carries the effect, the gain above 100% and the gate", () =>
+        {
+            var s = new SoundSettings { MicLevelPercent = 200, VoiceEffect = "Deep", MicNoiseGate = true };
+            var lines = Lines(EqualizerApoConfig.Build(s, null, "{mic}", 48000, @"Pulse1x\Pulse1xVoice-abc.dll"));
+            var plugin = lines.Single(l => l.StartsWith("VSTPlugin:"));
+            TestSuite.Equal(true, plugin.StartsWith("VSTPlugin: Library \"Pulse1x\\Pulse1xVoice-abc.dll\" ChunkData \""));
+            string b64 = plugin.Split('"')[3];
+            TestSuite.Equal("pitch=-4;gain=6.02;gate=-52", System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(b64)));
+            // O ganho foi para o plugin (com limitador): nenhum Preamp positivo sobra.
+            TestSuite.Equal(false, lines.Any(l => l.StartsWith("Preamp:") && !l.Contains("-")));
+            TestSuite.Equal("VSTPlugin:", lines[^3][..10]); // plugin por último no bloco do microfone
+
+            // Sem o plugin instalado: o ganho volta a ser Preamp e o efeito fica só nos filtros.
+            var fallback = Lines(EqualizerApoConfig.Build(s, null, "{mic}", 48000));
+            TestSuite.Equal(false, fallback.Any(l => l.StartsWith("VSTPlugin:")));
+            TestSuite.Equal(true, fallback.Contains("Preamp: 6.02 dB"));
+
+            // Saída acima de 100%: o ganho positivo também vai para o limitador.
+            var loud = new SoundSettings { OutputEffectsEnabled = true, OutputGainDb = 8 };
+            var outLines = Lines(EqualizerApoConfig.Build(loud, "{out}", null, 0, "p.dll"));
+            TestSuite.Equal("Preamp: 0 dB", outLines[1]);
+            TestSuite.Equal(true, outLines.Any(l => l.StartsWith("VSTPlugin: Library \"p.dll\"")));
+        });
+
+        suite.Run("Every voice effect's DSP parameters are known to the plugin", () =>
+        {
+            var known = new HashSet<string> { "pitch", "vib", "vibrate", "robot", "whisper", "ring", "ringmix",
+                "drive", "crush", "bits", "echo", "echofb", "echomix", "gain", "gate" };
+            foreach (var voice in SoundPresets.VoiceEffects.Where(v => v.Dsp is not null))
+                foreach (var pair in voice.Dsp!.Split(';'))
+                {
+                    var kv = pair.Split('=');
+                    if (kv.Length != 2 || !known.Contains(kv[0]) ||
+                        !double.TryParse(kv[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+                        throw new Exception($"{voice.Key}: '{pair}'");
+                }
+            TestSuite.Equal(SoundPresets.VoiceEffects.Count, SoundPresets.VoiceEffects.Select(v => v.Key).Distinct().Count());
+        });
+
+        suite.Run("Embedded voice plugin loads as a VST2 and shifts pitch", () => VoicePluginProbe.Run());
         suite.Run("Factory Equalizer APO config is recognized; user configs are kept", () =>
         {
             TestSuite.Equal(true, EqualizerApoService.IsFactoryConfig(""));

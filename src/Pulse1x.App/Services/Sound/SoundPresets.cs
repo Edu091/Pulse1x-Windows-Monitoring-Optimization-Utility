@@ -1,4 +1,4 @@
-﻿namespace Pulse1x.App.Services.Sound;
+namespace Pulse1x.App.Services.Sound;
 
 /// <summary>Um perfil de som pronto: as dez bandas do equalizador, os graves e o som 3D.</summary>
 public sealed record SoundProfile(string Key, double[] Eq, double BassBoostDb, double Surround);
@@ -8,7 +8,7 @@ public sealed record SoundProfile(string Key, double[] Eq, double BassBoostDb, d
 /// próprio driver de áudio do Windows com latência praticamente zero — por isso funciona em
 /// qualquer app (Discord, WhatsApp, Meet, jogos) sem trocar o microfone escolhido neles.
 /// </summary>
-public sealed record VoiceEffect(string Key, double PreampDb, string[] Filters, string? Impulse = null);
+public sealed record VoiceEffect(string Key, double PreampDb, string[] Filters, string? Impulse = null, string? Dsp = null);
 
 public static class SoundPresets
 {
@@ -33,34 +33,35 @@ public static class SoundPresets
     public static SoundProfile? FindProfile(string key) => Profiles.FirstOrDefault(p => p.Key == key);
 
     /// <summary>
-    /// Efeitos do modificador de voz. Os filtros seguem a sintaxe do Equalizer APO; filtros iguais
-    /// em sequência ficam mais íngremes (dois passa-altas = 24 dB/oitava), o que dá o som "de
-    /// aparelho" do rádio e do telefone. Robô, caverna, eco e alienígena usam também uma resposta
-    /// ao impulso (ver <see cref="ImpulseResponses"/>), que faz o que filtro nenhum faz: repetir a voz.
+    /// Efeitos do modificador de voz. Cada um combina até três partes, nesta ordem:
+    /// filtros do Equalizer APO (o "aparelho": rádio, telefone, megafone), uma resposta ao impulso
+    /// (ver <see cref="ImpulseResponses"/>) e o plugin de voz do Pulse1x (<c>Dsp</c>), que faz o que
+    /// filtro nenhum faz — mudar o tom, robô, sussurro, anel, distorção, 8-bit e eco.
     /// </summary>
     public static readonly IReadOnlyList<VoiceEffect> VoiceEffects = new[]
     {
         new VoiceEffect("None", 0, Array.Empty<string>()),
 
-        // Voz grossa: muito corpo nos graves e quase nada de brilho.
-        new VoiceEffect("Deep", -7, new[]
-        {
-            "ON LS Fc 280 Hz Gain 11 dB",
-            "ON PK Fc 140 Hz Gain 4 dB Q 1",
-            "ON HS Fc 1800 Hz Gain -12 dB",
-            "ON LPQ Fc 4500 Hz Q 0.7",
-        }),
+        // ---- Tom ----
+        new VoiceEffect("Deep", 0, new[] { "ON LS Fc 200 Hz Gain 3 dB" }, Dsp: "pitch=-4"),
+        new VoiceEffect("Monster", -2, new[] { "ON LS Fc 180 Hz Gain 4 dB" }, Dsp: "pitch=-9;drive=2.5"),
+        new VoiceEffect("Thin", 0, Array.Empty<string>(), Dsp: "pitch=4"),
+        new VoiceEffect("Chipmunk", 0, new[] { "ON HPQ Fc 150 Hz Q 0.7" }, Dsp: "pitch=9"),
 
-        // Voz fina: sem corpo e com agudos bem abertos.
-        new VoiceEffect("Thin", 0, new[]
-        {
-            "ON HPQ Fc 550 Hz Q 0.9",
-            "ON HPQ Fc 550 Hz Q 0.9",
-            "ON HS Fc 2500 Hz Gain 10 dB",
-            "ON PK Fc 6000 Hz Gain 4 dB Q 1",
-        }),
+        // ---- Máquinas e criaturas ----
+        new VoiceEffect("Robot", 0, new[] { "ON HPQ Fc 150 Hz Q 0.7" }, Dsp: "robot=110"),
+        new VoiceEffect("Cyborg", -3, new[] { "ON HPQ Fc 180 Hz Q 0.7" }, Impulse: "robot", Dsp: "ring=55;ringmix=0.8"),
+        new VoiceEffect("Alien", 0, new[] { "ON HPQ Fc 200 Hz Q 0.7" }, Dsp: "pitch=5;ring=420;ringmix=0.5"),
+        new VoiceEffect("Retro", 0, new[] { "ON HPQ Fc 200 Hz Q 0.7" }, Dsp: "pitch=2;crush=5500;bits=5"),
 
-        // Rádio: faixa estreita com uma "buzina" nos médios.
+        // ---- Clima ----
+        new VoiceEffect("Whisper", 2, new[] { "ON HPQ Fc 300 Hz Q 0.7" }, Dsp: "whisper=1"),
+        new VoiceEffect("Ghost", 0, new[] { "ON HPQ Fc 250 Hz Q 0.7" }, Dsp: "pitch=-3;whisper=1;echo=180;echofb=0.5;echomix=0.5"),
+        new VoiceEffect("Drunk", 0, Array.Empty<string>(), Dsp: "pitch=-1;vib=1.2;vibrate=0.7"),
+        new VoiceEffect("Cave", -6, new[] { "ON HPQ Fc 120 Hz Q 0.7" }, Impulse: "cave"),
+        new VoiceEffect("Echo", -2, Array.Empty<string>(), Dsp: "echo=300;echofb=0.45;echomix=0.55"),
+
+        // ---- Aparelhos ----
         new VoiceEffect("Radio", 3, new[]
         {
             "ON HPQ Fc 450 Hz Q 0.8",
@@ -68,59 +69,33 @@ public static class SoundPresets
             "ON LPQ Fc 3200 Hz Q 0.8",
             "ON LPQ Fc 3200 Hz Q 0.8",
             "ON PK Fc 1700 Hz Gain 8 dB Q 1.2",
-        }),
+        }, Dsp: "drive=2"),
 
-        // Telefone: a banda clássica de 300 a 3400 Hz.
-        new VoiceEffect("Phone", 2, new[]
+        // Telefone: a banda de 300 a 3400 Hz e a "compressão" de um codec antigo (8 kHz, 8 bits).
+        new VoiceEffect("Phone", 4, new[]
         {
-            "ON HPQ Fc 320 Hz Q 0.7",
-            "ON HPQ Fc 320 Hz Q 0.7",
-            "ON LPQ Fc 3400 Hz Q 0.7",
-            "ON LPQ Fc 3400 Hz Q 0.7",
-            "ON PK Fc 1000 Hz Gain 4 dB Q 1",
-        }),
+            "ON HPQ Fc 350 Hz Q 0.7",
+            "ON HPQ Fc 350 Hz Q 0.7",
+            "ON LPQ Fc 3000 Hz Q 0.7",
+            "ON LPQ Fc 3000 Hz Q 0.7",
+            "ON PK Fc 1500 Hz Gain 6 dB Q 1",
+        }, Dsp: "crush=8000;bits=7;drive=1.8"),
 
-        // Megafone: banda bem estreita, médios estourados e ganho alto (a saturação faz parte).
-        new VoiceEffect("Megaphone", 9, new[]
+        new VoiceEffect("Megaphone", 6, new[]
         {
             "ON HPQ Fc 750 Hz Q 1",
             "ON HPQ Fc 750 Hz Q 1",
             "ON LPQ Fc 4000 Hz Q 1",
             "ON LPQ Fc 4000 Hz Q 1",
-            "ON PK Fc 2200 Hz Gain 12 dB Q 1.5",
-        }),
+            "ON PK Fc 2200 Hz Gain 10 dB Q 1.5",
+        }, Dsp: "drive=6"),
 
-        // Robô: a voz repetida 26 vezes a cada 9 ms vira um zumbido metálico de 110 Hz.
-        new VoiceEffect("Robot", -3, new[]
-        {
-            "ON HPQ Fc 180 Hz Q 0.7",
-            "ON LPQ Fc 6000 Hz Q 0.7",
-        }, Impulse: "robot"),
-
-        // Abafado: como se a pessoa falasse do outro lado da parede.
         new VoiceEffect("Muffled", 4, new[]
         {
             "ON LPQ Fc 700 Hz Q 0.7",
             "ON LPQ Fc 700 Hz Q 0.7",
             "ON PK Fc 250 Hz Gain 3 dB Q 1",
         }),
-
-        // Caverna: reflexões nas paredes e uma cauda longa de reverberação.
-        new VoiceEffect("Cave", -6, new[]
-        {
-            "ON HPQ Fc 120 Hz Q 0.7",
-        }, Impulse: "cave"),
-
-        // Eco: a frase volta quatro vezes, cada vez mais baixa.
-        new VoiceEffect("Echo", -3, Array.Empty<string>(), Impulse: "echo"),
-
-        // Alienígena: voz fina e metálica ao mesmo tempo.
-        new VoiceEffect("Alien", -2, new[]
-        {
-            "ON HPQ Fc 600 Hz Q 1",
-            "ON HPQ Fc 600 Hz Q 1",
-            "ON HS Fc 3000 Hz Gain 8 dB",
-        }, Impulse: "robot"),
     };
     public static VoiceEffect FindVoice(string key) =>
         VoiceEffects.FirstOrDefault(v => v.Key == key) ?? VoiceEffects[0];

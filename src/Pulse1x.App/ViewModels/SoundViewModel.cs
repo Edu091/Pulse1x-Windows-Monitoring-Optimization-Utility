@@ -397,6 +397,9 @@ public partial class SoundViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private bool _micLowCut;
     [ObservableProperty] private bool _micClarity;
+    [ObservableProperty] private bool _micNoiseGate;
+
+    partial void OnMicNoiseGateChanged(bool value) { if (!_loading) { S.MicNoiseGate = value; ScheduleApply(); } }
 
     partial void OnMicLowCutChanged(bool value) { if (!_loading) { S.MicLowCut = value; ScheduleApply(); } }
     partial void OnMicClarityChanged(bool value) { if (!_loading) { S.MicClarity = value; ScheduleApply(); } }
@@ -477,6 +480,14 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(OutputGainText));
         if (_loading) return;
         S.OutputGainDb = value;
+        // Mexer no volume extra liga o processamento da saída (senão o slider não faria nada).
+        if (!OutputEffectsEnabled)
+        {
+            _loading = true;
+            OutputEffectsEnabled = true;
+            _loading = false;
+            S.OutputEffectsEnabled = true;
+        }
         ScheduleApply();
     }
 
@@ -715,6 +726,7 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         SelectedVoice = Voices.FirstOrDefault(v => v.Key == S.VoiceEffect) ?? Voices.FirstOrDefault();
         MicLowCut = S.MicLowCut;
         MicClarity = S.MicClarity;
+        MicNoiseGate = S.MicNoiseGate;
         ApplyOnStartup = S.ApplyOnStartup;
         LockMicLevel = S.LockMicLevel;
     }
@@ -747,7 +759,14 @@ public partial class SoundViewModel : ObservableObject, IDisposable
     {
         "None" => "🎙️",
         "Deep" => "🐻",
+        "Monster" => "👹",
         "Thin" => "🐭",
+        "Chipmunk" => "🐿️",
+        "Cyborg" => "🦾",
+        "Retro" => "👾",
+        "Whisper" => "🤫",
+        "Ghost" => "👻",
+        "Drunk" => "🥴",
         "Radio" => "📻",
         "Phone" => "📞",
         "Megaphone" => "📢",
@@ -781,7 +800,7 @@ public partial class SoundViewModel : ObservableObject, IDisposable
     private string? _lastApplyProblem;
 
     private bool NeedsEngine() =>
-        S.OutputEffectsEnabled || S.VoiceEffect != "None" || S.MicLowCut || S.MicClarity || (S.MicLevelPercent ?? 0) > 100;
+        S.OutputEffectsEnabled || S.VoiceEffect != "None" || S.MicLowCut || S.MicClarity || S.MicNoiseGate || (S.MicLevelPercent ?? 0) > 100;
 
     private void Save()
     {

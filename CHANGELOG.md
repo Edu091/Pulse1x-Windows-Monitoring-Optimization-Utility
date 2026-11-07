@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.17.2 — 07/11/2026
+
+- **Modificador de voz de verdade.** Um plugin de áudio próprio do Pulse1x roda dentro do som do Windows, pelo Equalizer APO, e muda a voz em qualquer call (Discord, WhatsApp, Meet, jogos) sem trocar o microfone nos apps:
+  - **Tom real:** voz grossa, monstro, voz fina e esquilo mudam a altura da voz, como num modificador profissional, e não só o timbre.
+  - **Robô de verdade:** a fala vira uma voz monótona e eletrônica afinada em 110 Hz.
+  - **Novos efeitos:** Monstro, Esquilo, Ciborgue, 8-bit, Sussurro, Fantasma e Bêbado, ao todo 18 efeitos.
+  - **Telefone, rádio e megafone** ganharam a saturação e o chiado digital dos aparelhos.
+- **Volume alto sem estourar:** o ganho do microfone acima de 100% e o volume extra da saída passam por um limitador, sem o estalo do clipping.
+- **Silenciar ruído de fundo:** uma opção nova corta o microfone entre as falas, o que ajuda quando o volume está muito alto.
+- Testado no áudio real: o Equalizer APO carrega o plugin e o efeito aparece na captura do microfone.
 ## 1.17.1 — 07/11/2026
 
 - **Microfone mais alto de verdade.** O exemplo de fábrica do Equalizer APO 1.4.2 (que baixa 6 dB e aplica um filtro de demonstração em todos os aparelhos) não era reconhecido e continuava ativo, comendo parte do ganho e distorcendo os efeitos de voz. Agora ele é desativado sozinho, com cópia de segurança em config.txt.pulse1x-backup. O volume do microfone também vai até 1000% (+20 dB).

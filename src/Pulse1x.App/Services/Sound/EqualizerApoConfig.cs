@@ -15,32 +15,37 @@ public static class EqualizerApoConfig
 {
     public const string Header = "# Gerado pelo Pulse1x (categoria Som). Alteracoes feitas a mao aqui serao sobrescritas.";
 
-    public static string Build(SoundSettings settings, string? outputGuid, string? inputGuid, int inputSampleRate = 0)
+    /// <param name="voicePlugin">Caminho do plugin de voz relativo à pasta VSTPlugins do motor, ou
+    /// null se ele não pôde ser instalado (aí os efeitos ficam só com filtros e o ganho vira Preamp).</param>
+    public static string Build(SoundSettings settings, string? outputGuid, string? inputGuid,
+        int inputSampleRate = 0, string? voicePlugin = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine(Header);
 
         if (settings.OutputEffectsEnabled && !string.IsNullOrEmpty(outputGuid))
-            AppendOutput(sb, settings, outputGuid);
+            AppendOutput(sb, settings, outputGuid, voicePlugin);
 
         if (settings.MicEffectsEnabled && !string.IsNullOrEmpty(inputGuid))
-            AppendInput(sb, settings, inputGuid, inputSampleRate);
+            AppendInput(sb, settings, inputGuid, inputSampleRate, voicePlugin);
 
         sb.AppendLine("Device: all");
         sb.AppendLine("Channel: all");
         return sb.ToString();
     }
 
-    private static void AppendOutput(StringBuilder sb, SoundSettings s, string guid)
+    private static void AppendOutput(StringBuilder sb, SoundSettings s, string guid, string? plugin)
     {
         bool anyEq = s.Eq.Any(g => Math.Abs(g) >= 0.05);
         bool bass = s.BassBoostDb >= 0.05;
         bool surround = s.Surround >= 0.01;
+        // Volume acima de 100%: com o plugin, o ganho passa por um limitador (sem estalos).
+        bool loud = plugin is not null && s.OutputGainDb > 0.05;
 
         sb.AppendLine();
         sb.AppendLine("# Saida: equalizador, graves e som 3D");
         sb.AppendLine($"Device: {guid}");
-        sb.AppendLine($"Preamp: {N(OutputPreampDb(s))} dB");
+        sb.AppendLine($"Preamp: {N(OutputPreampDb(s, loud))} dB");
 
         if (surround)
         {
@@ -59,18 +64,24 @@ public static class EqualizerApoConfig
 
         if (bass)
             sb.AppendLine($"Filter: ON LSC Fc 110 Hz Gain {N(s.BassBoostDb)} dB Q 0.7");
+
+        if (loud)
+            sb.AppendLine(PluginLine(plugin!, $"gain={N(s.OutputGainDb)}"));
     }
 
-    private static void AppendInput(StringBuilder sb, SoundSettings s, string guid, int sampleRate)
+    private static void AppendInput(StringBuilder sb, SoundSettings s, string guid, int sampleRate, string? plugin)
     {
         var voice = SoundPresets.FindVoice(s.VoiceEffect);
         double gain = s.MicLevelPercent is int level ? SoundPresets.SplitMicLevel(level).ExtraGainDb : 0;
-        if (gain <= 0 && voice.Filters.Length == 0 && voice.Impulse is null && !s.MicLowCut && !s.MicClarity) return;
+        bool impulse = voice.Impulse is not null && sampleRate > 0;
+        bool usePlugin = plugin is not null && (voice.Dsp is not null || gain > 0 || s.MicNoiseGate);
+        if (gain <= 0 && voice.Filters.Length == 0 && !impulse && !usePlugin && !s.MicLowCut && !s.MicClarity) return;
 
         sb.AppendLine();
         sb.AppendLine("# Microfone: volume acima de 100%, filtros e modificador de voz");
         sb.AppendLine($"Device: {guid}");
-        double preamp = gain + voice.PreampDb + (s.MicClarity ? -1 : 0);
+        // Com o plugin, o ganho acima de 100% vai para ele (com limitador) em vez do Preamp.
+        double preamp = (usePlugin ? 0 : gain) + voice.PreampDb + (s.MicClarity ? -1 : 0);
         if (Math.Abs(preamp) >= 0.01)
             sb.AppendLine($"Preamp: {N(preamp)} dB");
         if (s.MicLowCut)
@@ -80,24 +91,38 @@ public static class EqualizerApoConfig
         foreach (var filter in voice.Filters)
             sb.AppendLine("Filter: " + filter);
         // A resposta ao impulso só vale na taxa exata do microfone; sem saber a taxa, fica de fora.
-        if (voice.Impulse is string impulse && sampleRate > 0)
-            sb.AppendLine("Convolution: " + ImpulseResponses.FileName(impulse, sampleRate));
+        if (impulse)
+            sb.AppendLine("Convolution: " + ImpulseResponses.FileName(voice.Impulse!, sampleRate));
+
+        if (usePlugin)
+        {
+            var parts = new List<string>();
+            if (voice.Dsp is not null) parts.Add(voice.Dsp);
+            if (gain > 0) parts.Add($"gain={N(gain)}");
+            if (s.MicNoiseGate) parts.Add("gate=-52");
+            sb.AppendLine(PluginLine(plugin!, string.Join(";", parts)));
+        }
     }
+
+    /// <summary>Linha do plugin de voz; os parâmetros vão como texto em Base64 no ChunkData.</summary>
+    public static string PluginLine(string plugin, string parameters) =>
+        $"VSTPlugin: Library \"{plugin}\" ChunkData \"{Convert.ToBase64String(Encoding.ASCII.GetBytes(parameters))}\"";
 
     /// <summary>
     /// Pré-amplificação da saída: abaixa o volume o quanto o equalizador e os graves sobem, para o
-    /// som não estourar (clipping), e soma o ganho manual escolhido pelo usuário.
+    /// som não estourar (clipping), e soma o ganho manual escolhido pelo usuário. Com
+    /// <paramref name="positiveGainInPlugin"/>, a parte positiva do ganho fica com o plugin.
     /// </summary>
-    public static double OutputPreampDb(SoundSettings s)
+    public static double OutputPreampDb(SoundSettings s, bool positiveGainInPlugin = false)
     {
         double maxEq = Math.Max(0, s.Eq.DefaultIfEmpty(0).Max());
         // O shelf de graves soma por cima das bandas mais baixas.
         double lowBands = Math.Max(0, Math.Max(s.Eq.ElementAtOrDefault(0), s.Eq.ElementAtOrDefault(1)));
         double boost = Math.Max(maxEq, lowBands + s.BassBoostDb);
         double surround = s.Surround > 0 ? 20 * Math.Log10(1 + 0.75 * s.Surround) : 0;
-        return Math.Round(-Math.Min(boost + surround, 24) + s.OutputGainDb, 1);
+        double manual = positiveGainInPlugin ? Math.Min(0, s.OutputGainDb) : s.OutputGainDb;
+        return Math.Round(-Math.Min(boost + surround, 24) + manual, 1);
     }
-
     /// <summary>
     /// Extrai o GUID do Id de um dispositivo do Windows ("{0.0.1.00000000}.{guid}" → "{guid}"),
     /// que é a forma estável de apontar o dispositivo no Equalizer APO.

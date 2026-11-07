@@ -63,8 +63,11 @@ public class SoundEngine
                         ImpulseResponses.ToWav(ImpulseResponses.Generate(impulse, rate), rate));
             }
 
+            // Plugin de voz (tom, robô, eco, ganho com limitador...): instalado na pasta do motor.
+            string? plugin = Apo.EnsureVoicePlugin();
+
             string text = EqualizerApoConfig.Build(s,
-                EqualizerApoConfig.ExtractGuid(output), EqualizerApoConfig.ExtractGuid(input), rate);
+                EqualizerApoConfig.ExtractGuid(output), EqualizerApoConfig.ExtractGuid(input), rate, plugin);
             Apo.Write(text);
             return new SoundApplyResult(true, null);
         }

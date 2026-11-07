@@ -50,6 +50,9 @@ public class SoundSettings
     /// <summary>Corta ronco e vibração abaixo de ~90 Hz (mesa, ventoinha, ar-condicionado).</summary>
     public bool MicLowCut { get; set; }
 
+    /// <summary>Silencia o microfone entre as falas (útil com muito ganho, que realça o chiado).</summary>
+    public bool MicNoiseGate { get; set; }
+
     /// <summary>Realça a faixa de inteligibilidade da voz (~3 kHz).</summary>
     public bool MicClarity { get; set; }
 

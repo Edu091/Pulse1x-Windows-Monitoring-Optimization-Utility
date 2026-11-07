@@ -205,6 +205,8 @@
 
                         <CheckBox Content="{Binding [Snd_LowCut], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MicLowCut}" Margin="0,10,0,0" />
                         <CheckBox Content="{Binding [Snd_Clarity], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MicClarity}" Margin="0,2,0,0" />
+                        <CheckBox Content="{Binding [Snd_NoiseGate], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MicNoiseGate}" Margin="0,2,0,0"
+                                  ToolTip="{Binding [Snd_NoiseGateTip], Source={x:Static loc:Loc.Instance}}" />
 
                         <TextBlock Text="{Binding [Snd_TestInput], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" Margin="0,12,0,4" />
                         <WrapPanel>

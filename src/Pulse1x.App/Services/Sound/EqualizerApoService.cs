@@ -119,6 +119,44 @@ public class EqualizerApoService
         AtomicFile.WriteAllText(config, current + separator + IncludeLine + Environment.NewLine);
     }
 
+    /// <summary>
+    /// Instala o plugin de voz do Pulse1x (VST2, embutido no .exe) na pasta VSTPlugins do motor e
+    /// devolve o caminho completo da DLL. O nome leva
+    /// o hash do conteúdo: o motor mantém a DLL aberta dentro do serviço de áudio, então uma versão
+    /// nova nunca precisa sobrescrever a antiga em uso. Devolve null se não der para instalar.
+    /// </summary>
+    public string? EnsureVoicePlugin()
+    {
+        if (InstallPath is not string install) return null;
+        try
+        {
+            using var stream = typeof(EqualizerApoService).Assembly
+                .GetManifestResourceStream("Pulse1x.App.Native.Pulse1xVoice.dll");
+            if (stream is null) return null;
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            byte[] bytes = ms.ToArray();
+            string hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))[..10].ToLowerInvariant();
+            string name = $"Pulse1xVoice-{hash}.dll";
+
+            string dir = Path.Combine(install, "VSTPlugins", "Pulse1x");
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, name);
+            if (!File.Exists(path) || new FileInfo(path).Length != bytes.Length)
+                File.WriteAllBytes(path, bytes);
+
+            // Versões antigas: apaga as que não estiverem mais carregadas pelo serviço de áudio.
+            foreach (var old in Directory.GetFiles(dir, "Pulse1xVoice-*.dll"))
+            {
+                if (string.Equals(old, path, StringComparison.OrdinalIgnoreCase)) continue;
+                try { File.Delete(old); } catch { }
+            }
+            // Caminho absoluto: verificado no log do motor ("Loaded library ...") e no áudio real.
+            return path;
+        }
+        catch { return null; }
+    }
+
     /// <summary>Grava um arquivo auxiliar (resposta ao impulso dos efeitos) na pasta do motor.</summary>
     public void WriteAuxFile(string name, byte[] content)
     {
