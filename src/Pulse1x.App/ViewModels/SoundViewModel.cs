@@ -148,28 +148,6 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         CallModesNeeded = ApoInstalled && SelectedInput is not null
             && _engine.Apo.IsActiveOn(SelectedInput.Id) == true
             && _engine.Apo.CallModesEnabled(SelectedInput.Id) == false;
-        DiscordExperimental = ApoInstalled && DiscordAudioSettings.GetSubsystem() == "experimental";
-    }
-
-    /// <summary>O Discord captura em modo Raw (subsistema experimental) e não recebe os efeitos.</summary>
-    [ObservableProperty] private bool _discordExperimental;
-
-    [RelayCommand]
-    private void FixDiscord()
-    {
-        if (DiscordAudioSettings.IsDiscordRunning())
-        {
-            System.Windows.MessageBox.Show(Loc.S("Snd_DiscordCloseFirst"), "Discord",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-            return;
-        }
-        try
-        {
-            DiscordAudioSettings.SetStandard();
-            StatusText = Loc.S("Snd_DiscordFixed");
-        }
-        catch (Exception ex) { StatusText = Loc.F("Snd_DiscordFixFailed", ex.Message); }
-        RefreshCallModes();
     }
 
     [RelayCommand]

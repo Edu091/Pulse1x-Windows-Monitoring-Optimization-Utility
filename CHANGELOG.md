@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.17.7 — 07/11/2026
+
+- **Dica do Discord corrigida.** O que impede o modificador de voz e o volume extra de chegarem ao Discord é a opção "Contornar sistema de processamento de entrada de áudio" (Voz e vídeo), que faz o Discord pegar o microfone sem passar pelos efeitos do Windows, e não o subsistema de áudio. O aviso e o botão "Ajustar o Discord" da 1.17.6, que trocavam o subsistema, foram removidos. O modificador de voz agora explica a opção certa.
+
 ## 1.17.6 — 07/11/2026
 
 - **Removido o "Ativar em todos os apps" da 1.17.5.** Com o driver de alguns fones Bluetooth, ele deixava o microfone mudo durante a call. O botão voltou a ser "Ativar em apps de chamada", como na 1.17.4. "Voltar ao padrão" continua desfazendo a mudança de quem chegou a usá-lo.

@@ -95,7 +95,7 @@ internal static partial class LocalizationStrings
 
         t["Snd_VoiceTitle"] = "Modificador de voz";
         t["Snd_VoiceHint"] = "O efeito é aplicado no próprio microfone, então funciona no Discord, WhatsApp, Meet, Zoom e jogos sem trocar nada neles. Use \"Ouvir minha voz\" ou \"Gravar 5 s e ouvir\" para testar. Os efeitos de tom e de robô atrasam a voz em cerca de 50 ms, o que não atrapalha uma call.";
-        t["Snd_VoiceApps"] = "Dica: no Discord, desligue a supressão de ruído (Krisp) e o \"Ajustar sensibilidade automaticamente\", senão ele pode filtrar o efeito. Exige o motor de áudio ativo no microfone.";
+        t["Snd_VoiceApps"] = "No Discord: em Voz e vídeo, desligue \"Contornar sistema de processamento de entrada de áudio\" (senão o Discord pega o microfone cru e o efeito não chega) e coloque a supressão de ruído em \"Nenhuma\". Exige o motor de áudio ativo no microfone.";
         t["Snd_Voice_None"] = "Natural";
         t["Snd_Voice_Deep"] = "Voz grossa";
         t["Snd_Voice_Thin"] = "Voz fina";
@@ -151,12 +151,6 @@ internal static partial class LocalizationStrings
         t["Snd_CallModesConfirm"] = "O Pulse1x vai ativar o motor de áudio também no modo de comunicações deste microfone (o usado por Discord, WhatsApp, Teams e Meet) e reiniciar o serviço de som do Windows.\n\nO som vai sumir por 1 ou 2 segundos. Se você estiver numa call, o microfone reconecta sozinho.";
         t["Snd_CallModesDone"] = "Pronto: volume, filtros e modificador de voz agora valem no Discord, WhatsApp e outras calls.";
         t["Snd_CallModesFailed"] = "O Windows não aceitou a mudança. Tente de novo ou use \"Escolher dispositivos\" no Equalizer APO.";
-        t["Snd_CallModesError"] = "Não foi possível ativar nos apps de chamada: {0}";        t["Snd_DiscordTitle"] = "O Discord está ignorando os efeitos";
-        t["Snd_DiscordHint"] = "Ele está com o subsistema de áudio \"experimental\", que pega o microfone sem passar pelo processamento do Windows (modo Raw). Troque para \"Padrão\" e o volume extra e o modificador de voz passam a chegar na call.";
-        t["Snd_DiscordButton"] = "Ajustar o Discord";
-        t["Snd_DiscordCloseFirst"] = "Feche o Discord por completo primeiro: clique com o botão direito no ícone dele perto do relógio e escolha \"Sair do Discord\". Depois clique em \"Ajustar o Discord\" de novo.\n\n(Com ele aberto, ele mesmo desfaria a mudança.)";
-        t["Snd_DiscordFixed"] = "Discord ajustado para o subsistema \"Padrão\". Abra o Discord: no Discord, desligue também a supressão de ruído (Krisp) em Voz e vídeo.";
-        t["Snd_DiscordFixFailed"] = "Não foi possível ajustar o Discord: {0}";        t["Snd_StartupTitle"] = "Iniciar com o Windows";
         t["Snd_ApplyOnStartup"] = "Aplicar estes ajustes ao iniciar o Windows";
         t["Snd_ApplyOnStartupHint"] = "A cada logon o Pulse1x reaplica o volume do microfone (inclusive acima de 100%), a amplificação de hardware e os efeitos, sem abrir janela. Útil quando o Windows, uma atualização de driver ou outro app volta o microfone ao normal.";
         t["Snd_LockMic"] = "Travar o volume do microfone";
@@ -260,7 +254,7 @@ internal static partial class LocalizationStrings
 
         t["Snd_VoiceTitle"] = "Voice changer";
         t["Snd_VoiceHint"] = "The effect is applied to the microphone itself, so it works in Discord, WhatsApp, Meet, Zoom and games without changing anything in them. Use \"Hear my voice\" or \"Record 5 s and play\" to test. Pitch and robot effects delay the voice by about 50 ms, which is fine for a call.";
-        t["Snd_VoiceApps"] = "Tip: in Discord, turn off noise suppression (Krisp) and \"Automatically determine input sensitivity\", or it may filter the effect. Requires the audio engine enabled on the mic.";
+        t["Snd_VoiceApps"] = "In Discord: under Voice & Video, turn off \"Bypass system audio input processing\" (otherwise Discord takes the raw mic and the effect never arrives) and set noise suppression to \"None\". Requires the audio engine enabled on the mic.";
         t["Snd_Voice_None"] = "Natural";
         t["Snd_Voice_Deep"] = "Deep voice";
         t["Snd_Voice_Thin"] = "Thin voice";
@@ -316,12 +310,6 @@ internal static partial class LocalizationStrings
         t["Snd_CallModesConfirm"] = "Pulse1x will enable the audio engine in this microphone's communications mode too (used by Discord, WhatsApp, Teams and Meet) and restart the Windows audio service.\n\nSound will drop for 1 or 2 seconds. If you're in a call, the mic reconnects by itself.";
         t["Snd_CallModesDone"] = "Done: volume, filters and voice changer now work in Discord, WhatsApp and other calls.";
         t["Snd_CallModesFailed"] = "Windows didn't accept the change. Try again or use \"Choose devices\" in Equalizer APO.";
-        t["Snd_CallModesError"] = "Couldn't enable for call apps: {0}";        t["Snd_DiscordTitle"] = "Discord is ignoring the effects";
-        t["Snd_DiscordHint"] = "It uses the \"experimental\" audio subsystem, which takes the mic without Windows' processing (Raw mode). Switch it to \"Standard\" and extra volume and the voice changer reach the call.";
-        t["Snd_DiscordButton"] = "Fix Discord";
-        t["Snd_DiscordCloseFirst"] = "Close Discord completely first: right-click its icon near the clock and choose \"Quit Discord\". Then click \"Fix Discord\" again.\n\n(While it's open, it would undo the change itself.)";
-        t["Snd_DiscordFixed"] = "Discord set to the \"Standard\" subsystem. Open Discord; in Voice & Video, also turn off noise suppression (Krisp).";
-        t["Snd_DiscordFixFailed"] = "Couldn't adjust Discord: {0}";        t["Snd_StartupTitle"] = "Start with Windows";
         t["Snd_ApplyOnStartup"] = "Apply these settings when Windows starts";
         t["Snd_ApplyOnStartupHint"] = "At every sign-in Pulse1x reapplies the mic volume (including above 100%), the hardware boost and the effects, without opening a window. Useful when Windows, a driver update or another app resets the mic.";
         t["Snd_LockMic"] = "Lock the microphone volume";
@@ -333,3 +321,4 @@ internal static partial class LocalizationStrings
         t["Snd_NeedsEngine"] = "Equalizer, bass, 3D sound, mic above 100% and voice changer need the audio engine (see the card at the top).";
     }
 }
+
