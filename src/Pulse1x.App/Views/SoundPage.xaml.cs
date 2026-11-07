@@ -18,4 +18,20 @@ public partial class SoundPage : Page
             else viewModel.OnHidden();
         };
     }
+
+    // Arrastar arquivos de áudio (por exemplo, memes baixados do navegador) para a mesa de sons.
+    private void Soundboard_DragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop)
+            ? System.Windows.DragDropEffects.Copy
+            : System.Windows.DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Soundboard_Drop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] files && DataContext is SoundViewModel vm)
+            vm.ImportFiles(files);
+        e.Handled = true;
+    }
 }

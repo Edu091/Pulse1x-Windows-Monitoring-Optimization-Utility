@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.18.1 — 07/11/2026
+
+- **Mesa de sons com gravações reais.** Os sons sintetizados foram trocados por 22 gravações reais do Freesound.org, todas em domínio público (CC0): peido, grito, risada, buzina, trombone triste, ba-dum-tss, grilos, aplausos, errou, acertou, explosão, boing, sirene, tiro, arroto, beijo, vaia, uau, rufar, cachorro, gato e pato. O botão "Créditos" lista os autores.
+- **Memes em dois cliques:** o botão "Memes (Myinstants)" abre o site no navegador e, pelos próximos 15 minutos, todo áudio que você baixar entra na mesa sozinho. O Pulse1x não acessa o site por conta própria, porque os termos dele proíbem programas de buscar e baixar sons. Também dá para arrastar arquivos para a mesa, se o programa de origem também estiver aberto como administrador.
 ## 1.18.0 — 07/11/2026
 
 - **Mesa de sons na categoria Som.** Dispare sons que entram na call junto com a sua voz, no Discord, no WhatsApp ou em jogos, sem microfone virtual. O plugin de voz do Pulse1x mistura o som ao microfone dentro do próprio som do Windows.

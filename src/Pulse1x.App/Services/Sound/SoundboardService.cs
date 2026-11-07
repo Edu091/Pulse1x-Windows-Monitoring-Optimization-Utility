@@ -6,7 +6,7 @@ using NAudio.Wave.SampleProviders;
 
 namespace Pulse1x.App.Services.Sound;
 
-/// <summary>Um som da mesa: embutido (sintetizado) ou importado pelo usuário.</summary>
+/// <summary>Um som da mesa: embutido (gravação CC0, ver <see cref="SoundboardLibrary"/>) ou importado pelo usuário.</summary>
 public sealed record SoundboardItem(string Key, string? FilePath)
 {
     public bool IsCustom => FilePath is not null;
@@ -40,7 +40,7 @@ public sealed class SoundboardService : IDisposable
 
     public IReadOnlyList<SoundboardItem> Items()
     {
-        var items = SoundboardSynth.Keys.Select(k => new SoundboardItem(k, null)).ToList();
+        var items = SoundboardLibrary.Keys.Select(k => new SoundboardItem(k, null)).ToList();
         if (Directory.Exists(CustomFolder))
         {
             items.AddRange(Directory.GetFiles(CustomFolder)
@@ -77,12 +77,28 @@ public sealed class SoundboardService : IDisposable
     public float[] Samples(SoundboardItem item, int rate) =>
         _cache.GetOrAdd((item.Key, rate), _ => item.FilePath is string path
             ? Decode(path, rate)
-            : SoundboardSynth.Generate(item.Key, rate));
+            : DecodeBuiltIn(item.Key, rate));
 
     /// <summary>Lê um arquivo de áudio qualquer, mistura para mono, ajusta a taxa e normaliza o pico.</summary>
     public static float[] Decode(string path, int rate)
     {
         using var reader = new MediaFoundationReader(path);
+        return Decode(reader, rate);
+    }
+
+    /// <summary>Decodifica um som embutido (MP3 dentro do .exe) na taxa pedida.</summary>
+    public static float[] DecodeBuiltIn(string key, int rate)
+    {
+        using var stream = SoundboardLibrary.Open(key);
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        memory.Position = 0;
+        using var reader = new StreamMediaFoundationReader(memory);
+        return Decode(reader, rate);
+    }
+
+    private static float[] Decode(WaveStream reader, int rate)
+    {
         ISampleProvider source = reader.ToSampleProvider();
         if (source.WaveFormat.Channels > 1) source = new MonoMix(source);
         if (source.WaveFormat.SampleRate != rate) source = new WdlResamplingSampleProvider(source, rate);

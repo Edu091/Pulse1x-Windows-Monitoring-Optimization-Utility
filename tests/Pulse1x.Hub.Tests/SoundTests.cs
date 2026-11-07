@@ -174,7 +174,7 @@ internal static class SoundTests
                     if (!m.Groups[1].Value.EndsWith("_")) keys.Add(m.Groups[1].Value);
             foreach (var v in SoundPresets.VoiceEffects) { keys.Add($"Snd_Voice_{v.Key}"); keys.Add($"Snd_VoiceDesc_{v.Key}"); }
             foreach (var p in SoundPresets.Profiles.Select(p => p.Key).Append("Custom")) { keys.Add($"Snd_Profile_{p}"); keys.Add($"Snd_ProfileDesc_{p}"); }
-            foreach (var k in SoundboardSynth.Keys) keys.Add($"Snd_Sb_{k}");
+            foreach (var k in SoundboardLibrary.Keys) keys.Add($"Snd_Sb_{k}");
             foreach (var t in Enum.GetNames<TestTone>()) keys.Add($"Snd_Tone{t}");
 
             var missing = keys.Where(k => !Pulse1x.App.Localization.LocalizationStrings.Pt.ContainsKey(k)
@@ -183,18 +183,50 @@ internal static class SoundTests
             TestSuite.Equal(true, keys.Count > 100);
         });
 
-        suite.Run("Every soundboard sound synthesizes clean audio at call sample rates", () =>
+        suite.Run("Every built-in soundboard recording is embedded, CC0-credited and decodes at call rates", () =>
         {
-            foreach (var rate in new[] { 16000, 48000 })
-                foreach (var key in SoundboardSynth.Keys)
+            string root = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(root, "Pulse1x.sln"))) root = Path.GetDirectoryName(root)!;
+            string credits = File.ReadAllText(Path.Combine(root, "src", "Pulse1x.App", "Resources", "Soundboard", "CREDITS.md"));
+            TestSuite.Equal(SoundboardLibrary.Tracks.Count, SoundboardLibrary.Keys.Distinct().Count());
+            foreach (var track in SoundboardLibrary.Tracks)
+            {
+                if (!credits.Contains(track.PageUrl)) throw new Exception($"{track.Key}: missing from CREDITS.md");
+                foreach (var rate in new[] { 16000, 48000 })
                 {
-                    var s = SoundboardSynth.Generate(key, rate);
-                    if (s.Length < rate / 4 || s.Length > rate * 4) throw new Exception($"{key}@{rate}: {s.Length} samples");
+                    var s = SoundboardService.DecodeBuiltIn(track.Key, rate);
+                    double seconds = s.Length / (double)rate;
                     float peak = s.Max(Math.Abs);
-                    if (!s.All(float.IsFinite) || peak < 0.85f || peak > 0.91f) throw new Exception($"{key}@{rate}: peak {peak}");
+                    if (seconds < 0.3 || seconds > 8 || peak < 0.85f || peak > 0.91f || !s.All(float.IsFinite))
+                        throw new Exception($"{track.Key}@{rate}: {seconds:0.00}s peak {peak:0.00}");
                 }
+            }
         });
+        suite.Run("Downloads watcher picks up an audio file once the browser finishes it", () =>
+        {
+            string dir = Path.Combine(Path.GetTempPath(), $"pulse1x-dl-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(dir);
+            try
+            {
+                using var watcher = new DownloadsWatcher();
+                var got = new List<string>();
+                using var signal = new ManualResetEventSlim();
+                watcher.AudioDownloaded += p => { lock (got) got.Add(p); signal.Set(); };
+                TestSuite.Equal(true, watcher.Start(TimeSpan.FromMinutes(1), dir));
 
+                File.WriteAllText(Path.Combine(dir, "notes.txt"), "ignored");
+                // Como um navegador: grava em .crdownload e renomeia para .mp3 no fim.
+                string partial = Path.Combine(dir, "bruh.mp3.crdownload");
+                using (var src = SoundboardLibrary.Open("boing")) using (var dst = File.Create(partial)) src.CopyTo(dst);
+                File.Move(partial, Path.Combine(dir, "bruh.mp3"));
+
+                TestSuite.Equal(true, signal.Wait(TimeSpan.FromSeconds(10)));
+                lock (got) TestSuite.SequenceEqual(new[] { Path.Combine(dir, "bruh.mp3") }, got);
+                watcher.Stop();
+                TestSuite.Equal(false, watcher.IsWatching);
+            }
+            finally { Directory.Delete(dir, true); }
+        });
         suite.Run("Soundboard channel mixes overlapping sounds and the plugin layout matches", () =>
         {
             using var channel = new SoundboardChannel($"Local\\pulse1x-sb-test-{Guid.NewGuid():N}", capacity: 4800);

@@ -18,7 +18,7 @@
          diário sempre vai parecer "mais antiga" que o Release do GitHub e o app vai pedir
          atualização sem necessidade a cada abertura (bug corrigido em 2026-07-13: baseline
          estava presa em 1.0.0 enquanto o Release já publicado era 1.0.1). -->
-    <Version>1.18.0</Version>
+    <Version>1.18.1</Version>
   </PropertyGroup>
 
   <!-- O histórico de versões viaja dentro do executável, para a seção Sobre exibi-lo sem
@@ -66,6 +66,8 @@
        native\Pulse1xVoice; a DLL fica versionada para o build do app não depender do compilador C. -->
   <ItemGroup>
     <EmbeddedResource Include="Resources\Native\Pulse1xVoice.dll" LogicalName="Pulse1x.App.Native.Pulse1xVoice.dll" />
+    <!-- Mesa de sons: gravações reais CC0 do Freesound (créditos em Resources\Soundboard\CREDITS.md). -->
+    <EmbeddedResource Include="Resources\Soundboard\*.mp3" LogicalName="Pulse1x.App.Soundboard.%(Filename).mp3" />
   </ItemGroup>
 
   <ItemGroup>

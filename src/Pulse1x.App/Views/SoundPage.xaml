@@ -376,8 +376,8 @@
                 </StackPanel>
             </Border>
 
-            <!-- Mesa de sons -->
-            <Border Style="{StaticResource Card}">
+            <!-- Mesa de sons (aceita arquivos de áudio arrastados) -->
+            <Border Style="{StaticResource Card}" AllowDrop="True" DragOver="Soundboard_DragOver" Drop="Soundboard_Drop">
                 <StackPanel>
                     <Grid>
                         <StackPanel Orientation="Horizontal">
@@ -388,7 +388,10 @@
                             <ui:Button Content="{Binding [Snd_SbStop], Source={x:Static loc:Loc.Instance}}" Command="{Binding StopSoundsCommand}"
                                        Icon="{ui:SymbolIcon Stop24}" Padding="10,3" Margin="0,0,8,0" />
                             <ui:Button Content="{Binding [Snd_SbImport], Source={x:Static loc:Loc.Instance}}" Command="{Binding ImportSoundCommand}"
-                                       Icon="{ui:SymbolIcon Add24}" Padding="10,3" Margin="0,0,10,0" />
+                                       Icon="{ui:SymbolIcon Add24}" Padding="10,3" Margin="0,0,8,0" />
+                            <ui:Button Content="{Binding [Snd_SbMemes], Source={x:Static loc:Loc.Instance}}" Command="{Binding OpenMemeSiteCommand}"
+                                       Icon="{ui:SymbolIcon Globe24}" Padding="10,3" Margin="0,0,10,0"
+                                       ToolTip="{Binding [Snd_SbMemesTip], Source={x:Static loc:Loc.Instance}}" />
                             <ui:ToggleSwitch Content="{Binding [Snd_EffectsOn], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding SoundboardEnabled}" />
                         </StackPanel>
                     </Grid>
@@ -444,7 +447,8 @@
                         <WrapPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <CheckBox Content="{Binding [Snd_SbMonitor], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding SoundboardMonitor}" Margin="0,0,12,0" />
                             <CheckBox Content="{Binding [Snd_SbHotkeys], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding SoundboardHotkeys}" Margin="0,0,12,0" />
-                            <ui:Button Content="{Binding [Snd_SbFolder], Source={x:Static loc:Loc.Instance}}" Command="{Binding OpenSoundFolderCommand}" Padding="8,3" />
+                            <ui:Button Content="{Binding [Snd_SbFolder], Source={x:Static loc:Loc.Instance}}" Command="{Binding OpenSoundFolderCommand}" Padding="8,3" Margin="0,0,6,0" />
+                            <ui:Button Content="{Binding [Snd_SbCredits], Source={x:Static loc:Loc.Instance}}" Command="{Binding ShowSoundCreditsCommand}" Padding="8,3" />
                         </WrapPanel>
                     </Grid>
                 </StackPanel>
