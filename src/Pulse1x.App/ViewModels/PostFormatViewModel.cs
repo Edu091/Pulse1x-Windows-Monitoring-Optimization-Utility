@@ -105,6 +105,8 @@ public partial class RecommendedSettingViewModel : ObservableObject
 
     public string Title => Setting.Title;
     public string Description => Setting.Description;
+    /// <summary>Chave do selo de segurança e das vantagens/desvantagens (controle FunctionInfo).</summary>
+    public string InfoKey => "PfInfo_" + Setting.Id;
 
     [ObservableProperty] private bool isSelected;
     [ObservableProperty] private string statusText = "";

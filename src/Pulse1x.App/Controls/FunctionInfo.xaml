@@ -1,0 +1,46 @@
+<UserControl
+    x:Class="Pulse1x.App.Controls.FunctionInfo"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    Focusable="False">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:StringToBrushConverter x:Key="StrToBrush" />
+    </UserControl.Resources>
+
+    <!-- Selo de segurança + "Vantagens e desvantagens" recolhível. DataContext = ToolInfoViewModel
+         (definido no code-behind a partir de InfoKey). -->
+    <StackPanel x:Name="RootPanel" Margin="0,6,0,0">
+        <StackPanel Orientation="Horizontal">
+            <Border CornerRadius="4" Padding="6,1" VerticalAlignment="Center" ToolTip="{Binding SafetyTip}"
+                    Background="{Binding SafetyBackground, Converter={StaticResource StrToBrush}}">
+                <TextBlock FontSize="11" FontWeight="SemiBold"
+                           Foreground="{Binding SafetyColor, Converter={StaticResource StrToBrush}}">
+                    <Run Text="🛡" /><Run Text=" " /><Run Text="{Binding SafetyText, Mode=OneWay}" />
+                </TextBlock>
+            </Border>
+            <ui:Button Appearance="Transparent" Padding="6,1" Margin="6,0,0,0" FontSize="11" VerticalAlignment="Center"
+                       Command="{Binding ToggleCommand}"
+                       Content="{Binding [Lat_ProsCons], Source={x:Static loc:Loc.Instance}}">
+                <ui:Button.Icon>
+                    <ui:SymbolIcon Symbol="ChevronDown24" FontSize="10" />
+                </ui:Button.Icon>
+            </ui:Button>
+        </StackPanel>
+        <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="6"
+                Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock FontSize="12" TextWrapping="Wrap">
+                    <Run Text="✅ " /><Run FontWeight="SemiBold" Text="{Binding [Lat_Pros], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Pros, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0">
+                    <Run Text="⚠️ " /><Run FontWeight="SemiBold" Text="{Binding [Lat_Cons], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Cons, Mode=OneWay}" />
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

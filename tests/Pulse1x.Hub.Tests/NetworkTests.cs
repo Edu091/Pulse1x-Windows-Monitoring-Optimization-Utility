@@ -238,6 +238,33 @@ internal static class NetworkTests
             TestSuite.Equal(Pulse1x.App.ViewModels.ToolSafety.Safe, Pulse1x.App.ViewModels.LatencyViewModel.SafetyOf("Lat_ToolFlushDns"));
         });
 
+        suite.Run("Every app function with a safety badge has pros/cons in both languages", () =>
+        {
+            var pt = Pulse1x.App.Localization.LocalizationStrings.Pt;
+            var en = Pulse1x.App.Localization.LocalizationStrings.En;
+            var keys = FunctionSafety.AllKeys.ToList();
+            var missing = keys.SelectMany(k => new[] { k + "_Pros", k + "_Cons" })
+                              .Where(k => !pt.ContainsKey(k) || !en.ContainsKey(k)).ToList();
+            if (missing.Count > 0) throw new Exception("Missing: " + string.Join(", ", missing));
+
+            // Todas as Otimizações Avançadas, Comandos Especiais e configurações da Pós-formatação
+            // precisam ter selo (as áreas listam suas chaves explicitamente).
+            string root = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(root, "Pulse1x.sln"))) root = Path.GetDirectoryName(root)!;
+            string app = Path.Combine(root, "src", "Pulse1x.App");
+            string services = File.ReadAllText(Path.Combine(app, "Services", "AdvancedOptimizationService.cs"))
+                              + File.ReadAllText(Path.Combine(app, "Services", "HardwareOptimizationService.cs"));
+            var advIds = System.Text.RegularExpressions.Regex.Matches(services, @"\bId = ""([a-z0-9-]+)""")
+                .Select(m => "AdvInfo_" + m.Groups[1].Value).Distinct();
+            var special = System.Text.RegularExpressions.Regex.Matches(
+                    File.ReadAllText(Path.Combine(app, "ViewModels", "SpecialCommandsViewModel.cs")),
+                    @"new SpecialCommandViewModel\(""[^""]*"", Loc\.S\(""(Special_[A-Za-z0-9]+Title)""\)")
+                .Select(m => m.Groups[1].Value).Distinct();
+            var post = Pulse1x.App.Models.PostFormatCatalog.Settings.Select(s => "PfInfo_" + s.Id);
+            var undeclared = advIds.Concat(special).Concat(post).Where(k => !keys.Contains(k)).ToList();
+            if (undeclared.Count > 0) throw new Exception("No safety badge: " + string.Join(", ", undeclared));
+        });
+
         suite.Run("Power plan index and Auto-Tuning are read in any Windows language", () =>
         {
             // powercfg em espanhol: rótulos que o código não conhece; as duas últimas linhas são CA e CC.

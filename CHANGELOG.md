@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.21.0 — 10/11/2026
+
+- **Selo de segurança e "Vantagens e desvantagens" em todas as funções que mudam o Windows**, não só na Latência: Otimizações Avançadas, Comandos Especiais, configurações recomendadas da Pós-formatação e a categoria Som. Cada função mostra se é Segura, Moderada ou Avançada (passe o mouse no selo para ver o critério) e, num painel recolhido logo abaixo, o que ela melhora e o que custa.
+
 ## 1.20.0 — 10/11/2026
 
 - **Selo de segurança em cada função da Latência:** Seguro, Moderado ou Avançado, com um painel recolhível "Vantagens e desvantagens" logo abaixo, explicando o que cada ajuste melhora e o que ele custa.

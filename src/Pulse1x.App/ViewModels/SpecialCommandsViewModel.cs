@@ -67,38 +67,38 @@ public partial class SpecialCommandsViewModel : ObservableObject
         RepairCommands.Add(new SpecialCommandViewModel("🛡️", Loc.S("Special_SfcTitle"),
             Loc.S("Special_SfcDesc"), Loc.S("Special_Run"),
             c => RunLongCommandAsync(c, Loc.S("Special_SfcOpTitle"), "sfc", "/scannow",
-                Loc.S("Special_SfcConfirm"))));
+                Loc.S("Special_SfcConfirm"))) { InfoKey = "Special_SfcTitle" });
 
         RepairCommands.Add(new SpecialCommandViewModel("🩺", Loc.S("Special_DismRestoreTitle"),
             Loc.S("Special_DismRestoreDesc"), Loc.S("Special_Run"),
             c => RunLongCommandAsync(c, Loc.S("Special_DismRestoreOpTitle"), "dism", "/Online /Cleanup-Image /RestoreHealth",
-                Loc.S("Special_DismRestoreConfirm"))));
+                Loc.S("Special_DismRestoreConfirm"))) { InfoKey = "Special_DismRestoreTitle" });
 
         RepairCommands.Add(new SpecialCommandViewModel("💽", Loc.S("Special_ChkdskTitle"),
             Loc.S("Special_ChkdskDesc"), Loc.S("Special_Run"),
             c => RunLongCommandAsync(c, Loc.S("Special_ChkdskOpTitle"), "chkdsk", "C:",
-                Loc.S("Special_ChkdskConfirm"))));
+                Loc.S("Special_ChkdskConfirm"))) { InfoKey = "Special_ChkdskTitle" });
 
         RepairCommands.Add(new SpecialCommandViewModel("🧹", Loc.S("Special_DismCleanupTitle"),
             Loc.S("Special_DismCleanupDesc"), Loc.S("Special_Run"),
             c => RunLongCommandAsync(c, Loc.S("Special_DismCleanupOpTitle"), "dism", "/Online /Cleanup-Image /StartComponentCleanup",
-                Loc.S("Special_DismCleanupConfirm"))));
+                Loc.S("Special_DismCleanupConfirm"))) { InfoKey = "Special_DismCleanupTitle" });
 
         // ---- Desempenho ----
         var balancedCard = new SpecialCommandViewModel("⚖️", Loc.S("Special_BalancedPlanTitle"),
             Loc.S("Special_BalancedPlanDesc"), Loc.S("Special_Activate"),
             c => SetPowerPlanAsync(c, Loc.S("Special_BalancedPlanTitle"), _service.SetBalancedPlanAsync,
-                Loc.S("Special_BalancedPlanConfirm")), isToggle: true);
+                Loc.S("Special_BalancedPlanConfirm")), isToggle: true) { InfoKey = "Special_BalancedPlanTitle" };
 
         var highPerfCard = new SpecialCommandViewModel("🚀", Loc.S("Special_HighPerfTitle"),
             Loc.S("Special_HighPerfDesc"), Loc.S("Special_Activate"),
             c => SetPowerPlanAsync(c, Loc.S("Special_HighPerfTitle"), _service.SetHighPerformancePlanAsync,
-                Loc.S("Special_HighPerfConfirm")), isToggle: true);
+                Loc.S("Special_HighPerfConfirm")), isToggle: true) { InfoKey = "Special_HighPerfTitle" };
 
         var ultimateCard = new SpecialCommandViewModel("⚡", Loc.S("Special_UltimateTitle"),
             Loc.S("Special_UltimateDesc"), Loc.S("Special_Activate"),
             c => SetPowerPlanAsync(c, Loc.S("Special_UltimateTitle"), _service.SetUltimatePlanAsync,
-                Loc.S("Special_UltimateConfirm")), isToggle: true);
+                Loc.S("Special_UltimateConfirm")), isToggle: true) { InfoKey = "Special_UltimateTitle" };
 
         _powerPlanCards = new[]
         {
@@ -119,49 +119,49 @@ public partial class SpecialCommandsViewModel : ObservableObject
 
         PerformanceCommands.Add(new SpecialCommandViewModel("🗜️", Loc.S("Special_OptimizeDrivesTitle"),
             Loc.S("Special_OptimizeDrivesDesc"), Loc.S("Special_Run"),
-            c => OpenToolCard(c, "dfrgui.exe")));
+            c => OpenToolCard(c, "dfrgui.exe")) { InfoKey = "Special_OptimizeDrivesTitle" });
 
         _ = RefreshActivePowerPlanAsync();
 
         // ---- Recuperação ----
         RecoveryCommands.Add(new SpecialCommandViewModel("⏮️", Loc.S("Special_SystemRestoreTitle"),
             Loc.S("Special_SystemRestoreDesc"), Loc.S("Special_Open"),
-            c => OpenToolCard(c, "rstrui.exe")));
+            c => OpenToolCard(c, "rstrui.exe")) { InfoKey = "Special_SystemRestoreTitle" });
 
         // ---- Ferramentas do Windows ----
         WindowsTools.Add(new SpecialCommandViewModel("🗝️", Loc.S("Special_GodModeTitle"),
             Loc.S("Special_GodModeDesc"), Loc.S("Special_Create"),
-            c => CreateGodModeCard(c)));
+            c => CreateGodModeCard(c)) { InfoKey = "Special_GodModeTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("🔌", Loc.S("Special_DeviceManagerTitle"),
-            Loc.S("Special_DeviceManagerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "devmgmt.msc")));
+            Loc.S("Special_DeviceManagerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "devmgmt.msc")) { InfoKey = "Special_DeviceManagerTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("🗂️", Loc.S("Special_DiskManagementTitle"),
-            Loc.S("Special_DiskManagementDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "diskmgmt.msc")));
+            Loc.S("Special_DiskManagementDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "diskmgmt.msc")) { InfoKey = "Special_DiskManagementTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("📊", Loc.S("Special_ResourceMonitorTitle"),
-            Loc.S("Special_ResourceMonitorDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "resmon.exe")));
+            Loc.S("Special_ResourceMonitorDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "resmon.exe")) { InfoKey = "Special_ResourceMonitorTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("📈", Loc.S("Special_PerfMonitorTitle"),
-            Loc.S("Special_PerfMonitorDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "perfmon.exe")));
+            Loc.S("Special_PerfMonitorDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "perfmon.exe")) { InfoKey = "Special_PerfMonitorTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("📋", Loc.S("Special_EventViewerTitle"),
-            Loc.S("Special_EventViewerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "eventvwr.msc")));
+            Loc.S("Special_EventViewerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "eventvwr.msc")) { InfoKey = "Special_EventViewerTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("⚙️", Loc.S("Special_ServicesTitle"),
-            Loc.S("Special_ServicesDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "services.msc")));
+            Loc.S("Special_ServicesDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "services.msc")) { InfoKey = "Special_ServicesTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("📜", Loc.S("Special_GroupPolicyTitle"),
             Loc.S("Special_GroupPolicyDesc"), Loc.S("Special_Open"),
-            c => OpenToolCard(c, "gpedit.msc", Loc.S("Special_GroupPolicyUnavailable"))));
+            c => OpenToolCard(c, "gpedit.msc", Loc.S("Special_GroupPolicyUnavailable"))) { InfoKey = "Special_GroupPolicyTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("🧠", Loc.S("Special_MemoryDiagnosticTitle"),
-            Loc.S("Special_MemoryDiagnosticDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "mdsched.exe")));
+            Loc.S("Special_MemoryDiagnosticDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "mdsched.exe")) { InfoKey = "Special_MemoryDiagnosticTitle" });
         WindowsTools.Add(new SpecialCommandViewModel("🧰", Loc.S("Special_TaskManagerTitle"),
-            Loc.S("Special_TaskManagerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "taskmgr.exe")));
+            Loc.S("Special_TaskManagerDesc"), Loc.S("Special_Open"), c => OpenToolCard(c, "taskmgr.exe")) { InfoKey = "Special_TaskManagerTitle" });
 
         // ---- Rede ----
         NetworkCommands.Add(new SpecialCommandViewModel("🔄", Loc.S("Special_RenewNetworkTitle"),
             Loc.S("Special_RenewNetworkDesc"), Loc.S("Special_Run"),
-            c => RunLongCommandAsync(c, Loc.S("Special_RenewNetworkOpTitle"), "ipconfig", "/renew", null, _service.RenewNetworkAsync)));
+            c => RunLongCommandAsync(c, Loc.S("Special_RenewNetworkOpTitle"), "ipconfig", "/renew", null, _service.RenewNetworkAsync)) { InfoKey = "Special_RenewNetworkTitle" });
 
         NetworkCommands.Add(new SpecialCommandViewModel("♻️", Loc.S("Special_ResetNetworkTitle"),
             Loc.S("Special_ResetNetworkDesc"), Loc.S("Special_Run"),
             c => RunLongCommandAsync(c, Loc.S("Special_ResetNetworkOpTitle"), "netsh", "winsock reset",
                 Loc.S("Special_ResetNetworkConfirm"),
-                _service.ResetNetworkAsync)));
+                _service.ResetNetworkAsync)) { InfoKey = "Special_ResetNetworkTitle" });
     }
 
     // ===================== Execução de comandos longos (saída compartilhada) =====================
@@ -498,6 +498,10 @@ public partial class SpecialCommandViewModel : ObservableObject
     public string Title { get; }
     public string Description { get; }
     public string ButtonText { get; }
+
+    /// <summary>Chave do selo de segurança e das vantagens/desvantagens (controle FunctionInfo):
+    /// a mesma chave do título, ex.: "Special_SfcTitle".</summary>
+    public string InfoKey { get; init; } = "";
 
     /// <summary>Comandos de "Ativar" (ex.: planos de energia) usam um interruptor em vez de botão.</summary>
     public bool IsToggleCommand { get; }

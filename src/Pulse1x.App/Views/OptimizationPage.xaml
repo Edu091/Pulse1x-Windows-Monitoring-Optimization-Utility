@@ -6,6 +6,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
     xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
     xmlns:anim="clr-namespace:Pulse1x.App.Services"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -40,6 +41,7 @@
                         <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
                         <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                        <controls:FunctionInfo InfoKey="{Binding InfoKey}" />
                     </StackPanel>
                     <Grid Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
                         <ui:Button Content="{Binding ButtonText}" Command="{Binding RunCommand}"
@@ -78,6 +80,7 @@
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding StateText}" FontSize="12" Opacity="0.65" Margin="0,1,0,0" />
+                            <controls:FunctionInfo InfoKey="{Binding InfoKey}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
                             <!-- O anel aparece ao lado do interruptor durante a operação; o interruptor

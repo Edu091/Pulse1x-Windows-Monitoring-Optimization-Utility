@@ -6,6 +6,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
     xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -85,6 +86,7 @@
                         <TextBlock Text="{Binding [Snd_EngineTitle], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource CardTitle}" />
                         <TextBlock Text="{Binding ApoStatus}" TextWrapping="Wrap" Margin="0,2,0,0" />
                         <TextBlock Text="{Binding [Snd_EngineExplain], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+                        <controls:FunctionInfo InfoKey="SndInfo_AudioEngine" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0">
                         <ui:Button Content="{Binding [Snd_ApoDownload], Source={x:Static loc:Loc.Instance}}" Command="{Binding DownloadApoCommand}"
@@ -110,6 +112,7 @@
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="{Binding [Snd_CallModesTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding [Snd_CallModesHint], Source={x:Static loc:Loc.Instance}}" FontSize="12" TextWrapping="Wrap" Opacity="0.85" />
+                        <controls:FunctionInfo InfoKey="SndInfo_CallModes" />
                     </StackPanel>
                     <ui:Button Grid.Column="2" Content="{Binding [Snd_CallModesButton], Source={x:Static loc:Loc.Instance}}"
                                Command="{Binding EnableCallModesCommand}" Appearance="Primary" VerticalAlignment="Center" Margin="12,0,0,0"
@@ -145,6 +148,7 @@
                                        Command="{Binding ToggleOutputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
                                        ToolTip="{Binding OutputDefaultTip}" />
                         </Grid>
+                        <controls:FunctionInfo InfoKey="SndInfo_DefaultDevice" />
 
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
@@ -190,6 +194,7 @@
                                        Command="{Binding ToggleInputDefaultCommand}" Margin="6,0,0,0" Padding="10,6"
                                        ToolTip="{Binding InputDefaultTip}" />
                         </Grid>
+                        <controls:FunctionInfo InfoKey="SndInfo_DefaultDevice" />
 
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
@@ -208,6 +213,7 @@
                         <TextBlock Text="{Binding MicLevelDetail}" Style="{StaticResource Hint}" Margin="0,2,0,0" />
                         <TextBlock Text="{Binding [Snd_MicNeedsEngine], Source={x:Static loc:Loc.Instance}}" FontSize="11" Foreground="#F97316" TextWrapping="Wrap"
                                    Visibility="{Binding MicNeedsEngine, Converter={StaticResource BoolToVis}}" />
+                        <controls:FunctionInfo InfoKey="SndInfo_MicBoost" />
                         <ProgressBar Style="{StaticResource Meter}" Value="{Binding InputPeak, Mode=OneWay}" Margin="0,8,0,0" />
 
                         <!-- Amplificação de hardware -->
@@ -219,6 +225,7 @@
                             <StackPanel>
                                 <TextBlock Text="{Binding [Snd_HwBoost], Source={x:Static loc:Loc.Instance}}" FontSize="13" />
                                 <TextBlock Text="{Binding [Snd_HwBoostHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" />
+                                <controls:FunctionInfo InfoKey="SndInfo_HwBoost" />
                             </StackPanel>
                             <ComboBox Grid.Column="1" ItemsSource="{Binding HardwareBoostSteps}" SelectedItem="{Binding SelectedBoost}"
                                       DisplayMemberPath="Display" VerticalAlignment="Center" />
@@ -228,6 +235,7 @@
                         <CheckBox Content="{Binding [Snd_Clarity], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MicClarity}" Margin="0,2,0,0" />
                         <CheckBox Content="{Binding [Snd_NoiseGate], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding MicNoiseGate}" Margin="0,2,0,0"
                                   ToolTip="{Binding [Snd_NoiseGateTip], Source={x:Static loc:Loc.Instance}}" />
+                        <controls:FunctionInfo InfoKey="SndInfo_MicFilters" />
 
                         <TextBlock Text="{Binding [Snd_TestInput], Source={x:Static loc:Loc.Instance}}" FontSize="12" Opacity="0.7" Margin="0,12,0,4" />
                         <WrapPanel>
@@ -281,6 +289,7 @@
                         </StackPanel>
                     </Grid>
                     <TextBlock Text="{Binding [Snd_EqHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,4,0,8" />
+                    <controls:FunctionInfo InfoKey="SndInfo_Equalizer" Margin="0,-4,0,8" />
 
                     <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
                         <ListBox.ItemTemplate>
@@ -347,6 +356,7 @@
                             </Grid>
                             <Slider Minimum="-12" Maximum="12" Value="{Binding OutputGain}" TickFrequency="0.5" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" />
                             <TextBlock Text="{Binding [Snd_GainHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" />
+                            <controls:FunctionInfo InfoKey="SndInfo_OutputGain" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -360,6 +370,7 @@
                         <TextBlock Text="{Binding [Snd_VoiceTitle], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource CardTitle}" />
                     </StackPanel>
                     <TextBlock Text="{Binding [Snd_VoiceHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,4,0,8" />
+                    <controls:FunctionInfo InfoKey="SndInfo_VoiceChanger" Margin="0,-4,0,8" />
 
                     <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
                         <ListBox.ItemTemplate>
@@ -393,6 +404,7 @@
                         </StackPanel>
                     </Grid>
                     <TextBlock Text="{Binding [Snd_SbHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,4,0,8" />
+                    <controls:FunctionInfo InfoKey="SndInfo_Soundboard" Margin="0,-4,0,8" />
 
                     <ItemsControl ItemsSource="{Binding SoundboardItems}">
                         <ItemsControl.ItemsPanel>
@@ -460,8 +472,10 @@
                     </StackPanel>
                     <ui:ToggleSwitch Content="{Binding [Snd_ApplyOnStartup], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding ApplyOnStartup}" Margin="0,10,0,0" />
                     <TextBlock Text="{Binding [Snd_ApplyOnStartupHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,2,0,8" />
+                    <controls:FunctionInfo InfoKey="SndInfo_ApplyOnStartup" Margin="0,-4,0,8" />
                     <ui:ToggleSwitch Content="{Binding [Snd_LockMic], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding LockMicLevel}" />
                     <TextBlock Text="{Binding [Snd_LockMicHint], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource Hint}" Margin="0,2,0,0" />
+                    <controls:FunctionInfo InfoKey="SndInfo_LockMic" />
                 </StackPanel>
             </Border>
         </StackPanel>

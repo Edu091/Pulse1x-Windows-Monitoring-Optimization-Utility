@@ -30,6 +30,8 @@ public partial class AdvancedOptimizationViewModel : ObservableObject
     public string Title => _model.Title;
     public string Description => _model.Description;
     public string Category => _model.Category;
+    /// <summary>Chave do selo de segurança e das vantagens/desvantagens (controle FunctionInfo).</summary>
+    public string InfoKey => "AdvInfo_" + _model.Id;
 
     public string? Warning => _model.Warning;
     public bool HasWarning => !string.IsNullOrEmpty(_model.Warning);

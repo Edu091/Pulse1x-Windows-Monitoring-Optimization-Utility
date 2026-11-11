@@ -29,6 +29,10 @@ internal static partial class LocalizationStrings
         AddFirmwareEnglish();
         AddNetworkPortuguese();
         AddNetworkEnglish();
+        AddInfoAdvanced();
+        AddInfoSpecial();
+        AddInfoPostFormat();
+        AddInfoSound();
     }
 
     private static void AddGameHubPortuguese()

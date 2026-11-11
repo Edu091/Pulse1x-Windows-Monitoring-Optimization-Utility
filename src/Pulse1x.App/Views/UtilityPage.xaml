@@ -6,6 +6,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:vm="clr-namespace:Pulse1x.App.ViewModels"
     xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
     xmlns:anim="clr-namespace:Pulse1x.App.Services"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -309,6 +310,7 @@
                                         <StackPanel Grid.Column="1" Margin="6,0,8,0" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
                                             <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
+                                            <controls:FunctionInfo InfoKey="{Binding InfoKey}" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
                                                    Foreground="{Binding StatusColor, Converter={StaticResource StrToBrush}}"
