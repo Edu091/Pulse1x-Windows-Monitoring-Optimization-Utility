@@ -84,6 +84,40 @@
             <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
         </Style>
 
+        <!-- Selo de segurança + "Vantagens e desvantagens" recolhível (todos os cards de ferramenta) -->
+        <DataTemplate x:Key="ToolInfoBlock" DataType="{x:Type vm:ToolInfoViewModel}">
+            <StackPanel Margin="0,6,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <Border CornerRadius="4" Padding="6,1" VerticalAlignment="Center" ToolTip="{Binding SafetyTip}"
+                            Background="{Binding SafetyBackground, Converter={StaticResource StrToBrush}}">
+                        <TextBlock FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{Binding SafetyColor, Converter={StaticResource StrToBrush}}">
+                            <Run Text="🛡" /><Run Text=" " /><Run Text="{Binding SafetyText, Mode=OneWay}" />
+                        </TextBlock>
+                    </Border>
+                    <ui:Button Appearance="Transparent" Padding="6,1" Margin="6,0,0,0" FontSize="11" VerticalAlignment="Center"
+                               Command="{Binding ToggleCommand}"
+                               Content="{Binding [Lat_ProsCons], Source={x:Static loc:Loc.Instance}}">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="ChevronDown24" FontSize="10" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </StackPanel>
+                <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="6"
+                        Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <TextBlock FontSize="12" TextWrapping="Wrap">
+                            <Run Text="✅ " /><Run FontWeight="SemiBold" Text="{Binding [Lat_Pros], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Pros, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0">
+                            <Run Text="⚠️ " /><Run FontWeight="SemiBold" Text="{Binding [Lat_Cons], Source={x:Static loc:Loc.Instance}, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Cons, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+
         <!-- Card de ferramenta (ação pontual / tweak / perfil) -->
         <DataTemplate x:Key="ToolCard" DataType="{x:Type vm:NetworkToolViewModel}">
             <Border Margin="0,0,0,6" CornerRadius="8" BorderThickness="1" Padding="10"
@@ -108,18 +142,30 @@
                         <TextBlock Text="{Binding Description}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
                         <TextBlock Text="{Binding StatusMessage}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" />
+                        <ContentControl Content="{Binding Info}" ContentTemplate="{StaticResource ToolInfoBlock}" Focusable="False" />
                     </StackPanel>
                     <!-- Largura mínima fixa: o card não "pula" quando o botão vira o anel de progresso. -->
                     <Grid Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="84">
                         <StackPanel Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
                             <ui:Button Content="{Binding ButtonText}" HorizontalAlignment="Stretch"
                                        Command="{Binding RunCommand}" Padding="14,6" />
-                            <!-- Reverter: só aparece quando este ajuste tem alterações ativas. -->
+                            <!-- Reverter em todos os cards: aceso quando há alteração ativa; apagado (mas
+                                 clicável, explicando o motivo) quando não há o que desfazer. -->
                             <ui:Button HorizontalAlignment="Stretch" Margin="0,6,0,0" Padding="14,6"
                                        Icon="{ui:SymbolIcon ArrowUndo24}"
                                        Content="{Binding [Lat_Revert], Source={x:Static loc:Loc.Instance}}"
-                                       Command="{Binding RevertCommand}"
-                                       Visibility="{Binding CanRevert, Converter={StaticResource BoolToVis}}" />
+                                       Command="{Binding RevertCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Opacity" Value="0.45" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanRevert}" Value="True">
+                                                <Setter Property="Opacity" Value="1" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
                         </StackPanel>
                         <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20"
                                          Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
@@ -311,7 +357,7 @@
         </DataTemplate>
     </Page.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="16">
         <StackPanel MaxWidth="684" HorizontalAlignment="Left">
 
             <!-- Título -->
@@ -610,6 +656,7 @@
                                     <TextBlock Text="{Binding [Lat_WifiGameModeDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,1,0,0" />
                                     <TextBlock Text="{Binding WifiGameModeStatus}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
                                                Visibility="{Binding WifiGameModeStatus, Converter={StaticResource StrToVis}}" />
+                                    <ContentControl Content="{Binding GameModeInfo}" ContentTemplate="{StaticResource ToolInfoBlock}" Focusable="False" />
                                 </StackPanel>
                                 <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0"
                                                  IsChecked="{Binding WifiGameMode, Mode=TwoWay}"
@@ -787,6 +834,7 @@
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
                                         <TextBlock Text="{Binding [Lat_MtuTitle], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding [Lat_MtuDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                                        <ContentControl Content="{Binding MtuInfo}" ContentTemplate="{StaticResource ToolInfoBlock}" Focusable="False" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                         <ui:ProgressRing IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0"
@@ -809,8 +857,18 @@
                                 </Grid>
                                 <ui:Button Margin="0,10,0,0" HorizontalAlignment="Left" Icon="{ui:SymbolIcon ArrowUndo24}"
                                            Content="{Binding [Lat_MtuRevert], Source={x:Static loc:Loc.Instance}}"
-                                           Command="{Binding RevertMtuCommand}"
-                                           Visibility="{Binding MtuCanRevert, Converter={StaticResource BoolToVis}}" />
+                                           Command="{Binding RevertMtuCommand}">
+                                    <ui:Button.Style>
+                                        <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                            <Setter Property="Opacity" Value="0.45" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MtuCanRevert}" Value="True">
+                                                    <Setter Property="Opacity" Value="1" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:Button.Style>
+                                </ui:Button>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -1045,6 +1103,7 @@
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding [Lat_ToolDns], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding [Lat_ToolDnsDesc], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                                <ContentControl Content="{Binding DnsInfo}" ContentTemplate="{StaticResource ToolInfoBlock}" Focusable="False" />
                             </StackPanel>
                             <ComboBox Grid.Column="2" VerticalAlignment="Center" MinWidth="190" Margin="10,0,8,0"
                                       ItemsSource="{Binding DnsOptions}" DisplayMemberPath="Label"
@@ -1055,8 +1114,18 @@
                                                Content="{Binding [Lat_Apply], Source={x:Static loc:Loc.Instance}}" Command="{Binding ApplyDnsCommand}" />
                                     <ui:Button HorizontalAlignment="Stretch" Margin="0,6,0,0" Icon="{ui:SymbolIcon ArrowUndo24}"
                                                Content="{Binding [Lat_Revert], Source={x:Static loc:Loc.Instance}}" Command="{Binding RevertDnsCommand}"
-                                               ToolTip="{Binding [Lat_RevertDnsTip], Source={x:Static loc:Loc.Instance}}"
-                                               Visibility="{Binding DnsCanRevert, Converter={StaticResource BoolToVis}}" />
+                                               ToolTip="{Binding [Lat_RevertDnsTip], Source={x:Static loc:Loc.Instance}}">
+                                        <ui:Button.Style>
+                                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                <Setter Property="Opacity" Value="0.45" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DnsCanRevert}" Value="True">
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:Button.Style>
+                                    </ui:Button>
                                 </StackPanel>
                                 <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20"
                                                  Visibility="{Binding IsApplyingDns, Converter={StaticResource BoolToVis}}" />

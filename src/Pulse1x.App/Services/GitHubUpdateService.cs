@@ -51,26 +51,92 @@ public class GitHubUpdateService
     public static Version CurrentVersion =>
         Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
 
-    /// <summary>Consulta a última Release publicada e compara com a versão em execução.</summary>
+    /// <summary>Versão "X.Y.Z" a partir de uma tag ("v1.20.0", "1.20", "1.20.0.0"); null se não for versão.</summary>
+    internal static Version? ParseTag(string? tag)
+    {
+        // Tags podem vir com ou sem o prefixo "v" e com sufixos como "-beta" (ignorados).
+        string text = (tag ?? "").Trim().TrimStart('v', 'V').Split('-', '+')[0];
+        return Version.TryParse(text, out var v) ? Normalize(v) : null;
+    }
+
+    /// <summary>Compara só Major.Minor.Build: o assembly é "1.19.0.0" e a tag "1.19.0" — para o
+    /// <see cref="Version"/> do .NET, "1.19.0" (Revision = -1) é MENOR que "1.19.0.0".</summary>
+    internal static Version Normalize(Version v) => new(v.Major, Math.Max(0, v.Minor), Math.Max(0, v.Build));
+
+    internal static bool IsNewer(Version remote, Version current) => Normalize(remote) > Normalize(current);
+
+    /// <summary>Consulta a última Release publicada e compara com a versão em execução. Usa a API do
+    /// GitHub e, se ela falhar (limite de 60 consultas/hora por IP — comum em redes compartilhadas
+    /// —, proxy ou GitHub instável), descobre a versão pelo redirecionamento da página
+    /// "releases/latest", que não tem esse limite. Uma segunda tentativa cobre falhas passageiras.</summary>
     public async Task<UpdateCheckResult> CheckAsync()
+    {
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            if (attempt > 0) await Task.Delay(TimeSpan.FromSeconds(3));
+            var result = await CheckViaApiAsync();
+            if (result.Status != UpdateCheckStatus.Failed) return result;
+            result = await CheckViaRedirectAsync();
+            if (result.Status != UpdateCheckStatus.Failed) return result;
+        }
+        return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
+    }
+
+    private static async Task<UpdateCheckResult> CheckViaRedirectAsync()
+    {
+        try
+        {
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Pulse1x", CurrentVersion.ToString()));
+            using var resp = await client.GetAsync($"https://github.com/{Owner}/{Repo}/releases/latest");
+            // .../releases/tag/v1.20.0
+            string? location = resp.Headers.Location?.ToString();
+            string tag = location is null ? "" : location[(location.LastIndexOf('/') + 1)..];
+            var remote = ParseTag(tag);
+            if (remote is null)
+            {
+                LogFailure("check-redirect", new Exception($"HTTP {(int)resp.StatusCode}, Location '{location}'"));
+                return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
+            }
+            string versionText = remote.ToString(3);
+            if (!IsNewer(remote, CurrentVersion))
+                return new UpdateCheckResult(UpdateCheckStatus.UpToDate, versionText, null, null);
+            // O instalador de cada release segue sempre o mesmo nome (installer/Pulse1x.iss).
+            string asset = $"Pulse1x-Setup-{versionText}.exe";
+            return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, versionText,
+                $"https://github.com/{Owner}/{Repo}/releases/download/{Uri.EscapeDataString(tag)}/{asset}", asset);
+        }
+        catch (Exception ex)
+        {
+            LogFailure("check-redirect", ex);
+            return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
+        }
+    }
+
+    private static async Task<UpdateCheckResult> CheckViaApiAsync()
     {
         try
         {
             using var resp = await Http.GetAsync($"https://api.github.com/repos/{Owner}/{Repo}/releases/latest");
             if (!resp.IsSuccessStatusCode)
+            {
+                // Antes a falha era totalmente silenciosa: sem como saber que era o limite da API.
+                LogFailure("check-api", new Exception($"HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}"));
                 return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
+            }
 
             using var stream = await resp.Content.ReadAsStreamAsync();
             using var doc = await JsonDocument.ParseAsync(stream);
             var root = doc.RootElement;
 
             string tag = root.GetProperty("tag_name").GetString() ?? "";
-            // Tags podem vir com ou sem o prefixo "v" (a Release atual usa "1.0.0" sem prefixo).
-            string versionText = tag.TrimStart('v', 'V');
-            if (!Version.TryParse(versionText, out var remote))
+            var remote = ParseTag(tag);
+            if (remote is null)
                 return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
+            string versionText = remote.ToString(3);
 
-            if (remote <= CurrentVersion)
+            if (!IsNewer(remote, CurrentVersion))
                 return new UpdateCheckResult(UpdateCheckStatus.UpToDate, versionText, null, null);
 
             // Procura o instalador entre os assets da release. A release também pode trazer o
@@ -96,8 +162,9 @@ public class GitHubUpdateService
                 ? new UpdateCheckResult(UpdateCheckStatus.Failed, versionText, null, null)
                 : new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, versionText, url, name);
         }
-        catch
+        catch (Exception ex)
         {
+            LogFailure("check-api", ex);
             return new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null);
         }
     }

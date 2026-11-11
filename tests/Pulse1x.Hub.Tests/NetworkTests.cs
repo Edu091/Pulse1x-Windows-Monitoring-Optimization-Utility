@@ -225,6 +225,49 @@ internal static class NetworkTests
             TestSuite.Equal("0", flow.Single().Target);
         });
 
+        suite.Run("Every Latency tool has a safety badge and pros/cons in both languages", () =>
+        {
+            var missing = new List<string>();
+            foreach (var key in Pulse1x.App.ViewModels.LatencyViewModel.AllToolKeys)
+                foreach (var suffix in new[] { "_Pros", "_Cons" })
+                    if (!Pulse1x.App.Localization.LocalizationStrings.Pt.ContainsKey(key + suffix)
+                        || !Pulse1x.App.Localization.LocalizationStrings.En.ContainsKey(key + suffix))
+                        missing.Add(key + suffix);
+            if (missing.Count > 0) throw new Exception("Missing: " + string.Join(", ", missing));
+            TestSuite.Equal(Pulse1x.App.ViewModels.ToolSafety.Advanced, Pulse1x.App.ViewModels.LatencyViewModel.SafetyOf("Lat_ToolResetTcp"));
+            TestSuite.Equal(Pulse1x.App.ViewModels.ToolSafety.Safe, Pulse1x.App.ViewModels.LatencyViewModel.SafetyOf("Lat_ToolFlushDns"));
+        });
+
+        suite.Run("Power plan index and Auto-Tuning are read in any Windows language", () =>
+        {
+            // powercfg em espanhol: rótulos que o código não conhece; as duas últimas linhas são CA e CC.
+            const string es = "  GUID de configuración: 12bbebe6-58d6-4636-95bb-3217ef867c1a  (Modo de ahorro de energía)\r\n" +
+                              "    Índice de configuración de alimentación posible: 000\r\n" +
+                              "    Índice de configuración de corriente alterna actual: 0x00000000\r\n" +
+                              "    Índice de configuración de corriente continua actual: 0x00000002\r\n";
+            TestSuite.Equal((int?)0, NetworkOptimizationService.ParsePowerIndex(es, dc: false));
+            TestSuite.Equal((int?)2, NetworkOptimizationService.ParsePowerIndex(es, dc: true));
+            const string en = "    Current AC Power Setting Index: 0x00000003\r\n    Current DC Power Setting Index: 0x00000001\r\n";
+            TestSuite.Equal((int?)3, NetworkOptimizationService.ParsePowerIndex(en, dc: false));
+            TestSuite.Equal((int?)1, NetworkOptimizationService.ParsePowerIndex(en, dc: true));
+
+            TestSuite.Equal("highlyrestricted", NetworkOptimizationService.ParseAutoTuning("HighlyRestricted"));
+            TestSuite.Equal("normal", NetworkOptimizationService.ParseAutoTuning("Normal"));
+            TestSuite.Equal("—", NetworkOptimizationService.ParseAutoTuning(""));
+        });
+
+        suite.Run("Update check compares release tags with the 4-part assembly version", () =>
+        {
+            TestSuite.Equal(new Version(1, 20, 0), GitHubUpdateService.ParseTag("v1.20.0"));
+            TestSuite.Equal(new Version(1, 20, 0), GitHubUpdateService.ParseTag("1.20"));
+            TestSuite.Equal(new Version(2, 0, 1), GitHubUpdateService.ParseTag("v2.0.1-beta"));
+            TestSuite.Equal((Version?)null, GitHubUpdateService.ParseTag("latest"));
+            // "1.19.0" (tag) vs "1.19.0.0" (assembly): mesma versão, não é atualização.
+            TestSuite.Equal(false, GitHubUpdateService.IsNewer(GitHubUpdateService.ParseTag("1.19.0")!, new Version(1, 19, 0, 0)));
+            TestSuite.Equal(true, GitHubUpdateService.IsNewer(GitHubUpdateService.ParseTag("1.20.0")!, new Version(1, 19, 0, 0)));
+            TestSuite.Equal(false, GitHubUpdateService.IsNewer(GitHubUpdateService.ParseTag("1.13.3")!, new Version(1, 19, 0, 0)));
+        });
+
         suite.Run("Reverting a value changed twice ends at the original value", () =>
         {
             string file = "network-order-test.json";

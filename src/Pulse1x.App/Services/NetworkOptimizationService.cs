@@ -150,29 +150,27 @@ public class NetworkOptimizationService
     /// <summary>Desativa a economia de energia do adaptador Wi-Fi (modo Máximo Desempenho, índice 0).</summary>
     public async Task<OpResult> DisableWifiPowerSavingAsync()
     {
-        await DisablePowerIndexAsync(WirelessSub, WirelessPowerSaving, "WifiPowerSaving", "Lat_ToolWifiPower");
-        return new OpResult(true, "Lat_DoneWifiPower");
+        bool changed = await DisablePowerIndexAsync(WirelessSub, WirelessPowerSaving, "WifiPowerSaving", "Lat_ToolWifiPower");
+        return new OpResult(true, changed ? "Lat_DoneWifiPower" : "Lat_AdvAlready");
     }
 
     /// <summary>Desativa a suspensão seletiva de USB (evita o adaptador USB Wi-Fi "dormir").</summary>
     public async Task<OpResult> DisableSelectiveSuspendAsync()
     {
-        await DisablePowerIndexAsync(UsbSub, UsbSelectiveSuspend, "SelectiveSuspend", "Lat_ToolSelectiveSuspend");
-        return new OpResult(true, "Lat_DoneSelectiveSuspend");
+        bool changed = await DisablePowerIndexAsync(UsbSub, UsbSelectiveSuspend, "SelectiveSuspend", "Lat_ToolSelectiveSuspend");
+        return new OpResult(true, changed ? "Lat_DoneSelectiveSuspend" : "Lat_AdvAlready");
     }
 
     /// <summary>Habilita Receive Side Scaling (distribui o tráfego de rede entre vários núcleos).</summary>
     public async Task<OpResult> EnableRssAsync()
     {
-        var settings = await ReadTcpAsync();
+        // Estado lido pelo PowerShell ("Enabled"/"Disabled" em qualquer idioma). Antes vinha do texto
+        // traduzido do netsh: num Windows em português a leitura falhava, o RSS era ligado e nada
+        // ficava registrado — o card não tinha o que reverter.
+        string old = await ReadOffloadGlobalAsync("ReceiveSideScaling");
+        if (old.Equals("Enabled", StringComparison.OrdinalIgnoreCase)) return new OpResult(true, "Lat_AdvAlready");
         await RunAsync("netsh", "int tcp set global rss=enabled");
-        // Só registra quando o estado anterior era CLARAMENTE desligado. Antes, qualquer coisa que
-        // não contivesse "enabled" (leitura "—", "habilitado" de um Windows traduzido) virava
-        // "estava desligado", e Desfazer tudo DESLIGAVA um RSS que sempre esteve ligado.
-        bool wasDisabled = settings.rss.StartsWith("disabled", StringComparison.OrdinalIgnoreCase)
-                           || settings.rss.StartsWith("desabilitad", StringComparison.OrdinalIgnoreCase);
-        bool alreadyLogged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-rss");
-        if (wasDisabled && !alreadyLogged)
+        if (!_log.GetAllActive().Any(c => c.ValueKind == "netsh-rss"))
             Record("netsh-rss", "rss", "Rss", "disabled", "enabled", "Lat_ToolRss");
         return new OpResult(true, "Lat_DoneRss");
     }
@@ -180,12 +178,14 @@ public class NetworkOptimizationService
     /// <summary>Ajusta o Auto-Tuning da janela de recepção para "normal" (recomendado para a maioria).</summary>
     public async Task<OpResult> SetAutoTuningNormalAsync()
     {
-        var settings = await ReadTcpAsync();
-        string old = ParseAutoTuning(settings.autotune);
+        string old = await ReadAutoTuningAsync();
+        if (old == "normal") return new OpResult(true, "Lat_AdvAlready");
         await RunAsync("netsh", "int tcp set global autotuninglevel=normal");
         bool autoLogged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-autotuning");
-        if (!old.Equals("normal", StringComparison.OrdinalIgnoreCase) && old != "—" && !autoLogged)
-            Record("netsh-autotuning", "autotuning", "AutoTuning", old, "normal", "Lat_ToolAutoTuning");
+        // Ilegível ("—") antes não era registrado e o card ficava sem "Reverter"; agora registra o
+        // padrão do Windows (normal), que nunca piora a conexão ao ser restaurado.
+        if (!autoLogged)
+            Record("netsh-autotuning", "autotuning", "AutoTuning", old == "—" ? "normal" : old, "normal", "Lat_ToolAutoTuning");
         return new OpResult(true, "Lat_DoneAutoTuning");
     }
 
@@ -622,7 +622,8 @@ public class NetworkOptimizationService
         var r = await RunAsync("netsh", $"interface ipv4 set subinterface \"{name}\" mtu={mtu} store=persistent");
         if (r.code != 0) return new OpResult(false, "Lat_OpFailed", r.output.Trim());
         bool logged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-mtu" && c.KeyPath == name);
-        if (!logged && old > 0) Record("netsh-mtu", name, "MTU", old.ToString(), mtu.ToString(), "Lat_MtuTitle");
+        // MTU ilegível: o padrão do Windows (1500) vira o valor de volta, em vez de ficar sem reversão.
+        if (!logged) Record("netsh-mtu", name, "MTU", (old > 0 ? old : 1500).ToString(), mtu.ToString(), "Lat_MtuTitle");
         return new OpResult(true, "Lat_DoneMtu", Args: new object?[] { mtu, name });
     }
 
@@ -896,23 +897,31 @@ public class NetworkOptimizationService
     // Zera um índice do plano de energia na tomada E na bateria. Antes só o índice de tomada (AC)
     // era gravado, e num notebook na bateria o ajuste simplesmente não valia. O valor anterior é
     // guardado como "ac|dc" para o desfazer restaurar cada um.
-    private async Task DisablePowerIndexAsync(string sub, string setting, string valueName, string titleKey)
+    /// <returns>true quando algo mudou (e foi registrado para reverter).</returns>
+    private async Task<bool> DisablePowerIndexAsync(string sub, string setting, string valueName, string titleKey)
     {
         int? oldAc = await ReadPowerIndexAsync(sub, setting);
         int? oldDc = await ReadPowerIndexAsync(sub, setting, dc: true);
+        // Já zerado (ou a configuração não existe neste PC, como Wi-Fi num desktop): nada a fazer.
+        if ((oldAc ?? 0) == 0 && (oldDc ?? 0) == 0) return false;
         await RunAsync("powercfg", $"/setacvalueindex SCHEME_CURRENT {sub} {setting} 0");
         await RunAsync("powercfg", $"/setdcvalueindex SCHEME_CURRENT {sub} {setting} 0");
         await RunAsync("powercfg", "/setactive SCHEME_CURRENT");
-        if ((oldAc ?? 0) != 0 || (oldDc ?? 0) != 0)
-            Record("powerindex", $"{sub} {setting}", valueName, $"{oldAc ?? 0}|{oldDc ?? 0}", "0|0", titleKey);
+        Record("powerindex", $"{sub} {setting}", valueName, $"{oldAc ?? 0}|{oldDc ?? 0}", "0|0", titleKey);
+        return true;
     }
 
     private async Task<int?> ReadPowerIndexAsync(string sub, string setting, bool dc = false)
     {
         var r = await RunAsync("powercfg", $"/query SCHEME_CURRENT {sub} {setting}");
+        return ParsePowerIndex(r.output, dc);
+    }
+
+    internal static int? ParsePowerIndex(string output, bool dc)
+    {
         // Linha do índice de CA (tomada): "AC Power Setting Index" (EN) ou "...Correntes
         // Alternadas..." (PT); de CC (bateria): "DC Power Setting Index" ou "...Contínuas...".
-        foreach (var line in r.output.Split('\n'))
+        foreach (var line in output.Split('\n'))
         {
             bool match = dc
                 ? line.Contains("DC Power Setting Index", StringComparison.OrdinalIgnoreCase)
@@ -925,18 +934,35 @@ public class NetworkOptimizationService
             if (m.Success && int.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.HexNumber, null, out int v))
                 return v;
         }
+        // Outros idiomas: o powercfg sempre termina com as duas linhas de índice atual (CA e depois
+        // CC), cada uma com um único 0x. Antes, sem reconhecer o rótulo, o valor anterior virava 0
+        // ("já desligado") e a mudança era aplicada sem registro — sem como reverter.
+        var tail = output.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).TakeLast(2)
+                         .Select(l => Regex.Match(l, @":\s*0x([0-9a-fA-F]+)\s*$")).ToList();
+        if (tail.Count == 2 && tail.All(m => m.Success))
+            return int.Parse(tail[dc ? 1 : 0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber);
         return null;
     }
 
-    private async Task<(string rss, string autotune)> ReadTcpAsync()
+    /// <summary>Uma propriedade de Get-NetOffloadGlobalSetting ("Enabled"/"Disabled", sem tradução).</summary>
+    private static async Task<string> ReadOffloadGlobalAsync(string property)
     {
-        string o = (await RunAsync("netsh", "int tcp show global")).output;
-        string rss = ValueOf(o, "Receive-Side Scaling State", "Dimensionamento") ?? "—";
-        string at = ValueOf(o, "Receive Window Auto-Tuning Level", "Ajuste Automático", "Ajuste Automatico") ?? "—";
-        return (rss.Trim(), at.Trim());
+        var r = await RunPowerShellAsync($"(Get-NetOffloadGlobalSetting -ErrorAction Stop).{property}");
+        return r.output.Trim();
     }
 
-    private static string ParseAutoTuning(string raw)
+    /// <summary>Nível do Auto-Tuning no formato do netsh (normal/disabled/...), ou "—".
+    /// Primeiro pelo PowerShell (sem tradução); o texto do netsh fica como plano B.</summary>
+    private static async Task<string> ReadAutoTuningAsync()
+    {
+        var ps = await RunPowerShellAsync("(Get-NetTCPSetting -SettingName Internet -ErrorAction Stop).AutoTuningLevelLocal");
+        string level = ParseAutoTuning(ps.output.Trim());
+        if (level != "—") return level;
+        string o = (await RunAsync("netsh", "int tcp show global")).output;
+        return ParseAutoTuning(ValueOf(o, "Receive Window Auto-Tuning Level", "Ajuste Automático", "Ajuste Automatico") ?? "");
+    }
+
+    internal static string ParseAutoTuning(string raw)
     {
         // Normaliza o nível para o valor aceito pelo netsh (normal/disabled/highlyrestricted/...).
         string lower = raw.ToLowerInvariant();

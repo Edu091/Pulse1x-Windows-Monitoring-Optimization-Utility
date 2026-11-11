@@ -459,12 +459,40 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     {
         // Só ficam sem "Reverter" as ações que não mudam configuração (flush DNS, renovar IP,
         // reiniciar placa/serviços, relatório). Tudo o mais grava no log e é desfeito pelo card.
+        var info = new ToolInfoViewModel(titleKey, SafetyOf(titleKey));
         var tool = reversible
             ? new NetworkToolViewModel(icon, titleKey, descKey, () => _opt.RunScopedAsync(titleKey, action), RefreshChangeState,
-                buttonKey, revert: () => _opt.RevertScopeAsync(titleKey))
-            : new NetworkToolViewModel(icon, titleKey, descKey, action, RefreshChangeState, buttonKey);
+                info, buttonKey, revert: () => _opt.RevertScopeAsync(titleKey))
+            : new NetworkToolViewModel(icon, titleKey, descKey, action, RefreshChangeState, info, buttonKey);
         target.Add(tool);
     }
+
+    /// <summary>Nível de segurança de cada ferramenta (selo no card). Seguro: sem efeito colateral
+    /// perceptível. Moderado: troca algo (CPU, roaming, banda) por latência. Avançado: mexe na
+    /// base da rede do Windows e pede reinício.</summary>
+    internal static ToolSafety SafetyOf(string titleKey) => titleKey switch
+    {
+        "Lat_ToolResetWinsock" or "Lat_ToolResetTcp" => ToolSafety.Advanced,
+        "Lat_ToolNagle" or "Lat_ToolRsc" or "Lat_ToolDriverPower" or "Lat_ToolInterruptMod" or "Lat_ToolLso"
+            or "Lat_ToolFlowControl" or "Lat_ToolCompetitive" or "Lat_ToolWifiRoaming" or "Lat_MtuTitle"
+            or "Lat_WifiGameMode" or "Lat_ToolRenewIp" or "Lat_ToolRestartAdapter" => ToolSafety.Moderate,
+        _ => ToolSafety.Safe,
+    };
+
+    /// <summary>Todas as ferramentas da página (cards + DNS, MTU e modo partida), para testes e textos.</summary>
+    internal static readonly string[] AllToolKeys =
+    {
+        "Lat_ToolFlushDns", "Lat_ToolRenewIp", "Lat_ToolResetWinsock", "Lat_ToolResetTcp", "Lat_ToolRestartAdapter",
+        "Lat_ToolRestartServices", "Lat_ToolWifiPower", "Lat_ToolSelectiveSuspend", "Lat_ToolAdapterPower",
+        "Lat_ToolDeliveryOpt", "Lat_ToolThrottling", "Lat_ToolNagle", "Lat_ToolRsc", "Lat_ToolRss", "Lat_ToolAutoTuning",
+        "Lat_ToolDriverPower", "Lat_ToolInterruptMod", "Lat_ToolLso", "Lat_ToolFlowControl", "Lat_ToolCompetitive",
+        "Lat_ToolStability", "Lat_ToolWifiRoaming", "Lat_ToolWifiPrefer5", "Lat_ToolWlanReport", "Lat_ToolDns",
+        "Lat_MtuTitle", "Lat_WifiGameMode",
+    };
+
+    public ToolInfoViewModel DnsInfo { get; } = new("Lat_ToolDns", SafetyOf("Lat_ToolDns"));
+    public ToolInfoViewModel MtuInfo { get; } = new("Lat_MtuTitle", SafetyOf("Lat_MtuTitle"));
+    public ToolInfoViewModel GameModeInfo { get; } = new("Lat_WifiGameMode", SafetyOf("Lat_WifiGameMode"));
 
     // Após qualquer alteração ou reversão: o que ainda dá para desfazer, por card e no geral.
     private void RefreshChangeState()
@@ -1035,6 +1063,9 @@ public partial class LatencyViewModel : ObservableObject, IDisposable
     private void OnLanguageChanged()
     {
         foreach (var t in Actions.Concat(Tweaks).Concat(AdapterTweaks).Concat(Profiles).Concat(WifiTools)) t.RefreshTexts();
+        DnsInfo.RefreshTexts();
+        MtuInfo.RefreshTexts();
+        GameModeInfo.RefreshTexts();
         foreach (var n in WifiNetworks) n.RefreshTexts();
         BuildDnsOptions();
         if (_scoreLevel is { } level)
@@ -1079,6 +1110,8 @@ public partial class NetworkToolViewModel : ObservableObject
     public string TitleKey { get; }
     public string DescKey { get; }
     public string ButtonKey { get; }
+    /// <summary>Selo de segurança e vantagens/desvantagens (painel recolhível do card).</summary>
+    public ToolInfoViewModel Info { get; }
 
     public string Title => Loc.S(TitleKey);
     public string Description => Loc.S(DescKey);
@@ -1095,12 +1128,13 @@ public partial class NetworkToolViewModel : ObservableObject
     public bool HasStatus => StatusMessage.Length > 0;
 
     public NetworkToolViewModel(string icon, string titleKey, string descKey, Func<Task<OpResult>> action, Action onCompleted,
-        string buttonKey = "Lat_Apply", Func<Task<OpResult>>? revert = null)
+        ToolInfoViewModel? info = null, string buttonKey = "Lat_Apply", Func<Task<OpResult>>? revert = null)
     {
         Icon = icon;
         TitleKey = titleKey;
         DescKey = descKey;
         ButtonKey = buttonKey;
+        Info = info ?? new ToolInfoViewModel(titleKey, ToolSafety.Safe);
         _action = action;
         _revert = revert;
         _onCompleted = onCompleted;
@@ -1113,13 +1147,21 @@ public partial class NetworkToolViewModel : ObservableObject
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(ButtonText));
+        Info.RefreshTexts();
     }
 
     [RelayCommand]
     private Task Run() => ExecuteAsync(_action);
 
+    /// <summary>"Reverter" existe em todos os cards. Nas ações pontuais (limpar cache, renovar IP,
+    /// reiniciar placa) ele explica que não há configuração alterada para desfazer.</summary>
     [RelayCommand]
-    private Task Revert() => _revert is null ? Task.CompletedTask : ExecuteAsync(_revert, reverting: true);
+    private Task Revert()
+    {
+        if (_revert is not null) return ExecuteAsync(_revert, reverting: true);
+        StatusMessage = "ℹ️ " + Loc.S("Lat_RevertNotApplicable");
+        return Task.CompletedTask;
+    }
 
     private async Task ExecuteAsync(Func<Task<OpResult>> work, bool reverting = false)
     {
@@ -1138,6 +1180,62 @@ public partial class NetworkToolViewModel : ObservableObject
             IsRunning = false;
             _onCompleted();
         }
+    }
+}
+
+public enum ToolSafety { Safe, Moderate, Advanced }
+
+/// <summary>Selo de segurança + vantagens e desvantagens de uma ferramenta. Os textos vêm das chaves
+/// "&lt;título&gt;_Pros" e "&lt;título&gt;_Cons"; o painel começa recolhido.</summary>
+public partial class ToolInfoViewModel : ObservableObject
+{
+    private readonly string _titleKey;
+    public ToolSafety Safety { get; }
+
+    [ObservableProperty] private bool isOpen;
+
+    public ToolInfoViewModel(string titleKey, ToolSafety safety)
+    {
+        _titleKey = titleKey;
+        Safety = safety;
+    }
+
+    public string SafetyText => Loc.S(Safety switch
+    {
+        ToolSafety.Safe => "Lat_SafetySafe",
+        ToolSafety.Moderate => "Lat_SafetyModerate",
+        _ => "Lat_SafetyAdvanced",
+    });
+
+    public string SafetyTip => Loc.S(Safety switch
+    {
+        ToolSafety.Safe => "Lat_SafetySafeTip",
+        ToolSafety.Moderate => "Lat_SafetyModerateTip",
+        _ => "Lat_SafetyAdvancedTip",
+    });
+
+    public string SafetyColor => Safety switch
+    {
+        ToolSafety.Safe => "#22C55E",
+        ToolSafety.Moderate => "#EAB308",
+        _ => "#EF4444",
+    };
+
+    /// <summary>Fundo translúcido (15%) da mesma cor do selo.</summary>
+    public string SafetyBackground => "#26" + SafetyColor.TrimStart('#');
+
+    public string Pros => Loc.S(_titleKey + "_Pros");
+    public string Cons => Loc.S(_titleKey + "_Cons");
+
+    [RelayCommand]
+    private void Toggle() => IsOpen = !IsOpen;
+
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(SafetyText));
+        OnPropertyChanged(nameof(SafetyTip));
+        OnPropertyChanged(nameof(Pros));
+        OnPropertyChanged(nameof(Cons));
     }
 }
 

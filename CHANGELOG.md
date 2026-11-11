@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.20.0 — 10/11/2026
+
+- **Selo de segurança em cada função da Latência:** Seguro, Moderado ou Avançado, com um painel recolhível "Vantagens e desvantagens" logo abaixo, explicando o que cada ajuste melhora e o que ele custa.
+- **"Reverter" em todos os cards**, sempre à vista: aceso quando o ajuste está ativo e apagado quando não há o que desfazer (nas ações pontuais, como limpar o cache DNS, ele explica por quê). Vale também para DNS e MTU.
+- Corrigidos ajustes que eram aplicados sem registro e por isso não podiam ser revertidos: RSS, Auto-Tuning e as economias de energia do Wi-Fi e do USB liam textos do Windows que mudam com o idioma. Agora a leitura independe do idioma, e "Já estava assim" aparece quando o Windows já tinha o valor.
+- Corrigido o salto da página para o topo ao clicar em Aplicar, Reverter ou Testar.
+- **Atualizações automáticas mais confiáveis:** o Pulse1x confere o GitHub alguns segundos depois de abrir, tenta de novo se a rede ainda não estava pronta e volta a conferir a cada 6 horas. Quando a API do GitHub recusa a consulta (limite por IP), a versão é lida pela página da release. O aviso mostra a versão nova e a instalada, e aparece mesmo com o app minimizado na bandeja.
+
 ## 1.19.0 — 10/11/2026
 
 - **Central de Wi-Fi na categoria Latência.**

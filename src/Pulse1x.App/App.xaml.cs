@@ -408,35 +408,66 @@ public partial class App : Application
     // pergunta ao usuário se quer atualizar agora. Ao confirmar, o instalador é baixado e
     // executado silenciosamente — o Inno Setup fecha o Pulse1x, substitui os arquivos e o
     // reabre sozinho (ver GitHubUpdateService).
+    //
+    // Antes era uma única consulta no instante da abertura: se a rede ainda não estava pronta
+    // (Pulse1x iniciando com o Windows) ou a API do GitHub recusava, o usuário nunca era avisado.
+    // Agora: espera a rede assentar, tenta de novo em caso de falha e confere a cada 6 horas
+    // enquanto o app fica aberto, avisando uma única vez por versão nova.
     private static async Task PromptForUpdateOnStartupAsync(GitHubUpdateService updateService, MainWindow owner)
     {
-        var result = await updateService.CheckAsync();
-        if (result.Status != UpdateCheckStatus.UpdateAvailable ||
-            result.DownloadUrl is null || result.AssetName is null)
-            return;
+        string? alreadyPrompted = null;
+        var delays = new[] { TimeSpan.FromSeconds(4), TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5) };
+        int attempt = 0;
+        while (true)
+        {
+            await Task.Delay(attempt < delays.Length ? delays[attempt] : TimeSpan.FromHours(6));
+            UpdateCheckResult result;
+            try { result = await updateService.CheckAsync(); }
+            catch { result = new UpdateCheckResult(UpdateCheckStatus.Failed, null, null, null); }
+
+            // Falhou: próxima tentativa curta; deu resposta: passa direto para o ciclo de 6 h.
+            attempt = result.Status == UpdateCheckStatus.Failed ? attempt + 1 : delays.Length;
+
+            if (result.Status != UpdateCheckStatus.UpdateAvailable || result.DownloadUrl is null
+                || result.AssetName is null || result.LatestVersion == alreadyPrompted)
+                continue;
+            alreadyPrompted = result.LatestVersion;
+            if (await AskAndInstallUpdateAsync(updateService, owner, result)) return;
+        }
+    }
+
+    /// <returns>true quando o instalador foi iniciado (o app está fechando).</returns>
+    private static async Task<bool> AskAndInstallUpdateAsync(GitHubUpdateService updateService, MainWindow owner, UpdateCheckResult result)
+    {
+        // Minimizado na bandeja, a janela dona fica oculta e o aviso não aparecia: traz a janela.
+        if (!owner.IsVisible || owner.WindowState == WindowState.Minimized)
+        {
+            if (owner.TrayIconService is { } tray) tray.ShowWindow();
+            else { owner.Show(); owner.WindowState = WindowState.Normal; }
+        }
+        owner.Activate();
 
         var choice = MessageBox.Show(
             owner,
-            Localization.Loc.F("Update_PromptBody", result.LatestVersion ?? "?"),
+            Localization.Loc.F("Update_PromptBody", result.LatestVersion ?? "?", GitHubUpdateService.CurrentVersion.ToString(3)),
             Localization.Loc.S("Update_PromptTitle"),
             MessageBoxButton.YesNo, MessageBoxImage.Information);
 
-        if (choice != MessageBoxResult.Yes) return;
+        if (choice != MessageBoxResult.Yes) return false;
 
         var installResult = await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
         if (installResult.Started)
         {
             // O instalador espera o Pulse1x sair para substituir o .exe e depois o reabre.
             Current.Shutdown();
+            return true;
         }
-        else
-        {
-            MessageBox.Show(
-                owner,
-                Localization.Loc.F("Update_InstallFailedBody", installResult.ErrorMessage ?? "?"),
-                Localization.Loc.S("Update_PromptTitle"),
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+        MessageBox.Show(
+            owner,
+            Localization.Loc.F("Update_InstallFailedBody", installResult.ErrorMessage ?? "?"),
+            Localization.Loc.S("Update_PromptTitle"),
+            MessageBoxButton.OK, MessageBoxImage.Warning);
+        return false;
     }
 
     // Desfaz, na abertura, as alterações de uma sessão de jogo que não chegou ao fim. Roda em

@@ -14,6 +14,9 @@ public partial class LatencyPage : Page
         DataContext = viewModel;
         _viewModel = viewModel;
 
+        // Aplicar/Reverter desabilita o botão enquanto roda; sem isto a página voltava ao topo.
+        Services.ScrollJumpGuard.Attach(PageScroll);
+
         // Liga o monitoramento em tempo real só enquanto a página está visível (economia de recursos).
         IsVisibleChanged += (_, e) => _viewModel.SetActive((bool)e.NewValue);
     }
