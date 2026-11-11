@@ -1,5 +1,31 @@
 # Histórico de versões
 
+## 1.19.0 — 10/11/2026
+
+- **Central de Wi-Fi na categoria Latência.**
+  - **Modo partida:** pausa as buscas de redes que o Windows faz a cada minuto, que geram os picos de ping periódicos do Wi-Fi. A conexão atual continua, e o modo desliga sozinho ao fechar o Pulse1x.
+  - **Redes vizinhas e canais:** varredura nova com sinal, canal, banda e dispositivos de cada rede, quem interfere no seu canal e o canal mais livre para configurar no roteador. As redes ocultas e de convidados do seu próprio roteador não contam como vizinhas.
+  - **Ajustes do driver Wi-Fi:** roaming no mínimo, preferir 5 GHz e o relatório de quedas do Wi-Fi do Windows.
+- **Testes avançados de latência:**
+  - **Bufferbloat:** mede quanto o ping sobe com a rede cheia (download e upload) e dá uma nota de A+ a F, com a correção indicada.
+  - **DNS mais rápido:** compara o seu DNS com Cloudflare, Google, Quad9, OpenDNS e AdGuard e troca para o mais rápido em um clique.
+  - **MTU ideal:** descobre o maior pacote que passa sem fragmentar e aplica.
+- **Novos ajustes reversíveis:** impedir o Windows de desligar a placa de rede, desligar o upload P2P do Windows Update, desligar a economia de energia no driver da placa (EEE, Green Ethernet, Power Saving e outros) e desligar a moderação de interrupção. O DNS ganhou Quad9, OpenDNS e AdGuard.
+- **Reverter cada ajuste:** todo ajuste aplicado ganha o selo "Ativo" e um botão "Reverter" no próprio card (inclusive DNS, MTU, perfis e ajustes do driver), que volta só aquelas configurações ao valor de antes. O "Desfazer Todas as Alterações" agora fica sempre à vista e só desabilita quando não há nada aplicado.
+  - **Reset Winsock e Reset TCP/IP agora são reversíveis:** antes de resetar, o Pulse1x salva uma cópia das configurações (VPNs, IP fixo, DNS manual) e o "Reverter" as restaura.
+  - Trocar o DNS para "Automático" agora guarda o DNS manual que estava antes, para poder voltar.
+  - Corrigido o "Reverter" de um ajuste alterado duas vezes, que parava no valor intermediário em vez do original.
+- **Mais ajustes de latência (todos reversíveis):** desativar o algoritmo de Nagle, remover o limite de rede do Windows (Network Throttling), desativar o Receive Segment Coalescing (RSC) e, no driver da placa, desligar o Large Send Offload (LSO) e o controle de fluxo. O perfil Competitivo passou a incluir o RSC desligado, e "Aplicar todas" inclui o Nagle e o limite de rede.
+- **Ping da internet e do roteador separados** no painel. A nota da conexão passou a usar o ping até a internet (antes media só o roteador, e quase toda conexão tirava 100). O diagnóstico agora diz se o problema está no Wi-Fi/rede de casa ou no provedor.
+- Corrigida a verificação de latência de drivers, que acusava "latência elevada" (cerca de 15 ms) em qualquer PC.
+- Corrigido o teste de velocidade do diagnóstico, que mostrava 0 Mbps em conexões abaixo de uns 4 Mbps.
+- Corrigidas as mensagens de "Aplicar todas" e da troca de DNS, que nunca apareciam na tela.
+- A lista de DNS agora abre mostrando o DNS que está em uso, e não sempre "Automático".
+- No Windows 11 24H2, quando a localização está desligada, a página avisa por que os dados do Wi-Fi não aparecem e abre a configuração.
+- O IP, o DNS e as otimizações agora vão para a placa que o Windows realmente usa para chegar à internet, mesmo com VPN ou Hyper-V.
+- Visual: no cabo, os tiles de Wi-Fi somem e a velocidade do link aparece. Jitter e perda ganharam cor, os gráficos e os tiles se ajustam à largura da janela, o card do Input Lab ocupa a largura toda, a nota mostra uma bolinha colorida em vez de um emoji em preto e branco, e os botões de teste ficam desabilitados enquanto rodam.
+- Os servidores de teste são medidos todos ao mesmo tempo (antes, até cerca de 100 segundos em fila).
+
 ## 1.18.2 — 07/11/2026
 
 - Removido o botão "Memes (Myinstants)" da mesa de sons e, junto, a importação automática da pasta Downloads. Os seus próprios sons continuam entrando por "Adicionar som".

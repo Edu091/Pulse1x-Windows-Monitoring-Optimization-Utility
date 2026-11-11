@@ -55,6 +55,7 @@ public partial class App : Application
     private FpsMonitorService? _fpsMonitorService;
     private TrayIconService? _trayIconService;
     private SoundViewModel? _soundViewModel;
+    private NetworkOptimizationService? _networkOptimizationService;
     private Mutex? _singleInstanceMutex;
     private EventWaitHandle? _showWindowSignal;
     private RegisteredWaitHandle? _showWindowWait;
@@ -208,6 +209,7 @@ public partial class App : Application
         var gamepadService = new GamepadService();
         var networkLatencyService = new NetworkLatencyService();
         var networkOptimizationService = new NetworkOptimizationService(new OptimizationChangeLog("network-changes.json"));
+        _networkOptimizationService = networkOptimizationService;
         var serverStatusService = new ServerStatusService();
         // Network sampling keeps state between reads. Latency gets its own sampler so it cannot
         // consume the Dashboard sample and distort throughput in both sections.
@@ -485,6 +487,8 @@ public partial class App : Application
         _hardwareMonitorService?.Dispose();
         _fpsMonitorService?.Dispose();
         try { _soundViewModel?.Dispose(); } catch { }
+        // O modo partida do Wi-Fi (busca automática desligada) vale só enquanto o app está aberto.
+        try { _networkOptimizationService?.RestoreSessionWifiSettings(); } catch { }
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
         // Criado sem posse (initiallyOwned: false), então só descartamos — liberar um mutex não
