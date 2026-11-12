@@ -25,6 +25,8 @@ internal static partial class LocalizationStrings
         AddBenchmarkEnglish();
         AddSoundPortuguese();
         AddSoundEnglish();
+        AddRecordingPortuguese();
+        AddRecordingEnglish();
         AddFirmwarePortuguese();
         AddFirmwareEnglish();
         AddNetworkPortuguese();

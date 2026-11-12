@@ -96,6 +96,13 @@
                         <TextBlock Text="{Binding [Nav_Sound], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
+                <ui:Button x:Name="RecordingButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="RecordingButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="RecordingIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
+                        <ui:SymbolIcon Symbol="Record24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding [Nav_Recording], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
                 <ui:Button x:Name="GameHubButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="GameHubButton_Click">
                     <StackPanel Orientation="Horizontal">
                         <Border x:Name="GameHubIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />

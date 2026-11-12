@@ -45,6 +45,9 @@ public class AppSettings
 
     // Categoria Som: dispositivos, equalizador, microfone acima de 100%, voz e inicialização.
     public Sound.SoundSettings Sound { get; set; } = new();
+
+    // Categoria Gravação: captura de tela, atalhos, menu flutuante e pasta dos vídeos.
+    public Recording.RecordingSettings Recording { get; set; } = new();
 }
 
 public class SettingsService
@@ -99,6 +102,8 @@ public class SettingsService
         settings.OemCommands ??= new Profiles.OemCustomCommands();
         settings.Sound ??= new Sound.SoundSettings();
         settings.Sound.Normalize();
+        settings.Recording ??= new Recording.RecordingSettings();
+        settings.Recording.Normalize();
 
         settings.GameHub.SoundVolume = Math.Clamp(settings.GameHub.SoundVolume, 0, 1);
         settings.GameHub.CustomSounds ??= new Dictionary<string, string>();

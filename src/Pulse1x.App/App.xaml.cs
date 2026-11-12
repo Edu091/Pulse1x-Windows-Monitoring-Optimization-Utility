@@ -55,6 +55,7 @@ public partial class App : Application
     private FpsMonitorService? _fpsMonitorService;
     private TrayIconService? _trayIconService;
     private SoundViewModel? _soundViewModel;
+    private RecordingViewModel? _recordingViewModel;
     private NetworkOptimizationService? _networkOptimizationService;
     private Mutex? _singleInstanceMutex;
     private EventWaitHandle? _showWindowSignal;
@@ -337,6 +338,11 @@ public partial class App : Application
             new Services.Sound.SoundDeviceService(), new Services.Sound.EqualizerApoService()));
         var soundPage = new SoundPage(_soundViewModel);
 
+        // Categoria Gravação: captura de tela com encoder de GPU, atalhos globais e menu flutuante.
+        // Criada já na abertura para os atalhos funcionarem mesmo antes de a página ser visitada.
+        _recordingViewModel = new RecordingViewModel(settingsService, advancedOptimizationService);
+        var recordingPage = new RecordingPage(_recordingViewModel);
+
         // Modo Gaming: enquanto um jogo estiver aberto, os painéis em tempo real do Pulse1x param
         // de atualizar. É um único sinal, consumido por quem gasta recursos.
         gamingModeService.StateChanged += active =>
@@ -346,7 +352,7 @@ public partial class App : Application
         };
 
         mainWindow = new MainWindow(settingsService, themeService, dashboardPage, optimizationPage, healthPage,
-            latencyPage, inputLabPage, fpsInGamePage, benchmarkPage, soundPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
+            latencyPage, inputLabPage, fpsInGamePage, benchmarkPage, soundPage, recordingPage, gameHubPage, utilityPage, settingsPage, aboutPage, donatePage);
 
         _trayIconService = new TrayIconService(mainWindow, onExitRequested: () =>
         {
@@ -358,6 +364,15 @@ public partial class App : Application
         // "Sair do GameHub": o botão discreto dentro do hub devolve o Pulse1x normal.
         gameHubPage.ExitRequested += () => mainWindow.ExitGameHub();
         gameHubPage.SettingsRequested += () => mainWindow.NavigateToSettings();
+
+        // Menu flutuante da Gravação ("Abrir o Pulse1x") traz a janela de volta já na categoria.
+        _recordingViewModel.OpenAppRequested += () =>
+        {
+            if (mainWindow.TrayIconService is { } tray) tray.ShowWindow();
+            else { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; }
+            mainWindow.Activate();
+            mainWindow.NavigateToRecording();
+        };
 
         // Navegação por controle em todo o app (fora do hub, o direcional move o foco).
         mainWindow.AttachGamepad(gamepadService);
@@ -518,6 +533,7 @@ public partial class App : Application
         _hardwareMonitorService?.Dispose();
         _fpsMonitorService?.Dispose();
         try { _soundViewModel?.Dispose(); } catch { }
+        try { _recordingViewModel?.Dispose(); } catch { }
         // O modo partida do Wi-Fi (busca automática desligada) vale só enquanto o app está aberto.
         try { _networkOptimizationService?.RestoreSessionWifiSettings(); } catch { }
         _singleInstanceMutex?.ReleaseMutex();

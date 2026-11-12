@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 1.22.0 — 12/11/2026
+
+- **Nova categoria Gravação: grave a tela sem sair do Pulse1x.**
+  - **O que gravar:** escolha o monitor e grave a tela inteira ou só uma área (arraste para marcar). O cursor do mouse pode aparecer ou não.
+  - **Vídeo:** 24, 30, 60, 120 ou 144 FPS; resolução nativa, 4K, 2K, 1080p ou 720p; codec H.264, HEVC ou AV1; qualidade Leve, Média, Alta, Máxima ou taxa fixa em Mbps; arquivo MP4 ou MKV.
+  - **Aceleração por GPU:** NVIDIA NVENC, AMD AMF ou Intel Quick Sync, testados na sua máquina (o que não funciona aparece como indisponível). No modo automático, a placa onde o monitor está ligado é usada primeiro. Se o encoder escolhido não abrir, a gravação passa sozinha para o próximo, até a CPU.
+  - **Áudio:** som do PC e microfone, com volume de cada um e ajuste fino de sincronia.
+  - **Atalhos globais configuráveis** para iniciar, terminar, pausar e continuar (padrão Ctrl + Alt + R, S e P). Funcionam com o Pulse1x minimizado, na bandeja ou atrás do jogo, e avisam quando outro programa já usa a combinação.
+  - **Menu flutuante** (Ctrl + Alt + G), no estilo da Game Bar do Xbox: gravar, pausar, silenciar o microfone, abrir a pasta e ver as últimas gravações por cima de qualquer jogo.
+  - **Indicador REC** com o tempo no canto da tela, contagem regressiva opcional e bipe ao iniciar, pausar e terminar. Nada disso aparece no vídeo.
+  - **Gravações recentes** com miniatura e duração: assistir, mostrar na pasta, excluir uma ou todas (vão para a Lixeira).
+  - Os vídeos vão para a pasta Downloads, ou a que você escolher.
+  - **Xbox Game Bar:** veja e desligue a gravação em segundo plano (Game DVR) e a sobreposição da Game Bar ali mesmo, com reversão. São os mesmos ajustes da categoria Otimização.
+  - A gravação usa o FFmpeg (gratuito e de código aberto). Se ele já estiver no PC, o Pulse1x o encontra; se não, instala com um clique.
+
 ## 1.21.0 — 10/11/2026
 
 - **Selo de segurança e "Vantagens e desvantagens" em todas as funções que mudam o Windows**, não só na Latência: Otimizações Avançadas, Comandos Especiais, configurações recomendadas da Pós-formatação e a categoria Som. Cada função mostra se é Segura, Moderada ou Avançada (passe o mouse no selo para ver o critério) e, num painel recolhido logo abaixo, o que ela melhora e o que custa.

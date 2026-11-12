@@ -30,6 +30,9 @@ internal static class Program
         BenchmarkTests.RegisterFirmware(suite);
         SoundTests.Register(suite);
         NetworkTests.Register(suite);
+        RecordingTests.Register(suite);
+        if (args.Contains("--recording")) RecordingTests.RegisterLive(suite);
+        if (args.Contains("--ui-recording")) RecordingTests.RenderUi(suite);
         if (args.Contains("--ui")) HubVisualTests.Run(suite);
         return suite.Finish();
     }

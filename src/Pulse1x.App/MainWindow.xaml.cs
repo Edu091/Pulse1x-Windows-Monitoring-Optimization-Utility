@@ -22,6 +22,7 @@ public partial class MainWindow : FluentWindow
     private readonly FpsInGamePage _fpsInGamePage;
     private readonly BenchmarkPage _benchmarkPage;
     private readonly SoundPage _soundPage;
+    private readonly RecordingPage _recordingPage;
     private readonly Views.GameHub.GameHubPage _gameHubPage;
     private readonly UtilityPage _utilityPage;
     private readonly SettingsPage _settingsPage;
@@ -49,6 +50,7 @@ public partial class MainWindow : FluentWindow
         FpsInGamePage fpsInGamePage,
         BenchmarkPage benchmarkPage,
         SoundPage soundPage,
+        RecordingPage recordingPage,
         Views.GameHub.GameHubPage gameHubPage,
         UtilityPage utilityPage,
         SettingsPage settingsPage,
@@ -67,6 +69,7 @@ public partial class MainWindow : FluentWindow
         _fpsInGamePage = fpsInGamePage;
         _benchmarkPage = benchmarkPage;
         _soundPage = soundPage;
+        _recordingPage = recordingPage;
         _gameHubPage = gameHubPage;
         _utilityPage = utilityPage;
         _settingsPage = settingsPage;
@@ -78,13 +81,13 @@ public partial class MainWindow : FluentWindow
 
         _navButtons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, GameHubButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton, GameHubButton,
             UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
         // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
         _navIndicators = new UIElement[]
         {
-            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, FpsInGameIndicator, BenchmarkIndicator, SoundIndicator, GameHubIndicator,
+            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, FpsInGameIndicator, BenchmarkIndicator, SoundIndicator, RecordingIndicator, GameHubIndicator,
             UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
         };
 
@@ -227,12 +230,12 @@ public partial class MainWindow : FluentWindow
 
         var pages = new System.Windows.Controls.Page[]
         {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage,
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage, _recordingPage,
             _utilityPage, _settingsPage, _aboutPage, _donatePage,
         };
         var buttons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton,
             UtilityButton, SettingsButton, AboutButton, DonateButton,
         };
 
@@ -245,11 +248,11 @@ public partial class MainWindow : FluentWindow
     {
         var pages = new System.Windows.Controls.Page[]
         {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage, _utilityPage, _settingsPage,
+            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage, _recordingPage, _utilityPage, _settingsPage,
         };
         var buttons = new Control[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, UtilityButton, SettingsButton,
+            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton, UtilityButton, SettingsButton,
         };
 
         int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
@@ -399,6 +402,15 @@ public partial class MainWindow : FluentWindow
     private void BenchmarkButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_benchmarkPage, BenchmarkButton);
 
     private void SoundButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_soundPage, SoundButton);
+
+    private void RecordingButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_recordingPage, RecordingButton);
+
+    /// <summary>Abre a categoria Gravação (menu flutuante e erros de gravação pedem isso).</summary>
+    public void NavigateToRecording()
+    {
+        if (_inGameHub) ExitGameHub();
+        NavigateTo(_recordingPage, RecordingButton);
+    }
 
     private void GameHubButton_Click(object sender, RoutedEventArgs e) => EnterGameHub();
 

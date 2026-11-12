@@ -17,7 +17,7 @@ public static partial class FunctionSafety
     private static readonly Lazy<Dictionary<string, ToolSafety>> Map = new(() =>
     {
         var map = new Dictionary<string, ToolSafety>(StringComparer.Ordinal);
-        foreach (var list in new[] { Advanced, Special, PostFormat, Sound })
+        foreach (var list in new[] { Advanced, Special, PostFormat, Sound, RecordingArea })
             foreach (var (key, level) in list)
                 map[key] = level;
         return map;
