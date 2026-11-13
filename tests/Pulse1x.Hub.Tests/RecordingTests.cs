@@ -172,13 +172,35 @@ internal static class RecordingTests
             finally { try { Directory.Delete(dir, true); } catch { } }
         });
 
+        suite.Run("ffmpeg behind a symbolic link (winget) resolves to the real file", () =>
+        {
+            // Regressão da 1.22.0: o Pulse1x elevado não consegue executar pelo link do winget
+            // ("ponto de montagem não confiável"); precisa executar o .exe final.
+            string dir = Path.Combine(Path.GetTempPath(), "pulse1x-link-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                string real = Path.Combine(dir, "real-ffmpeg.exe");
+                File.WriteAllText(real, "x");
+                TestSuite.Equal(real, FfmpegService.ResolveRealFile(real));
+                TestSuite.Equal<string?>(null, FfmpegService.ResolveRealFile(Path.Combine(dir, "missing.exe")));
+
+                string link = Path.Combine(dir, "ffmpeg.exe");
+                try { File.CreateSymbolicLink(link, real); }
+                catch (IOException) { Console.WriteLine("    (symlink not allowed here; link case skipped)"); return; }
+                catch (UnauthorizedAccessException) { Console.WriteLine("    (symlink not allowed here; link case skipped)"); return; }
+                TestSuite.Equal(real, FfmpegService.ResolveRealFile(link));
+            }
+            finally { try { Directory.Delete(dir, true); } catch { } }
+        });
+
         suite.Run("Recording screens only use icons that exist in WPF-UI", () =>
         {
             // Um nome de ícone errado só estoura ao abrir a tela (o XAML é lido em tempo de execução).
             string root = AppContext.BaseDirectory;
             while (!File.Exists(Path.Combine(root, "Pulse1x.sln"))) root = Path.GetDirectoryName(root)!;
             string app = Path.Combine(root, "src", "Pulse1x.App");
-            var files = new[] { Path.Combine(app, "Views", "RecordingPage.xaml"), Path.Combine(app, "Views", "Recording", "RecordingOverlayWindow.xaml"), Path.Combine(app, "MainWindow.xaml") };
+            var files = new[] { Path.Combine(app, "Views", "RecordingPage.xaml"), Path.Combine(app, "Views", "Recording", "RecordingToolbarWindow.xaml"), Path.Combine(app, "MainWindow.xaml") };
             var used = files.SelectMany(f => System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(f),
                     @"(?:\{ui:SymbolIcon\s+|Symbol="")([A-Za-z0-9]+)").Select(m => m.Groups[1].Value)).Distinct().ToList();
             var bad = used.Where(n => !Enum.TryParse<Wpf.Ui.Controls.SymbolRegular>(n, out _)).ToList();
@@ -268,23 +290,45 @@ internal static class RecordingTests
             Pump(300);
             Save(page, Path.Combine(artifacts, "recording-page-bottom.png"));
 
-            // Menu flutuante: o conteúdo é renderizado fora da tela (a janela real cobre o monitor inteiro).
+            // Barra flutuante com as configurações rápidas abertas, renderizada fora da tela.
             var monitor = DisplayEnumerator.GetMonitors().First();
-            var overlay = new Pulse1x.App.Views.Recording.RecordingOverlayWindow(vm, monitor);
-            var root = (System.Windows.UIElement)overlay.Content;
-            overlay.Content = null;
+            var toolbar = new Pulse1x.App.Views.Recording.RecordingToolbarWindow(vm, settings.Current.Recording, () => { }, monitor);
+            ((System.Windows.Controls.Primitives.ToggleButton)toolbar.FindName("SettingsToggle")).IsChecked = true;
+            var root = (System.Windows.UIElement)toolbar.Content;
+            toolbar.Content = null;
             var host = new System.Windows.Window
             {
-                Width = 1280, Height = 720, Left = -30000, Top = 0, ShowInTaskbar = false, ShowActivated = false,
+                SizeToContent = System.Windows.SizeToContent.WidthAndHeight, Left = -30000, Top = 0, ShowInTaskbar = false, ShowActivated = false,
                 WindowStyle = System.Windows.WindowStyle.None, Background = System.Windows.Media.Brushes.DimGray,
                 DataContext = vm, Content = root, Foreground = System.Windows.Media.Brushes.White,
             };
-            host.Resources.MergedDictionaries.Add(overlay.Resources);
+            host.Resources.MergedDictionaries.Add(toolbar.Resources);
             host.Show();
             Pump(500);
-            Save(host, Path.Combine(artifacts, "recording-overlay.png"));
+            Save(host, Path.Combine(artifacts, "recording-toolbar.png"));
             host.Close();
-            overlay.Close();
+            toolbar.Close();
+
+            var toast = new Pulse1x.App.Views.Recording.RecordingToastWindow(monitor, "Gravação salva", "Pulse1x_2026-11-12_21-05-03.mp4", false, () => { }, TimeSpan.FromSeconds(30));
+            // Barra real: abre e fecha as configurações rápidas e confere que a janela acompanha.
+            var realBar = new Pulse1x.App.Views.Recording.RecordingToolbarWindow(vm, settings.Current.Recording, () => { }, monitor);
+            realBar.Show();
+            Pump(400);
+            double closedHeight = realBar.ActualHeight;
+            ((System.Windows.Controls.Primitives.ToggleButton)realBar.FindName("SettingsToggle")).IsChecked = true;
+            Pump(400);
+            double openHeight = realBar.ActualHeight;
+            Console.WriteLine($"    toolbar height closed {closedHeight:0}, open {openHeight:0}");
+            TestSuite.Equal(true, closedHeight < 70 && openHeight > closedHeight + 150);
+            realBar.Close();
+
+            // A janela real (aparece por um instante no canto da tela): confere o tamanho de verdade.
+            toast.Show();
+            Pump(400);
+            Console.WriteLine($"    toast window: {toast.ActualWidth:0}x{toast.ActualHeight:0}");
+            TestSuite.Equal(true, toast.ActualHeight < 160 && toast.ActualWidth < 480);
+            Save((System.Windows.FrameworkElement)toast.Content, Path.Combine(artifacts, "recording-toast.png"));
+            toast.Close();
             window.Close();
             try { File.Delete(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pulse1x", logName)); } catch { }
 
@@ -316,6 +360,16 @@ internal static class RecordingTests
         using var output = File.Create(file);
         encoder.Save(output);
         Console.WriteLine($"    screenshot: {file}");
+    }
+
+    private static IEnumerable<T> Descendants<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T t) yield return t;
+            foreach (var d in Descendants<T>(child)) yield return d;
+        }
     }
 
     private static void Pump(int milliseconds)

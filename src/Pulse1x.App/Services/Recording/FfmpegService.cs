@@ -38,8 +38,36 @@ public sealed class FfmpegService
     /// <summary>Procura o ffmpeg nos lugares de sempre. Devolve true quando achou.</summary>
     public bool Locate()
     {
-        ExePath = Candidates().FirstOrDefault(File.Exists);
+        ExePath = null;
+        foreach (var candidate in Candidates())
+        {
+            string? real = ResolveRealFile(candidate);
+            if (real is null) continue;
+            ExePath = real;
+            break;
+        }
+        if (ExePath != _probedPath) _probedPath = null;
+        RecordingLog.Write($"ffmpeg: {ExePath ?? "not found"}");
         return ExePath is not null;
+    }
+
+    /// <summary>
+    /// Segue links simbólicos até o arquivo de verdade. O winget (e o scoop) põem no PATH um link
+    /// criado pelo usuário, e o Windows impede um processo elevado — o Pulse1x roda como
+    /// administrador — de executar através dele ("ponto de montagem não confiável"). Executando o
+    /// .exe final, a proteção não entra em jogo. Devolve null se o arquivo não existe.
+    /// </summary>
+    public static string? ResolveRealFile(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists) return null;
+            if (info.LinkTarget is null) return info.FullName;
+            var target = info.ResolveLinkTarget(returnFinalTarget: true);
+            return target is { Exists: true } ? target.FullName : null;
+        }
+        catch { return null; }
     }
 
     private IEnumerable<string> Candidates()
@@ -99,7 +127,10 @@ public sealed class FfmpegService
 
         var filters = await RunAsync(ExePath, "-hide_banner -filters", TimeSpan.FromSeconds(8));
         HasDdagrab = filters.Output.Contains(" ddagrab ", StringComparison.Ordinal);
-        _probedPath = ExePath;
+        RecordingLog.Write($"ffmpeg version {Version ?? "?"} (exit {version.ExitCode}), ddagrab={HasDdagrab}"
+            + (version.ExitCode == 0 ? "" : " | " + version.Output.Trim()));
+        // Só fica em cache quando o ffmpeg rodou: uma falha ao abrir o processo é tentada de novo.
+        _probedPath = version.ExitCode == 0 ? ExePath : null;
     }
 
     /// <summary>Testa se o encoder abre de verdade (codifica um quadro sintético).</summary>
@@ -114,7 +145,10 @@ public sealed class FfmpegService
             $"-hide_banner -loglevel error -f lavfi -i color=c=black:s=640x360:r=30:d=0.2 -frames:v 3 -pix_fmt {pixFmt} -c:v {encoder} -f null -",
             TimeSpan.FromSeconds(15));
         bool ok = result.ExitCode == 0;
-        lock (_encoderCache) _encoderCache[encoder] = ok;
+        RecordingLog.Write($"encoder {encoder}: {(ok ? "ok" : "fails (exit " + result.ExitCode + ") " + LastLines(result.Output))}");
+        // Processo que nem abriu (-1) não diz nada sobre o encoder: não guarda.
+        if (result.ExitCode != -1)
+            lock (_encoderCache) _encoderCache[encoder] = ok;
         return ok;
     }
 
@@ -172,6 +206,9 @@ public sealed class FfmpegService
         }
         throw last ?? new InvalidOperationException("download failed");
     }
+
+    public static string LastLines(string text, int count = 3) =>
+        string.Join(" / ", text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).Where(l => l.Length > 0).TakeLast(count));
 
     private static void TryDelete(string path)
     {

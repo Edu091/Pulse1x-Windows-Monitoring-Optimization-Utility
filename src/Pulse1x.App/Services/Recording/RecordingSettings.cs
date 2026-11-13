@@ -146,6 +146,12 @@ public class RecordingSettings
     public HotkeyBinding PauseHotkey { get; set; } = new(HotkeyBinding.ModControl | HotkeyBinding.ModAlt, 0x50); // P
     public HotkeyBinding OverlayHotkey { get; set; } = new(HotkeyBinding.ModControl | HotkeyBinding.ModAlt, 0x47); // G
 
+    // ---------------- Barra flutuante ----------------
+
+    /// <summary>Posição da barra flutuante (canto superior esquerdo, pixels físicos). null = topo central do monitor.</summary>
+    public int? ToolbarX { get; set; }
+    public int? ToolbarY { get; set; }
+
     // ---------------- Motor ----------------
 
     /// <summary>Caminho do ffmpeg.exe escolhido à mão. null = procurar sozinho.</summary>

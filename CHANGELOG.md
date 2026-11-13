@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.23.0 — 12/11/2026
+
+- **Corrigido: a gravação não começava e a aceleração por GPU aparecia toda como "indisponível"** quando o FFmpeg tinha sido instalado pelo winget. O Windows não deixa um programa aberto como administrador executar pelo atalho que o winget cria, então o Pulse1x agora executa o FFmpeg de verdade, na pasta onde o winget o instalou.
+- **Nova barra flutuante no lugar do menu de tela cheia:** uma faixa pequena no topo da tela com gravar/encerrar, pausar/continuar, configurações rápidas e ocultar. Arraste pela alça para mudar de lugar (a posição fica salva). Ctrl + Alt + G mostra e esconde. Ela não rouba o foco do jogo e não aparece no vídeo.
+  - **Configurações rápidas:** som do PC, microfone (e silenciar durante a gravação), qualidade, FPS, resolução e área.
+- **Aviso ao terminar:** por alguns segundos aparece "Gravação salva" no canto da tela, com o botão "Abrir no Pulse1x" que leva direto à aba Gravação. Se a gravação não conseguir começar, o aviso mostra o motivo, mesmo com o Pulse1x minimizado.
+- A Gravação passa a manter um diário em %LOCALAPPDATA%\Pulse1x\recording.log (FFmpeg encontrado, encoders testados e erros), para diagnosticar problemas.
+
 ## 1.22.0 — 12/11/2026
 
 - **Nova categoria Gravação: grave a tela sem sair do Pulse1x.**

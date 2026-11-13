@@ -17,7 +17,7 @@ internal static class RecordingNative
     private const int GwlExStyle = -20;
     private const int WsExTransparent = 0x20, WsExToolWindow = 0x80, WsExNoActivate = 0x08000000, WsExLayered = 0x80000;
     private const uint WdaExcludeFromCapture = 0x11;
-    private const uint SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
+    private const uint SwpNoSize = 0x0001, SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
 
     /// <summary>A janela some das capturas de tela (inclusive do próprio vídeo). Windows 10 2004+.</summary>
     public static void ExcludeFromCapture(Window window)
@@ -32,6 +32,26 @@ internal static class RecordingNative
         var hwnd = new WindowInteropHelper(window).Handle;
         int style = GetWindowLong(hwnd, GwlExStyle);
         SetWindowLong(hwnd, GwlExStyle, style | WsExTransparent | WsExToolWindow | WsExNoActivate | WsExLayered);
+    }
+
+    /// <summary>Recebe cliques, mas nunca rouba o foco (o jogo continua com o teclado) nem aparece na barra de tarefas.</summary>
+    public static void MakeNoActivate(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        int style = GetWindowLong(hwnd, GwlExStyle);
+        SetWindowLong(hwnd, GwlExStyle, style | WsExToolWindow | WsExNoActivate);
+    }
+
+    /// <summary>
+    /// Só move (pixels físicos), sem mexer no tamanho: passar o tamanho ao SetWindowPos desliga o
+    /// SizeToContent do WPF e a janela deixa de acompanhar o conteúdo (cortava o aviso e impedia a
+    /// barra de crescer ao abrir as configurações rápidas).
+    /// </summary>
+    public static void MovePhysical(Window window, int left, int top)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd != IntPtr.Zero)
+            SetWindowPos(hwnd, IntPtr.Zero, left, top, 0, 0, SwpNoZOrder | SwpNoActivate | SwpNoSize);
     }
 
     /// <summary>Posiciona a janela num retângulo em pixels físicos.</summary>
@@ -245,7 +265,7 @@ public sealed class RecordingIndicatorWindow : Window
         double scale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1;
         int w = (int)Math.Ceiling(ActualWidth * scale), h = (int)Math.Ceiling(ActualHeight * scale);
         int margin = (int)(16 * scale);
-        RecordingNative.PlacePhysical(this, _monitor.Left + _monitor.Width - w - margin, _monitor.Top + margin, w, h);
+        RecordingNative.MovePhysical(this, _monitor.Left + _monitor.Width - w - margin, _monitor.Top + margin);
     }
 
     public void Update(TimeSpan elapsed, bool paused)
@@ -318,5 +338,126 @@ public sealed class CountdownWindow : Window
             }
         }
         finally { Close(); }
+    }
+}
+
+/// <summary>
+/// Aviso no canto inferior direito ao terminar uma gravação (ou quando ela não começa): fica alguns
+/// segundos com o botão "Abrir no Pulse1x", que leva direto à aba Gravação. Não rouba o foco, não
+/// aparece no vídeo e o tempo para enquanto o mouse está em cima.
+/// </summary>
+public sealed class RecordingToastWindow : Window
+{
+    private readonly CaptureMonitor _monitor;
+    private readonly System.Windows.Threading.DispatcherTimer _timer;
+
+    public RecordingToastWindow(CaptureMonitor monitor, string title, string detail, bool isError, Action openApp, TimeSpan lifetime)
+    {
+        _monitor = monitor;
+        WindowStyle = WindowStyle.None;
+        AllowsTransparency = true;
+        Background = Brushes.Transparent;
+        Topmost = true;
+        ShowInTaskbar = false;
+        ShowActivated = false;
+        SizeToContent = SizeToContent.WidthAndHeight;
+        ResizeMode = ResizeMode.NoResize;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = -10000;
+        Foreground = Brushes.White;
+        FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
+
+        var accent = new SolidColorBrush(isError ? Color.FromRgb(0xF9, 0x73, 0x16) : Color.FromRgb(0x22, 0xC5, 0x5E));
+        var icon = new Wpf.Ui.Controls.SymbolIcon
+        {
+            Symbol = isError ? Wpf.Ui.Controls.SymbolRegular.Warning24 : Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24,
+            FontSize = 26, Foreground = accent, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 0, 12, 0),
+        };
+        var text = new StackPanel { MaxWidth = 300 };
+        text.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, FontSize = 14 });
+        text.Children.Add(new TextBlock { Text = detail, FontSize = 12, Opacity = 0.75, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 10), TextTrimming = TextTrimming.CharacterEllipsis, MaxHeight = 64 });
+
+        var open = new Button
+        {
+            Content = Loc.S("Rec_ToastOpen"),
+            Padding = new Thickness(12, 6, 12, 6),
+            Cursor = Cursors.Hand,
+            Focusable = false,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Template = PillTemplate(Color.FromRgb(0xDC, 0x26, 0x26)),
+            Foreground = Brushes.White,
+        };
+        open.Click += (_, _) => { Close(); openApp(); };
+        text.Children.Add(open);
+
+        var close = new Button
+        {
+            // Desenhado (não um caractere): a fonte da janela não tem o "✕".
+            Content = new Path
+            {
+                Data = Geometry.Parse("M0,0 L10,10 M10,0 L0,10"),
+                Stroke = Brushes.White, StrokeThickness = 1.6, Opacity = 0.85,
+                Width = 10, Height = 10, Stretch = Stretch.None,
+            },
+            // Padding zero: senão vem o do estilo padrão de botão e não sobra espaço para o "✕".
+            Width = 24, Height = 24, Padding = new Thickness(0), Cursor = Cursors.Hand, Focusable = false, VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(12, -4, -6, 0), Template = PillTemplate(Color.FromArgb(0x01, 0, 0, 0)),
+        };
+        close.Click += (_, _) => Close();
+
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(text, 1);
+        Grid.SetColumn(close, 2);
+        row.Children.Add(icon);
+        row.Children.Add(text);
+        row.Children.Add(close);
+
+        Content = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(0xF2, 0x16, 0x16, 0x18)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(16, 14, 16, 14),
+            Child = row,
+        };
+
+        _timer = new System.Windows.Threading.DispatcherTimer { Interval = lifetime };
+        _timer.Tick += (_, _) => Close();
+        MouseEnter += (_, _) => _timer.Stop();
+        MouseLeave += (_, _) => { _timer.Interval = TimeSpan.FromSeconds(3); _timer.Start(); };
+        Closed += (_, _) => _timer.Stop();
+
+        SourceInitialized += (_, _) =>
+        {
+            RecordingNative.MakeNoActivate(this);
+            RecordingNative.ExcludeFromCapture(this);
+        };
+        Loaded += (_, _) => { PlaceBottomRight(); _timer.Start(); };
+        SizeChanged += (_, _) => PlaceBottomRight();
+    }
+
+    private void PlaceBottomRight()
+    {
+        double scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1;
+        int w = (int)Math.Ceiling(ActualWidth * scale), h = (int)Math.Ceiling(ActualHeight * scale);
+        int margin = (int)(20 * scale), taskbar = (int)(56 * scale);
+        RecordingNative.MovePhysical(this, _monitor.Left + _monitor.Width - w - margin, _monitor.Top + _monitor.Height - h - taskbar);
+    }
+
+    private static ControlTemplate PillTemplate(Color background)
+    {
+        var border = new FrameworkElementFactory(typeof(Border));
+        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(7));
+        border.SetValue(Border.BackgroundProperty, new SolidColorBrush(background));
+        border.SetBinding(Border.PaddingProperty, new System.Windows.Data.Binding(nameof(Control.Padding)) { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
+        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        presenter.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        presenter.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
+        border.AppendChild(presenter);
+        return new ControlTemplate(typeof(Button)) { VisualTree = border };
     }
 }

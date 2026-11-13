@@ -9,7 +9,6 @@ internal static partial class LocalizationStrings
         t["Nav_Recording"] = "Gravação";
         t["Rec_PageTitle"] = "Gravação";
         t["Rec_PageSubtitle"] = "Grave a tela inteira ou só uma área, com o FPS, a qualidade e o codec que quiser, usando a placa de vídeo para não pesar no jogo. Atalhos funcionam de qualquer lugar, até com o Pulse1x na bandeja.";
-        t["Rec_OpenOverlay"] = "Menu flutuante";
         t["Rec_OpenFolder"] = "Abrir pasta";
 
         // Motor
@@ -98,7 +97,7 @@ internal static partial class LocalizationStrings
         t["Rec_HkStart"] = "Iniciar gravação";
         t["Rec_HkStop"] = "Terminar gravação";
         t["Rec_HkPause"] = "Pausar / continuar";
-        t["Rec_HkOverlay"] = "Abrir o menu flutuante";
+        t["Rec_HkOverlay"] = "Mostrar / ocultar a barra flutuante";
         t["Rec_HotkeyPress"] = "Pressione as teclas...";
         t["Rec_HotkeysHint"] = "Clique num atalho e pressione a combinação nova. Backspace deixa sem atalho; Esc cancela. Usar a mesma tecla em Iniciar e Terminar faz ela alternar.";
         t["Rec_HotkeyConflict"] = "Estes atalhos estão em uso por outro programa (ou repetidos) e não foram ativados: {0}. Escolha outra combinação.";
@@ -148,14 +147,29 @@ internal static partial class LocalizationStrings
         t["Rec_DeleteConfirm"] = "Mandar \"{0}\" para a Lixeira?";
         t["Rec_DeleteAllConfirm"] = "Mandar as {0} gravações do Pulse1x desta pasta para a Lixeira?";
 
-        // Menu flutuante
-        t["Rec_OverlayCapture"] = "Captura";
+        // Barra flutuante e aviso
+        t["Rec_ShowBar"] = "Mostrar barra flutuante";
+        t["Rec_HideBar"] = "Ocultar barra flutuante";
+        t["Rec_BarMove"] = "Arraste para mover";
+        t["Rec_BarQuickSettings"] = "Configurações rápidas";
+        t["Rec_BarHide"] = "Ocultar (mostre de novo com {0})";
+        t["Rec_BarReady"] = "Pronto";
+        t["Rec_BarStarting"] = "Iniciando";
+        t["Rec_BarSaving"] = "Salvando";
+        t["Rec_BarLockedWhileRecording"] = "Durante a gravação só dá para silenciar o microfone. O resto vale para a próxima.";
+        t["Rec_BarSystemAudio"] = "Som do PC";
+        t["Rec_BarMicrophone"] = "Microfone";
+        t["Rec_BarMicMute"] = "Silenciar microfone";
+        t["Rec_BarQualityLow"] = "Leve";
+        t["Rec_BarQualityHigh"] = "Alta";
+        t["Rec_BarResNative"] = "Nativa";
+        t["Rec_BarArea"] = "Selecionar área";
+        t["Rec_BarMoreSettings"] = "Mais configurações no Pulse1x";
+        t["Rec_ToastSaved"] = "Gravação salva";
+        t["Rec_ToastStopped"] = "A gravação parou";
+        t["Rec_ToastFailed"] = "Não foi possível gravar";
+        t["Rec_ToastOpen"] = "Abrir no Pulse1x";
         t["Rec_OverlayMicMute"] = "Silenciar o microfone na gravação";
-        t["Rec_OverlayOpenApp"] = "Abrir o Pulse1x";
-        t["Rec_OverlayGameBar"] = "Abrir a Xbox Game Bar";
-        t["Rec_OverlayClose"] = "Fechar (Esc)";
-        t["Rec_OverlaySeeAll"] = "Ver todas";
-        t["Rec_OverlayHotkeys"] = "Iniciar {0} · Terminar {1} · Pausar {2} · Menu {3}";
 
         // Erros
         t["Rec_ErrNoEngine"] = "Instale o FFmpeg na categoria Gravação para poder gravar.";
@@ -176,7 +190,6 @@ internal static partial class LocalizationStrings
         t["Nav_Recording"] = "Recording";
         t["Rec_PageTitle"] = "Recording";
         t["Rec_PageSubtitle"] = "Record the whole screen or just an area, at the FPS, quality and codec you want, using your graphics card so games don't slow down. Hotkeys work from anywhere, even with Pulse1x in the tray.";
-        t["Rec_OpenOverlay"] = "Floating menu";
         t["Rec_OpenFolder"] = "Open folder";
 
         t["Rec_EngineTitle"] = "Recording engine";
@@ -259,7 +272,7 @@ internal static partial class LocalizationStrings
         t["Rec_HkStart"] = "Start recording";
         t["Rec_HkStop"] = "Stop recording";
         t["Rec_HkPause"] = "Pause / resume";
-        t["Rec_HkOverlay"] = "Open the floating menu";
+        t["Rec_HkOverlay"] = "Show / hide the floating bar";
         t["Rec_HotkeyPress"] = "Press the keys...";
         t["Rec_HotkeysHint"] = "Click a hotkey and press the new combination. Backspace clears it; Esc cancels. Using the same key for Start and Stop makes it toggle.";
         t["Rec_HotkeyConflict"] = "These hotkeys are in use by another program (or repeated) and weren't enabled: {0}. Pick another combination.";
@@ -306,13 +319,28 @@ internal static partial class LocalizationStrings
         t["Rec_DeleteConfirm"] = "Send \"{0}\" to the Recycle Bin?";
         t["Rec_DeleteAllConfirm"] = "Send the {0} Pulse1x recordings in this folder to the Recycle Bin?";
 
-        t["Rec_OverlayCapture"] = "Capture";
         t["Rec_OverlayMicMute"] = "Mute the microphone in the recording";
-        t["Rec_OverlayOpenApp"] = "Open Pulse1x";
-        t["Rec_OverlayGameBar"] = "Open the Xbox Game Bar";
-        t["Rec_OverlayClose"] = "Close (Esc)";
-        t["Rec_OverlaySeeAll"] = "See all";
-        t["Rec_OverlayHotkeys"] = "Start {0} · Stop {1} · Pause {2} · Menu {3}";
+        t["Rec_ShowBar"] = "Show floating bar";
+        t["Rec_HideBar"] = "Hide floating bar";
+        t["Rec_BarMove"] = "Drag to move";
+        t["Rec_BarQuickSettings"] = "Quick settings";
+        t["Rec_BarHide"] = "Hide (show it again with {0})";
+        t["Rec_BarReady"] = "Ready";
+        t["Rec_BarStarting"] = "Starting";
+        t["Rec_BarSaving"] = "Saving";
+        t["Rec_BarLockedWhileRecording"] = "While recording you can only mute the microphone. The rest applies to the next one.";
+        t["Rec_BarSystemAudio"] = "PC sound";
+        t["Rec_BarMicrophone"] = "Microphone";
+        t["Rec_BarMicMute"] = "Mute microphone";
+        t["Rec_BarQualityLow"] = "Light";
+        t["Rec_BarQualityHigh"] = "High";
+        t["Rec_BarResNative"] = "Native";
+        t["Rec_BarArea"] = "Select area";
+        t["Rec_BarMoreSettings"] = "More settings in Pulse1x";
+        t["Rec_ToastSaved"] = "Recording saved";
+        t["Rec_ToastStopped"] = "Recording stopped";
+        t["Rec_ToastFailed"] = "Couldn't record";
+        t["Rec_ToastOpen"] = "Open in Pulse1x";
 
         t["Rec_ErrNoEngine"] = "Install FFmpeg in the Recording category to record.";
         t["Rec_ErrNoMonitor"] = "No monitor found to record.";

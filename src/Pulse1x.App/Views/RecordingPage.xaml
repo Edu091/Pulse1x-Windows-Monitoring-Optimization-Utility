@@ -52,7 +52,7 @@
                     <TextBlock Text="{Binding [Rec_PageSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,320,12" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                    <ui:Button Content="{Binding [Rec_OpenOverlay], Source={x:Static loc:Loc.Instance}}" Command="{Binding ToggleOverlayCommand}"
+                    <ui:Button Content="{Binding ToolbarButtonText}" Command="{Binding ToggleToolbarCommand}"
                                Icon="{ui:SymbolIcon Apps24}" Margin="0,0,8,0" />
                     <ui:Button Content="{Binding [Rec_OpenFolder], Source={x:Static loc:Loc.Instance}}" Command="{Binding OpenFolderCommand}"
                                Icon="{ui:SymbolIcon Folder24}" />

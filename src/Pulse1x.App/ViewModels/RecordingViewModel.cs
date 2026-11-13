@@ -58,7 +58,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     private readonly RecordingHotkeys? _hotkeys;
     private readonly DispatcherTimer _clock;
     private RecordingIndicatorWindow? _indicator;
-    private RecordingOverlayWindow? _overlay;
+    private RecordingToolbarWindow? _toolbar;
     private CancellationTokenSource? _countdownCts;
     private CancellationTokenSource? _installCts;
     private List<CaptureMonitor> _monitorList = new();
@@ -85,6 +85,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             HideIndicator();
             StatusText = Loc.S(error.MessageKey) + (path is null ? "" : "\n" + Loc.F("Rec_SavedAs", System.IO.Path.GetFileName(path)));
             StatusIsError = true;
+            ShowToast(Loc.S("Rec_ToastStopped"), StatusText, isError: true);
             _ = RefreshLibraryAsync();
         });
 
@@ -369,8 +370,13 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             : Loc.S("Rec_RegionNone");
     }
 
-    partial void OnSelectedFpsChanged(RecOption? value) { if (!_loading && value is not null && int.TryParse(value.Key, out int f)) { S.Fps = f; Save(true); } }
-    partial void OnSelectedResolutionChanged(RecOption? value) { if (!_loading && value is not null) { S.Resolution = value.Key; Save(true); } }
+    partial void OnSelectedFpsChanged(RecOption? value) { OnPropertyChanged(nameof(FpsKey)); if (!_loading && value is not null && int.TryParse(value.Key, out int f)) { S.Fps = f; Save(true); } }
+    partial void OnSelectedResolutionChanged(RecOption? value) { OnPropertyChanged(nameof(ResolutionKey)); if (!_loading && value is not null) { S.Resolution = value.Key; Save(true); } }
+
+    // Chaves usadas pelos botões de opção da barra flutuante (mesmas configurações dos seletores da página).
+    public string QualityKey { get => SelectedQuality?.Key ?? S.Quality; set => SelectedQuality = Find(Qualities, value); }
+    public string FpsKey { get => SelectedFps?.Key ?? S.Fps.ToString(); set => SelectedFps = Find(FpsOptions, value); }
+    public string ResolutionKey { get => SelectedResolution?.Key ?? S.Resolution; set => SelectedResolution = Find(Resolutions, value); }
     partial void OnSelectedCodecChanged(RecOption? value)
     {
         if (_loading || value is null) return;
@@ -381,6 +387,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     partial void OnSelectedEncoderChanged(RecOption? value) { if (!_loading && value is not null) { S.Encoder = value.Key; Save(); } }
     partial void OnSelectedQualityChanged(RecOption? value)
     {
+        OnPropertyChanged(nameof(QualityKey));
         if (_loading || value is null) return;
         S.Quality = value.Key;
         OnPropertyChanged(nameof(IsCustomQuality));
@@ -403,7 +410,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     partial void OnStartHotkeyChanged(HotkeyBinding? value) { if (!_loading && value is not null) { S.StartHotkey = value; Save(); ApplyHotkeys(); } }
     partial void OnStopHotkeyChanged(HotkeyBinding? value) { if (!_loading && value is not null) { S.StopHotkey = value; Save(); ApplyHotkeys(); } }
     partial void OnPauseHotkeyChanged(HotkeyBinding? value) { if (!_loading && value is not null) { S.PauseHotkey = value; Save(); ApplyHotkeys(); } }
-    partial void OnOverlayHotkeyChanged(HotkeyBinding? value) { if (!_loading && value is not null) { S.OverlayHotkey = value; Save(); ApplyHotkeys(); } }
+    partial void OnOverlayHotkeyChanged(HotkeyBinding? value) { OnPropertyChanged(nameof(BarHideTip)); if (!_loading && value is not null) { S.OverlayHotkey = value; Save(); ApplyHotkeys(); } }
 
     [RelayCommand]
     private void SelectRegion()
@@ -522,7 +529,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
                 _ = PauseResumeAsync();
                 break;
             case RecordingHotkeyAction.Overlay:
-                ToggleOverlay();
+                ToggleToolbar();
                 break;
         }
     }
@@ -703,6 +710,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         else if (!IsActive) ActiveInfo = "";
 
         if (IsActive) _clock.Start(); else _clock.Stop();
+        OnPropertyChanged(nameof(BarText));
         Tick();
         StartStopCommand.NotifyCanExecuteChanged();
         PauseResumeCommand.NotifyCanExecuteChanged();
@@ -726,6 +734,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     {
         var elapsed = _recorder.Elapsed;
         ElapsedText = RecordingIndicatorWindow.FormatElapsed(elapsed);
+        OnPropertyChanged(nameof(BarText));
         _indicator?.Update(elapsed, IsPaused);
     }
 
@@ -762,7 +771,6 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     public async Task StartRecordingAsync()
     {
         if (_recorder.State != RecorderState.Idle || _countdownCts is not null) return;
-        _overlay?.Close(); // o menu sai da frente antes da contagem/gravação
         StatusText = "";
         StatusIsError = false;
 
@@ -770,6 +778,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         if (!FfmpegFound || _ffmpeg.ExePath is null)
         {
             ShowStatus(Loc.S("Rec_ErrNoEngine"), error: true);
+            ShowToast(Loc.S("Rec_ToastFailed"), Loc.S("Rec_ErrNoEngine"), isError: true);
             OpenAppRequested?.Invoke();
             return;
         }
@@ -777,6 +786,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         RefreshMonitors();
         var monitor = DisplayEnumerator.Resolve(_monitorList, S.MonitorDeviceName);
         if (monitor is null) { ShowStatus(Loc.S("Rec_ErrNoMonitor"), error: true); return; }
+        _lastMonitor = monitor;
 
         // Contagem regressiva (cancelável pelo atalho de terminar ou pelo próprio botão).
         if (S.CountdownSeconds > 0)
@@ -837,6 +847,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             string path = await _recorder.StopAsync();
             Cue(660, 440);
             ShowStatus(Loc.F("Rec_SavedAs", System.IO.Path.GetFileName(path)), error: false);
+            ShowToast(Loc.S("Rec_ToastSaved"), System.IO.Path.GetFileName(path), isError: false);
             await RefreshLibraryAsync();
             if (S.OpenFolderWhenDone)
                 try { Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true }); } catch { }
@@ -854,6 +865,9 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             ? Loc.S(re.MessageKey) + (string.IsNullOrWhiteSpace(re.Detail) ? "" : "\n" + re.Detail)
             : ex.Message;
         ShowStatus(text, error: true);
+        RecordingLog.Write("error shown: " + text.Replace(Environment.NewLine, " / ").Replace("\n", " / "));
+        // Pelo atalho ou pela barra, a página pode estar fechada: o aviso aparece na tela.
+        ShowToast(Loc.S("Rec_ToastFailed"), ex is RecordingException r ? Loc.S(r.MessageKey) : ex.Message, isError: true);
     }
 
     private void ShowStatus(string text, bool error)
@@ -901,41 +915,74 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     }
 
     // =====================================================================================
-    //  Menu flutuante
+    //  Barra flutuante e aviso pós-gravação
     // =====================================================================================
 
-    [RelayCommand]
-    public void ToggleOverlay()
-    {
-        if (_overlay is { IsVisible: true })
+    [ObservableProperty] private bool _toolbarVisible;
+
+    public string ToolbarButtonText => Loc.S(ToolbarVisible ? "Rec_HideBar" : "Rec_ShowBar");
+    partial void OnToolbarVisibleChanged(bool value) => OnPropertyChanged(nameof(ToolbarButtonText));
+
+    /// <summary>Texto da barra: o tempo durante a gravação, senão o estado curto.</summary>
+    public string BarText => IsActive
+        ? ElapsedText
+        : Loc.S(_recorder.State switch
         {
-            _overlay.Close();
-            return;
-        }
+            RecorderState.Starting => "Rec_BarStarting",
+            RecorderState.Stopping => "Rec_BarSaving",
+            _ when _countdownCts is not null => "Rec_BarStarting",
+            _ => "Rec_BarReady",
+        });
+
+    public string BarHideTip => Loc.F("Rec_BarHide", OverlayHotkey?.Display() ?? "—");
+
+    /// <summary>Mostra ou esconde a barra (atalho e botão da página).</summary>
+    [RelayCommand]
+    public void ToggleToolbar()
+    {
+        if (_toolbar is { IsVisible: true }) HideToolbar();
+        else ShowToolbar();
+    }
+
+    public void ShowToolbar()
+    {
+        if (_toolbar is { IsVisible: true }) return;
         RefreshMonitors();
         var monitor = RecordingNative.MonitorUnderCursor(_monitorList)
                       ?? DisplayEnumerator.Resolve(_monitorList, S.MonitorDeviceName);
         if (monitor is null) return;
-        _ = RefreshLibraryAsync();
-        _overlay = new RecordingOverlayWindow(this, monitor);
-        _overlay.Closed += (_, _) => _overlay = null;
-        _overlay.Show();
-        _overlay.Activate();
+        _toolbar = new RecordingToolbarWindow(this, S, () => _settings.Save(), monitor);
+        _toolbar.Closed += (_, _) => { _toolbar = null; ToolbarVisible = false; };
+        _toolbar.Show();
+        ToolbarVisible = true;
+        OnPropertyChanged(nameof(BarHideTip));
+    }
+
+    public void HideToolbar()
+    {
+        _toolbar?.Close();
+        _toolbar = null;
+        ToolbarVisible = false;
     }
 
     [RelayCommand]
-    private void OpenApp()
+    private void OpenApp() => OpenAppRequested?.Invoke();
+
+    private RecordingToastWindow? _toast;
+
+    /// <summary>Aviso de alguns segundos no canto da tela, com "Abrir no Pulse1x".</summary>
+    private void ShowToast(string title, string detail, bool isError)
     {
-        _overlay?.Close();
-        OpenAppRequested?.Invoke();
+        var monitor = _lastMonitor ?? DisplayEnumerator.Resolve(_monitorList, S.MonitorDeviceName);
+        if (monitor is null) return;
+        _toast?.Close();
+        _toast = new RecordingToastWindow(monitor, title, detail, isError, () => OpenAppRequested?.Invoke(),
+            TimeSpan.FromSeconds(isError ? 10 : 6));
+        _toast.Closed += (_, _) => _toast = null;
+        _toast.Show();
     }
 
-    [RelayCommand]
-    private void OpenGameBar()
-    {
-        _overlay?.Close();
-        try { Process.Start(new ProcessStartInfo("ms-gamebar:") { UseShellExecute = true }); } catch { }
-    }
+    private CaptureMonitor? _lastMonitor;
 
     // =====================================================================================
     //  Gravações recentes
@@ -1115,7 +1162,8 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         _countdownCts?.Cancel();
         _installCts?.Cancel();
         HideIndicator();
-        _overlay?.Close();
+        HideToolbar();
+        _toast?.Close();
         _hotkeys?.Dispose();
 
         // Fechar o Pulse1x no meio de uma gravação: termina e monta o vídeo antes de sair (juntar

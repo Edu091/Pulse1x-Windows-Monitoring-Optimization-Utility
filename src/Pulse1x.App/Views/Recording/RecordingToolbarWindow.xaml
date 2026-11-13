@@ -1,0 +1,232 @@
+<Window
+    x:Class="Pulse1x.App.Views.Recording.RecordingToolbarWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
+    xmlns:local="clr-namespace:Pulse1x.App.Views.Recording"
+    Title="Pulse1x"
+    WindowStyle="None"
+    AllowsTransparency="True"
+    Background="Transparent"
+    Topmost="True"
+    ShowInTaskbar="False"
+    ShowActivated="False"
+    ResizeMode="NoResize"
+    SizeToContent="WidthAndHeight"
+    WindowStartupLocation="Manual"
+    Left="-10000" Top="0"
+    Foreground="White"
+    FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:StringToBrushConverter x:Key="StrToBrush" />
+        <local:KeyEqualsConverter x:Key="KeyEquals" />
+
+        <!-- Botão redondo da barra -->
+        <Style x:Key="BarButton" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#2EFFFFFF" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="17" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.3" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Opção das configurações rápidas (toggle ou rádio) -->
+        <Style x:Key="Chip" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="7" Padding="10,5" Background="#26FFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#3DFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#DC2626" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="#DC2626" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RadioChip" TargetType="RadioButton" BasedOn="{StaticResource Chip}" />
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="Margin" Value="0,6,0,4" />
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="12" Background="#F0161618" BorderBrush="#40FFFFFF" BorderThickness="1" Padding="6">
+        <StackPanel>
+            <!-- Barra -->
+            <StackPanel Orientation="Horizontal">
+                <!-- Alça para arrastar -->
+                <Border x:Name="Grip" Background="Transparent" Cursor="SizeAll" Padding="4,0,6,0" VerticalAlignment="Stretch"
+                        MouseLeftButtonDown="Grip_MouseLeftButtonDown"
+                        ToolTip="{Binding [Rec_BarMove], Source={x:Static loc:Loc.Instance}}">
+                    <ui:SymbolIcon Symbol="ReOrderDotsVertical24" FontSize="16" Opacity="0.55" VerticalAlignment="Center" />
+                </Border>
+
+                <!-- Estado: bolinha + tempo (ou "Pronto") -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MinWidth="78" Margin="0,0,6,0"
+                            MouseLeftButtonDown="Grip_MouseLeftButtonDown" Background="Transparent">
+                    <Ellipse Width="9" Height="9" Fill="{Binding StateColor, Converter={StaticResource StrToBrush}}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BarText}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Gravar / encerrar -->
+                <Button Command="{Binding StartStopCommand}" ToolTip="{Binding MainButtonText}" Background="#DC2626">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource BarButton}" />
+                    </Button.Style>
+                    <Grid>
+                        <Ellipse Width="12" Height="12" Fill="White" Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                        <Rectangle Width="11" Height="11" RadiusX="2" RadiusY="2" Fill="White" Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}" />
+                    </Grid>
+                </Button>
+
+                <!-- Pausar / continuar -->
+                <Button Style="{StaticResource BarButton}" Command="{Binding PauseResumeCommand}" ToolTip="{Binding PauseButtonText}">
+                    <Grid>
+                        <ui:SymbolIcon Symbol="Pause24" FontSize="17" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                        <ui:SymbolIcon Symbol="Play24" FontSize="17" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}}" />
+                    </Grid>
+                </Button>
+
+                <!-- Configurações rápidas -->
+                <ToggleButton x:Name="SettingsToggle" Width="34" Height="34" Margin="3,0" Cursor="Hand" Focusable="False"
+                              ToolTip="{Binding [Rec_BarQuickSettings], Source={x:Static loc:Loc.Instance}}">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bg" CornerRadius="17" Background="#2EFFFFFF">
+                                <ui:SymbolIcon Symbol="Settings24" FontSize="17" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#66FFFFFF" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Opacity" Value="0.8" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+
+                <!-- Ocultar -->
+                <Button Style="{StaticResource BarButton}" Click="Hide_Click" Background="Transparent"
+                        ToolTip="{Binding BarHideTip}">
+                    <ui:SymbolIcon Symbol="EyeOff24" FontSize="17" Opacity="0.85" />
+                </Button>
+            </StackPanel>
+
+            <!-- Configurações rápidas -->
+            <StackPanel Width="330" Margin="6,8,4,2" HorizontalAlignment="Left"
+                        Visibility="{Binding IsChecked, ElementName=SettingsToggle, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding [Rec_BarLockedWhileRecording], Source={x:Static loc:Loc.Instance}}" FontSize="11" Foreground="#FBBF24"
+                           TextWrapping="Wrap" Margin="0,0,0,4"
+                           Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                <TextBlock Text="{Binding [Rec_AudioTitle], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource SectionLabel}" />
+                <WrapPanel>
+                    <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding RecordSystemAudio}" IsEnabled="{Binding IsIdle}"
+                                  Content="{Binding [Rec_BarSystemAudio], Source={x:Static loc:Loc.Instance}}" />
+                    <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding RecordMicrophone}" IsEnabled="{Binding IsIdle}"
+                                  Content="{Binding [Rec_BarMicrophone], Source={x:Static loc:Loc.Instance}}" />
+                    <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding MicMuted}"
+                                  Content="{Binding [Rec_BarMicMute], Source={x:Static loc:Loc.Instance}}"
+                                  Visibility="{Binding HasMicrophoneTrack, Converter={StaticResource BoolToVis}}" />
+                </WrapPanel>
+
+                <StackPanel IsEnabled="{Binding IsIdle}">
+                    <TextBlock Text="{Binding [Rec_Quality], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource SectionLabel}" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarQuality" Content="{Binding [Rec_BarQualityLow], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding QualityKey, Converter={StaticResource KeyEquals}, ConverterParameter=Low}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarQuality" Content="{Binding [Rec_QualityMedium], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding QualityKey, Converter={StaticResource KeyEquals}, ConverterParameter=Medium}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarQuality" Content="{Binding [Rec_BarQualityHigh], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding QualityKey, Converter={StaticResource KeyEquals}, ConverterParameter=High}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarQuality" Content="{Binding [Rec_QualityUltra], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding QualityKey, Converter={StaticResource KeyEquals}, ConverterParameter=Ultra}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="{Binding [Rec_Fps], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource SectionLabel}" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarFps" Content="30"
+                                     IsChecked="{Binding FpsKey, Converter={StaticResource KeyEquals}, ConverterParameter=30}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarFps" Content="60"
+                                     IsChecked="{Binding FpsKey, Converter={StaticResource KeyEquals}, ConverterParameter=60}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarFps" Content="120"
+                                     IsChecked="{Binding FpsKey, Converter={StaticResource KeyEquals}, ConverterParameter=120}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarFps" Content="144"
+                                     IsChecked="{Binding FpsKey, Converter={StaticResource KeyEquals}, ConverterParameter=144}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="{Binding [Rec_Resolution], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource SectionLabel}" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarRes" Content="{Binding [Rec_BarResNative], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding ResolutionKey, Converter={StaticResource KeyEquals}, ConverterParameter=Native}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarRes" Content="1440p"
+                                     IsChecked="{Binding ResolutionKey, Converter={StaticResource KeyEquals}, ConverterParameter=1440}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarRes" Content="1080p"
+                                     IsChecked="{Binding ResolutionKey, Converter={StaticResource KeyEquals}, ConverterParameter=1080}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarRes" Content="720p"
+                                     IsChecked="{Binding ResolutionKey, Converter={StaticResource KeyEquals}, ConverterParameter=720}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="{Binding [Rec_Area], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource SectionLabel}" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarArea" Content="{Binding [Rec_AreaFull], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding IsRegion, Converter={StaticResource KeyEquals}, ConverterParameter=False}" />
+                        <RadioButton Style="{StaticResource RadioChip}" GroupName="BarArea" Content="{Binding [Rec_BarArea], Source={x:Static loc:Loc.Instance}}"
+                                     IsChecked="{Binding IsRegion, Converter={StaticResource KeyEquals}, ConverterParameter=True}" />
+                    </WrapPanel>
+                </StackPanel>
+
+                <Button Click="MoreSettings_Click" Cursor="Hand" Focusable="False" HorizontalAlignment="Left" Margin="0,6,0,2"
+                        Background="Transparent" Foreground="#93C5FD" BorderThickness="0" Padding="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter />
+                        </ControlTemplate>
+                    </Button.Template>
+                    <TextBlock Text="{Binding [Rec_BarMoreSettings], Source={x:Static loc:Loc.Instance}}" FontSize="12" TextDecorations="Underline" />
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

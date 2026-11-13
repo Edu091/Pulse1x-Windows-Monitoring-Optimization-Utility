@@ -232,6 +232,7 @@ public sealed class ScreenRecorder : IDisposable
             string path = Path.Combine(_tempDir!, $"part{_segments.Count + 1:D3}.mkv");
             string args = RecordingCommandBuilder.SegmentArgs(plan.Settings, plan.Monitor, _geometry, method, encoder, path);
 
+            RecordingLog.Write($"segment start: {method}/{encoder} | {args}");
             var segment = new Segment(plan.FfmpegPath, args, path);
             segment.PressQ += () => { foreach (var a in _audio) a.Writing = true; };
             if (await segment.StartAsync(StartTimeout))
@@ -247,6 +248,7 @@ public sealed class ScreenRecorder : IDisposable
             // Falhou: o áudio talvez já tenha começado a escrever — descarta.
             for (int k = 0; k < _audio.Count; k++) { _audio[k].Writing = false; _audio[k].TruncateTo(marks[k]); }
             lastError = segment.ErrorTail;
+            RecordingLog.Write($"segment failed: {method}/{encoder} | {lastError.Replace(Environment.NewLine, " / ")}");
             segment.Dispose();
             TryDelete(path);
         }
@@ -300,6 +302,7 @@ public sealed class ScreenRecorder : IDisposable
             try { saved = await FinalizeAsync(); }
             catch { }
             SetState(RecorderState.Idle);
+            RecordingLog.Write($"recording stopped unexpectedly: {segment.ErrorTail.Replace(Environment.NewLine, " / ")}");
             StoppedUnexpectedly?.Invoke(saved, new RecordingException("Rec_ErrCrashed", segment.ErrorTail));
         }
         finally { _gate.Release(); }
@@ -385,6 +388,7 @@ public sealed class ScreenRecorder : IDisposable
                 }
             }
             // Os trechos continuam na pasta oculta: o erro diz onde estão.
+            RecordingLog.Write($"finalize failed (exit {result.ExitCode}): {Tail(result.Output).Replace(Environment.NewLine, " / ")}");
             throw new RecordingException("Rec_ErrFinalize", _tempDir + Environment.NewLine + Tail(result.Output));
         }
 
