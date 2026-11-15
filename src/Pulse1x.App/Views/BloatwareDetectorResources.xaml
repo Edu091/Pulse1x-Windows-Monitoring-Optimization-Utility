@@ -63,7 +63,7 @@
 
                         <!-- Botão de varredura -->
                         <ui:Button Content="{Binding [Opt_BloatScan], Source={x:Static loc:Loc.Instance}}" Command="{Binding ScanCommand}"
-                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                   Appearance="Primary" FontWeight="SemiBold"
                                    Padding="16,8" HorizontalAlignment="Left"
                                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
 

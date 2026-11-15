@@ -358,7 +358,7 @@
     </Page.Resources>
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel MaxWidth="684" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="920" HorizontalAlignment="Left">
 
             <!-- Título -->
             <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
@@ -815,7 +815,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding DnsBenchStatus}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
-                                    <ui:Button Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource BrandAccentBrush}" Foreground="White"
+                                    <ui:Button Grid.Column="1" Margin="10,0,0,0" Appearance="Primary"
                                                Content="{Binding [Lat_DnsUseFastest], Source={x:Static loc:Loc.Instance}}"
                                                Command="{Binding ApplyFastestDnsCommand}"
                                                IsEnabled="{Binding IsApplyingDns, Converter={StaticResource InvBool}}"
@@ -961,7 +961,7 @@
                     <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
                                 Visibility="{Binding DiagnosticExpanded, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                            <ui:Button Appearance="Primary" FontWeight="SemiBold"
                                        Content="{Binding [Lat_Analyze], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding AnalyzeCommand}"
                                        IsEnabled="{Binding IsAnalyzing, Converter={StaticResource InvBool}}" />
@@ -999,7 +999,7 @@
                     <StackPanel Margin="0,12,0,0" anim:Anim.AnimateVisibility="True"
                                 Visibility="{Binding DriverExpanded, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                            <ui:Button Appearance="Primary" FontWeight="SemiBold"
                                        Content="{Binding [Lat_DrvCheck], Source={x:Static loc:Loc.Instance}}"
                                        Command="{Binding CheckDriverLatencyCommand}"
                                        IsEnabled="{Binding IsCheckingDriverLatency, Converter={StaticResource InvBool}}" />
@@ -1072,7 +1072,7 @@
                                 Visibility="{Binding ToolsExpanded, Converter={StaticResource BoolToVis}}">
 
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,8">
-                        <ui:Button Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                        <ui:Button Appearance="Primary" FontWeight="SemiBold"
                                    Content="{Binding [Lat_ApplyAll], Source={x:Static loc:Loc.Instance}}"
                                    Command="{Binding ApplyAllCommand}" IsEnabled="{Binding IsApplyingAll, Converter={StaticResource InvBool}}" />
                         <!-- Sempre à vista (antes sumia e parecia não haver como voltar atrás);

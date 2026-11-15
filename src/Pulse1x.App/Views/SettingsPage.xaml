@@ -383,7 +383,7 @@
             <ui:Button Content="{Binding [Settings_UpdateInstallButton], Source={x:Static loc:Loc.Instance}}"
                        Command="{Binding InstallUpdateCommand}"
                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
-                       Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold" />
+                       Appearance="Primary" FontWeight="SemiBold" />
         </StackPanel>
     </StackPanel>
     </ScrollViewer>

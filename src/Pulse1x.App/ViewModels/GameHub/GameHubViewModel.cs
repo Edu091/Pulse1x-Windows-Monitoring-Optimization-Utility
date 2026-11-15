@@ -220,11 +220,21 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
 
     private void StopStatusTimer() => _statusTimer?.Stop();
 
-    private void OnStatusTick(object? sender, EventArgs e)
-    {
-        if (_status is null) return;
+    // Leitura de status em andamento: o tick seguinte é pulado em vez de empilhar leituras.
+    private bool _statusReading;
 
-        var status = _status.Read();
+    private async void OnStatusTick(object? sender, EventArgs e)
+    {
+        if (_status is null || _statusReading) return;
+
+        // LibreHardwareMonitor (Update + às vezes WMI) leva dezenas de ms: fora da thread da
+        // interface, senão o hub engasga ao abrir e a cada 5 s. O await volta para o dispatcher.
+        var service = _status;
+        _statusReading = true;
+        HubStatus status;
+        try { status = await Task.Run(() => service.Read()); }
+        catch { return; }
+        finally { _statusReading = false; }
 
         ClockText = status.Clock;
 
@@ -388,7 +398,9 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         if (RecentOnly)
             query = query.Where(c => c.Entry.LastPlayed is DateTime d && d > DateTime.Now.AddDays(-30));
 
-        query = (SelectedSort?.Mode ?? GameSortMode.Name) switch
+        // Na aba Recentes a ordem é sempre a da última partida, seja qual for a ordenação escolhida.
+        var sortMode = RecentOnly ? GameSortMode.LastPlayed : SelectedSort?.Mode ?? GameSortMode.Name;
+        query = sortMode switch
         {
             GameSortMode.LastPlayed => query.OrderByDescending(c => c.Entry.LastPlayed ?? DateTime.MinValue)
                                             .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase),
@@ -401,7 +413,8 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         };
 
         // Favoritos sempre no topo — é o que o usuário quer alcançar primeiro.
-        var ordered = query.OrderByDescending(c => c.Entry.IsFavorite).ToList();
+        // (Exceto em Recentes, onde a ordem é estritamente cronológica.)
+        var ordered = RecentOnly ? query.ToList() : query.OrderByDescending(c => c.Entry.IsFavorite).ToList();
 
         Games.Clear();
         foreach (var card in ordered) Games.Add(card);
@@ -1083,6 +1096,11 @@ public partial class GameHubViewModel : ObservableObject, IDisposable
         if (SelectedLauncherFilter?.Kind is not null)
         {
             SelectedLauncherFilter = LauncherFilters.FirstOrDefault();
+            return true;
+        }
+        if (CategoryFilters.Count > 0 && SelectedCategory != CategoryFilters[0])
+        {
+            SelectedCategory = CategoryFilters[0];
             return true;
         }
         return false;

@@ -104,35 +104,41 @@ public sealed class ScreenRecorder : IDisposable
             if (State != RecorderState.Idle) return;
             SetState(RecorderState.Starting);
 
-            // Cópia das configurações: mexer na tela durante a gravação não muda o arquivo em curso.
-            var settings = JsonSerializer.Deserialize<RecordingSettings>(JsonSerializer.Serialize(plan.Settings))!;
-            settings.Normalize();
-            _plan = plan with { Settings = settings };
-            _geometry = RecordingCommandBuilder.Geometry(settings, plan.Monitor.Width, plan.Monitor.Height);
-            _locked = null;
-            UsedFallback = false;
-            _segments.Clear();
-            _accumulated = TimeSpan.Zero;
-            _clockRunning = false;
-            _autoRestarts = 0;
-
-            string folder = settings.EffectiveOutputFolder;
-            try { Directory.CreateDirectory(folder); }
-            catch (Exception ex) { throw new RecordingException("Rec_ErrFolder", ex.Message); }
-
-            DateTime now = DateTime.Now;
-            OutputPath = UniquePath(Path.Combine(folder, RecordingCommandBuilder.FileName(now, settings.Container)));
-
-            // Os segmentos ficam numa pasta oculta ao lado do vídeo final: mesmo disco (juntar é rápido)
-            // e, se o PC desligar no meio, os trechos já gravados continuam lá.
-            _tempDir = Path.Combine(folder, $".pulse1x-rec-{now:yyyyMMdd-HHmmss}");
-            Directory.CreateDirectory(_tempDir);
-            try { File.SetAttributes(_tempDir, FileAttributes.Directory | FileAttributes.Hidden); } catch { }
-
-            StartAudio(settings);
-
+            // Tudo depois de "Starting" fica dentro do try: qualquer falha (pasta sem permissão, disco
+            // cheio, áudio) precisa voltar para Idle, senão botões e atalhos ficam mortos até reiniciar.
             try
             {
+                // Cópia das configurações: mexer na tela durante a gravação não muda o arquivo em curso.
+                var settings = JsonSerializer.Deserialize<RecordingSettings>(JsonSerializer.Serialize(plan.Settings))!;
+                settings.Normalize();
+                _plan = plan with { Settings = settings };
+                _geometry = RecordingCommandBuilder.Geometry(settings, plan.Monitor.Width, plan.Monitor.Height);
+                _locked = null;
+                UsedFallback = false;
+                _segments.Clear();
+                _accumulated = TimeSpan.Zero;
+                _clockRunning = false;
+                _autoRestarts = 0;
+                // Pasta de uma gravação anterior que falhou ao juntar guarda os trechos do usuário:
+                // o catch abaixo não pode apagá-la se esta falhar antes de criar a própria.
+                _tempDir = null;
+
+                string folder = settings.EffectiveOutputFolder;
+                try { Directory.CreateDirectory(folder); }
+                catch (Exception ex) { throw new RecordingException("Rec_ErrFolder", ex.Message); }
+
+                DateTime now = DateTime.Now;
+                OutputPath = UniquePath(Path.Combine(folder, RecordingCommandBuilder.FileName(now, settings.Container)));
+
+                // Os segmentos ficam numa pasta oculta ao lado do vídeo final: mesmo disco (juntar é rápido)
+                // e, se o PC desligar no meio, os trechos já gravados continuam lá.
+                _tempDir = Path.Combine(folder, $".pulse1x-rec-{now:yyyyMMdd-HHmmss}");
+                try { Directory.CreateDirectory(_tempDir); }
+                catch (Exception ex) { throw new RecordingException("Rec_ErrFolder", ex.Message); }
+                try { File.SetAttributes(_tempDir, FileAttributes.Directory | FileAttributes.Hidden); } catch { }
+
+                StartAudio(settings);
+
                 await StartSegmentAsync(allowFallback: true);
             }
             catch
@@ -380,13 +386,15 @@ public sealed class ScreenRecorder : IDisposable
                 args = RecordingCommandBuilder.FinalizeArgs(list, Array.Empty<AudioTrack>(), 0,
                     plan.Settings.Codec, plan.Settings.Container, output);
                 var retry = await FfmpegService.RunAsync(plan.FfmpegPath, args, TimeSpan.FromMinutes(30));
-                if (retry.ExitCode == 0 && File.Exists(output))
+                if (retry.ExitCode == 0 && File.Exists(output) && new FileInfo(output).Length > 0)
                 {
                     TryDeleteDir(_tempDir);
                     _tempDir = null;
                     return output;
                 }
             }
+            // Arquivo final parcial/vazio não abre e apareceria em "Gravações recentes": apaga.
+            TryDelete(output);
             // Os trechos continuam na pasta oculta: o erro diz onde estão.
             RecordingLog.Write($"finalize failed (exit {result.ExitCode}): {Tail(result.Output).Replace(Environment.NewLine, " / ")}");
             throw new RecordingException("Rec_ErrFinalize", _tempDir + Environment.NewLine + Tail(result.Output));

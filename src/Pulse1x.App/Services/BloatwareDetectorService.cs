@@ -210,7 +210,7 @@ public class BloatwareDetectorService
         {
             try
             {
-                var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+                var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
                 using var key = root.OpenSubKey(path);
                 if (key is null) continue;
 
@@ -340,7 +340,7 @@ public class BloatwareDetectorService
         {
             try
             {
-                var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+                var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
                 using var key = root.OpenSubKey(path);
                 if (key is null) continue;
                 string hiveLabel = hive == RegistryHive.LocalMachine ? "HKLM" : "HKCU";
@@ -484,9 +484,55 @@ public class BloatwareDetectorService
     /// <summary>Reativa um item antes desativado, desfazendo as alterações registradas para ele.</summary>
     public async Task EnableAsync(BloatwareItem item)
     {
-        foreach (var change in _log.GetActive(item.Key).Reverse())
+        var active = _log.GetActive(item.Key).ToList();
+        foreach (var change in Enumerable.Reverse(active))
             await _advanced.RevertChangeAsync(change);
-        item.CurrentlyEnabled = true;
+
+        switch (item.Kind)
+        {
+            case BloatKind.Service when item.ServiceName is not null:
+                {
+                    string svcKey = $@"{ServicesPath}\{item.ServiceName}";
+                    // Sem registro no histórico (desativado pelas Otimizações Avançadas sob outro id,
+                    // ou fora do Pulse1x): restaura direto para Manual, senão "Reativar" não mudaria nada.
+                    if (active.Count == 0)
+                    {
+                        SetDwordRaw(RegistryHive.LocalMachine, svcKey, "Start", 3);
+                        await RunAsync("sc", $"start {item.ServiceName}");
+                    }
+                    // Estado real, não presumido: se a escrita falhou o item continua desativado.
+                    item.CurrentlyEnabled = GetDword(RegistryHive.LocalMachine, svcKey, "Start") != 4;
+                    if (!item.CurrentlyEnabled) throw new InvalidOperationException(Loc.S("Lat_OpFailed"));
+                }
+                break;
+
+            case BloatKind.ScheduledTask when item.TaskPath is not null:
+                {
+                    if (active.Count == 0)
+                    {
+                        var r = await RunAsync("schtasks", $"/Change /TN \"{item.TaskPath}\" /Enable");
+                        if (r.code != 0)
+                        {
+                            item.CurrentlyEnabled = false;
+                            throw new InvalidOperationException(Loc.S("Lat_OpFailed"));
+                        }
+                    }
+                    // Com histórico, RevertChangeAsync já lança se o schtasks falhar.
+                    item.CurrentlyEnabled = true;
+                }
+                break;
+
+            case BloatKind.StartupItem:
+                // Sem o registro do valor removido não há o que restaurar (o comando original se perdeu):
+                // o item segue desativado e a interface mostra falha em vez de um "Reativado" falso.
+                item.CurrentlyEnabled = active.Count > 0;
+                if (!item.CurrentlyEnabled) throw new InvalidOperationException(Loc.S("Lat_OpFailed"));
+                break;
+
+            default:
+                item.CurrentlyEnabled = true;
+                break;
+        }
     }
 
     /// <summary>
@@ -530,11 +576,15 @@ public class BloatwareDetectorService
     /// <summary>Cria um ponto de restauração do sistema antes de uma alteração. Melhor esforço.</summary>
     public async Task<bool> CreateRestorePointAsync()
     {
-        var (code, _) = await RunAsync("powershell",
-            "-NoProfile -ExecutionPolicy Bypass -Command " +
-            "\"Enable-ComputerRestore -Drive $env:SystemDrive; " +
-            "Checkpoint-Computer -Description 'Pulse1x - Detector de Bloatware' -RestorePointType 'MODIFY_SETTINGS'\"");
-        return code == 0;
+        // Reaproveita a versão da Central de Comandos: ela zera o limite de 1 ponto a cada 24 h
+        // (SystemRestorePointCreationFrequency) e roda com $ErrorActionPreference='Stop'. Sem isso o
+        // Windows pulava a criação em silêncio, o PowerShell saía com 0 e mostrávamos "criado".
+        try
+        {
+            var r = await new SpecialCommandsService().CreateRestorePointAsync("Pulse1x - Detector de Bloatware");
+            return r.ExitCode == 0;
+        }
+        catch { return false; }
     }
 
     // ===================== Base de conhecimento (curada) =====================
@@ -1927,7 +1977,7 @@ public class BloatwareDetectorService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey);
             return key?.GetValue(name) is int i ? i : (int?)null;
         }
@@ -1938,7 +1988,7 @@ public class BloatwareDetectorService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var wk = root.CreateSubKey(subKey);
             wk.SetValue(name, value, RegistryValueKind.DWord);
         }
@@ -1949,7 +1999,7 @@ public class BloatwareDetectorService
     {
         try
         {
-            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = hive == RegistryHive.LocalMachine ? Registry.LocalMachine : InteractiveUser.Registry;
             using var key = root.OpenSubKey(subKey, writable: true);
             if (key?.GetValue(name) is not null)
                 key.DeleteValue(name, throwOnMissingValue: false);

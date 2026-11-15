@@ -623,6 +623,27 @@ public partial class MainWindow : FluentWindow
 
     private void DonateButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_donatePage, DonateButton);
 
+    private bool _pagePausedForMinimize;
+
+    /// <summary>
+    /// Pausa (ou retoma) as leituras periódicas da página aberta. Minimizar não muda o IsVisible
+    /// das páginas, então o Dashboard (sensores a cada segundo), a Latência (pings) e os
+    /// medidores do Som continuavam rodando com a janela na barra de tarefas.
+    /// </summary>
+    private void SetCurrentPageActive(bool active)
+    {
+        if (_inGameHub) return; // o hub tem o próprio controle de atividade
+        switch ((ContentFrame.Content as FrameworkElement)?.DataContext)
+        {
+            case ViewModels.DashboardViewModel dashboard: dashboard.SetActive(active); break;
+            case ViewModels.LatencyViewModel latency: latency.SetActive(active); break;
+            case ViewModels.OptimizationViewModel optimization: optimization.SetActive(active); break;
+            case ViewModels.SoundViewModel sound:
+                if (active) sound.OnShown(); else sound.OnHidden();
+                break;
+        }
+    }
+
     private void FluentWindow_StateChanged(object? sender, EventArgs e)
     {
         if (WindowState == WindowState.Minimized)
@@ -633,10 +654,19 @@ public partial class MainWindow : FluentWindow
             _gamepad?.SetActive(false);
             _gamepadSuspendedForMinimize = true;
 
+            SetCurrentPageActive(false);
+            _pagePausedForMinimize = true;
+
             // O "-" minimiza para a barra de tarefas, como em qualquer programa. A bandeja fica só
             // para o "X" (ver FluentWindow_Closing): antes o "-" também escondia a janela na
             // bandeja e, sem nada na barra de tarefas, parecia que o Pulse1x tinha fechado.
             return;
+        }
+
+        if (_pagePausedForMinimize)
+        {
+            _pagePausedForMinimize = false;
+            SetCurrentPageActive(true);
         }
 
         if (_gamepadSuspendedForMinimize)

@@ -1,5 +1,29 @@
 # Histórico de versões
 
+## 1.25.0 — 15/11/2026
+
+- **Troca de categoria mais leve:** a página nova entra inteira com um único fade e começa a animar só depois de desenhada, sem a cascata de blocos que causava uma travadinha na 1.24.0.
+- **Sem travadas ao abrir Som, Gravação e GameHub:** a leitura dos aparelhos de áudio, dos monitores e dos sensores agora roda em segundo plano. No GameHub isso também acontece a cada 5 segundos.
+- **Minimizado, o Pulse1x descansa:** Dashboard, Latência, Otimizações e os medidores do Som param de ler sensores e fazer pings enquanto a janela está na barra de tarefas, e retomam ao voltar.
+- **Botões renovados:** cantos mais arredondados, cursor de mão e indicador de foco do controle em todos os botões. Os botões em destaque não ficam mais cinza ao passar o mouse.
+- Otimizações, Latência e Saúde usam mais da largura da janela.
+- **Corrigido (Detector de Bloatware):**
+  - "Reativar" dizia "Reativado" sem mudar nada em serviços e tarefas desativados fora do detector. Agora restaura de verdade ou avisa a falha.
+  - Itens de inicialização e programas instalados do usuário ficavam de fora quando o Pulse1x era aberto como administrador por outra conta.
+  - O ponto de restauração podia ser dado como criado quando o Windows tinha pulado a criação (limite de 1 a cada 24 h).
+- **Corrigido (Pós-formatação):** os ajustes do Explorador iam para a conta errada quando o Pulse1x era aberto como administrador por outra conta, e as janelas abertas não se atualizavam.
+- **Corrigido (Limpeza de disco):** pelo mesmo motivo, os temporários e caches do seu usuário não eram medidos nem limpos.
+- **Corrigido (Otimizações Avançadas):** desfazer um item do histórico podia abrir a janela genérica de erro e deixar a tela desatualizada.
+- **Corrigido (Latência):** RSS e Auto-Tuning diziam "aplicado" mesmo quando o comando falhava, e o "Reverter" do RSS podia desligá-lo.
+- **Corrigido (Comandos Especiais):** "Redefinir rede" mostrava sucesso mesmo quando uma das etapas falhava.
+- **Corrigido (Gravação):**
+  - Uma pasta de destino indisponível (pendrive removido) deixava a gravação presa em "Iniciando" até reiniciar o app.
+  - Uma finalização que falhava deixava um vídeo quebrado na lista de recentes.
+  - O atalho de terminar era ignorado enquanto a gravação começava.
+- **Corrigido (Dashboard, em inglês):** o armazenamento interno aparecia como 0 GB.
+- **Corrigido (GameHub):** a aba Recentes não estava em ordem de data, e o botão Voltar não limpava o filtro de categoria.
+- As barras de personalização visual não gravam mais as configurações em disco a cada movimento, o que deixa o arrasto mais suave.
+
 ## 1.24.0 — 15/11/2026
 
 - **Visual renovado.** A barra lateral agora separa as categorias em grupos:

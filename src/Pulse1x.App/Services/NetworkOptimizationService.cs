@@ -169,8 +169,12 @@ public class NetworkOptimizationService
         // ficava registrado — o card não tinha o que reverter.
         string old = await ReadOffloadGlobalAsync("ReceiveSideScaling");
         if (old.Equals("Enabled", StringComparison.OrdinalIgnoreCase)) return new OpResult(true, "Lat_AdvAlready");
-        await RunAsync("netsh", "int tcp set global rss=enabled");
-        if (!_log.GetAllActive().Any(c => c.ValueKind == "netsh-rss"))
+        var r = await RunAsync("netsh", "int tcp set global rss=enabled");
+        if (r.code != 0) return new OpResult(false, "Lat_OpFailed", r.output.Trim());
+        // Só registra quando o estado anterior foi de fato lido como "Disabled": antes, uma leitura
+        // falha gravava "disabled" mesmo assim e o "Reverter" desligava um RSS que já estava ligado.
+        if (old.Equals("Disabled", StringComparison.OrdinalIgnoreCase)
+            && !_log.GetAllActive().Any(c => c.ValueKind == "netsh-rss"))
             Record("netsh-rss", "rss", "Rss", "disabled", "enabled", "Lat_ToolRss");
         return new OpResult(true, "Lat_DoneRss");
     }
@@ -180,7 +184,9 @@ public class NetworkOptimizationService
     {
         string old = await ReadAutoTuningAsync();
         if (old == "normal") return new OpResult(true, "Lat_AdvAlready");
-        await RunAsync("netsh", "int tcp set global autotuninglevel=normal");
+        var r = await RunAsync("netsh", "int tcp set global autotuninglevel=normal");
+        // Falha do netsh não pode virar "concluído" nem deixar no histórico algo que não mudou.
+        if (r.code != 0) return new OpResult(false, "Lat_OpFailed", r.output.Trim());
         bool autoLogged = _log.GetAllActive().Any(c => c.ValueKind == "netsh-autotuning");
         // Ilegível ("—") antes não era registrado e o card ficava sem "Reverter"; agora registra o
         // padrão do Windows (normal), que nunca piora a conexão ao ser restaurado.

@@ -378,7 +378,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
                 Disks.Insert(Math.Min(i, Disks.Count), metric);
             }
 
-            metric.Title = $"{LocalizeDiskLabel(reading.Label)} • {LocalizeDiskType(reading.TypeText)}";
+            metric.Title = $"{LocalizeDiskLabel(reading.Label)} • {LocalizeDiskType(reading)}";
             metric.PrimaryValue = $"{reading.UsagePercent:0.#}%";
             metric.SecondaryValue = $"{reading.UsedGb:0.#} / {reading.TotalGb:0.#} GB • {reading.FreeGb:0.#} {Loc.S("Dashboard_FreeGbSuffix")}";
             metric.UsagePercent = reading.UsagePercent;
@@ -393,7 +393,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
         if (_storageInfoItem is not null)
         {
-            double internalGb = disks.Where(d => d.TypeText == "Interno").Sum(d => d.TotalGb);
+            double internalGb = disks.Where(d => d.IsInternal).Sum(d => d.TotalGb);
             double allGb = disks.Sum(d => d.TotalGb);
             // Mostra o total interno; se houver discos externos, indica o total geral entre parênteses.
             _storageInfoItem.Value = allGb > internalGb + 0.1
@@ -435,9 +435,13 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private static string LocalizeDiskLabel(string label) =>
         label == "Disco Local" ? Loc.S("Dashboard_DiskLocalLabel") : label;
 
+    // "Interno" vem da flag (o TypeText já chega traduzido; comparar com o texto em português falhava em inglês).
+    private static string LocalizeDiskType(DiskReading reading) => reading.IsInternal
+        ? Loc.S("Dashboard_DiskInternal")
+        : LocalizeDiskType(reading.TypeText);
+
     private static string LocalizeDiskType(string typeText) => typeText switch
     {
-        "Interno" => Loc.S("Dashboard_DiskInternal"),
         "Rede" => Loc.S("Dashboard_DiskNetwork"),
         "Externo (removível)" => Loc.S("Dashboard_DiskRemovable"),
         "Externo (USB)" => Loc.S("Dashboard_DiskUsb"),

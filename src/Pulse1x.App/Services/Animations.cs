@@ -72,20 +72,61 @@ public static class Animations
     }
 
     /// <summary>
-    /// Entrada de página: os blocos de primeiro nível do conteúdo (cabeçalho, cartões) surgem em
-    /// cascata. Páginas sem um painel reconhecível entram inteiras com <see cref="FadeSlideIn"/>.
+    /// Entrada de página: fade + deslize da página INTEIRA, como um bitmap em cache na GPU.
     /// </summary>
+    /// <remarks>
+    /// Desempenho (causa da "travadinha" da 1.24.0): animar a opacidade de cada bloco da página
+    /// em cascata criava uma camada por bloco, redesenhada a cada quadro, e a animação começava
+    /// no mesmo quadro do primeiro layout da página nova — o mais caro —, então os primeiros
+    /// quadros se perdiam. Agora a página fica oculta até ser desenhada uma vez, e só então anima
+    /// um único elemento com <see cref="BitmapCache"/> (a GPU só compõe a imagem pronta). O cache
+    /// sai ao terminar, para o texto voltar a ser desenhado nítido.
+    /// </remarks>
     public static void PageEnter(UIElement page)
     {
         if (page is null) return;
-        var panel = FindStaggerPanel(page);
-        if (panel is null || !AnimationSettings.Enabled)
+        if (!AnimationSettings.Enabled)
         {
-            FadeSlideIn(page);
+            page.BeginAnimation(UIElement.OpacityProperty, null);
             return;
         }
 
-        StaggerIn(panel.Children.OfType<UIElement>(), offsetY: 16, stepMs: 40);
+        page.CacheMode = null;
+        // Oculta já (antes do primeiro quadro), sem mexer no valor base da opacidade.
+        page.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.Zero));
+
+        int token = ++_pageEnterToken;
+        bool started = false;
+        void OnRendering(object? sender, EventArgs e)
+        {
+            // O primeiro Rendering depois da navegação ainda é o quadro do layout; começa no seguinte.
+            if (!started) { started = true; return; }
+            CompositionTarget.Rendering -= OnRendering;
+            if (token != _pageEnterToken) return; // outra página já entrou nesse meio-tempo
+            RunPageEnter(page);
+        }
+        CompositionTarget.Rendering += OnRendering;
+    }
+
+    private static int _pageEnterToken;
+
+    private static void RunPageEnter(UIElement page)
+    {
+        var dur = AnimationSettings.Scale(new Duration(TimeSpan.FromMilliseconds(260)));
+        double offset = AnimationSettings.ScaleOffset(12);
+        var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
+
+        double scale = page is Visual v ? VisualTreeHelper.GetDpi(v).DpiScaleX : 1.0;
+        page.CacheMode = new BitmapCache(scale) { SnapsToDevicePixels = true };
+
+        var tt = EnsureTranslate(page);
+        tt?.BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(offset, 0, dur) { EasingFunction = ease, FillBehavior = FillBehavior.Stop });
+
+        double target = page.Opacity;
+        var fade = new DoubleAnimation(0, target, dur) { EasingFunction = ease, FillBehavior = FillBehavior.Stop };
+        fade.Completed += (_, _) => page.CacheMode = null;
+        page.BeginAnimation(UIElement.OpacityProperty, fade);
     }
 
     /// <summary>
@@ -189,37 +230,6 @@ public static class Animations
             default:
                 return null;
         }
-    }
-
-    // Desce do conteúdo da página (ScrollViewer → Border/Grid → StackPanel) até o painel cujos
-    // filhos são os blocos da página.
-    private static System.Windows.Controls.Panel? FindStaggerPanel(UIElement page)
-    {
-        object? node = page is System.Windows.Controls.Page p ? p.Content : page;
-        for (int depth = 0; depth < 5 && node is not null; depth++)
-        {
-            switch (node)
-            {
-                case System.Windows.Controls.StackPanel stack when stack.Children.Count >= 2:
-                    return stack;
-                case System.Windows.Controls.ScrollViewer sv:
-                    node = sv.Content;
-                    break;
-                case System.Windows.Controls.Decorator d:
-                    node = d.Child;
-                    break;
-                case System.Windows.Controls.Grid g when g.Children.Count == 1:
-                    node = g.Children[0];
-                    break;
-                case System.Windows.Controls.Grid g:
-                    // Grade com cabeçalho fixo + rolagem: procura o ScrollViewer dela.
-                    node = g.Children.OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault();
-                    break;
-                default:
-                    return null;
-            }
-        }
-        return null;
     }
 
     /// <summary>Animação de abertura da janela: fade + leve zoom (escala) do conteúdo raiz.</summary>

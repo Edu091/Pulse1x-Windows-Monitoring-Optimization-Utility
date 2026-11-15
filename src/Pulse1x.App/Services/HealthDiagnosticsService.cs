@@ -413,7 +413,7 @@ public class HealthDiagnosticsService
         {
             // Sem WMI de disco físico: cai para os volumes lógicos.
             int i = 0;
-            foreach (var v in volumes.Where(v => v.TypeText == "Interno"))
+            foreach (var v in volumes.Where(v => v.IsInternal)) // flag, não o texto traduzido
             {
                 bool isSystem = i == 0;
                 result.Add(BuildVolumeHealth(ctx, v, null, isSystem));

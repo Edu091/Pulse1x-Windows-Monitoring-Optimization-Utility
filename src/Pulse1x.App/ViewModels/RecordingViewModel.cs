@@ -121,8 +121,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     /// <summary>Chamado quando a página aparece: relê monitores, microfones, gravações e Game Bar.</summary>
     public void OnShown()
     {
-        RefreshMonitors();
-        RefreshMicrophones();
+        _ = RefreshDevicesAsync();
         _ = RefreshLibraryAsync();
         _ = RefreshGameBarAsync();
         if (!FfmpegFound) _ = RefreshEngineAsync();
@@ -219,9 +218,29 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     private static RecOption? Find(IEnumerable<RecOption> list, string? key) =>
         list.FirstOrDefault(o => o.Key == key) ?? list.FirstOrDefault();
 
-    public void RefreshMonitors()
+    public void RefreshMonitors() => ApplyMonitors(DisplayEnumerator.GetMonitors());
+
+    /// <summary>
+    /// Versão da página aparecendo: DXGI e MMDevice enumeram fora da thread da interface (travavam
+    /// a abertura da aba); só o resultado (dados simples) volta para preencher as listas no dispatcher.
+    /// </summary>
+    private async Task RefreshDevicesAsync()
     {
-        _monitorList = DisplayEnumerator.GetMonitors();
+        try
+        {
+            var data = await Task.Run(() => (Monitors: DisplayEnumerator.GetMonitors(), Mics: AudioCapture.ListMicrophones()));
+            ApplyMonitors(data.Monitors);
+            ApplyMicrophones(data.Mics);
+        }
+        catch (Exception ex)
+        {
+            RecordingLog.Write("refresh devices failed: " + ex.Message);
+        }
+    }
+
+    private void ApplyMonitors(List<CaptureMonitor> monitors)
+    {
+        _monitorList = monitors;
         bool wasLoading = _loading;
         _loading = true;
         Replace(Monitors, _monitorList.Select(m => new RecOption(m.DeviceName,
@@ -231,12 +250,14 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         UpdateRegionText();
     }
 
-    private void RefreshMicrophones()
+    private void RefreshMicrophones() => ApplyMicrophones(AudioCapture.ListMicrophones());
+
+    private void ApplyMicrophones(List<MicrophoneInfo> mics)
     {
         bool wasLoading = _loading;
         _loading = true;
         var list = new List<RecOption> { new("", Loc.S("Rec_MicDefault")) };
-        list.AddRange(AudioCapture.ListMicrophones().Select(m => new RecOption(m.Id, m.Name)));
+        list.AddRange(mics.Select(m => new RecOption(m.Id, m.Name)));
         Replace(Microphones, list);
         SelectedMicrophone = Find(Microphones, S.MicrophoneId ?? "");
         _loading = wasLoading;
@@ -745,7 +766,7 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
     private async Task StartStopAsync()
     {
         if (_countdownCts is not null) { _countdownCts.Cancel(); return; }
-        if (IsActive) await StopRecordingAsync();
+        if (IsActive || _startInProgress) await StopRecordingAsync();
         else await StartRecordingAsync();
     }
 
@@ -807,6 +828,9 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             _countdownCts = null;
         }
 
+        // Cada gravação começa sem pedido de parada pendente.
+        _stopRequested = false;
+        _startInProgress = true;
         try
         {
             IsBusy = true;
@@ -814,6 +838,16 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             var plan = new RecordingPlan(_ffmpeg.ExePath, S, monitor, _ffmpeg.HasDdagrab, await ResolveEncodersAsync(monitor));
             Cue(880, 0);
             await _recorder.StartAsync(plan);
+            _startInProgress = false;
+
+            // "Terminar" apertado enquanto iniciava (os planos B podem levar ~15 s): para agora,
+            // em vez de ignorar o pedido e deixar gravando.
+            if (_stopRequested)
+            {
+                _stopRequested = false;
+                if (_recorder.State is RecorderState.Recording or RecorderState.Paused) await StopCoreAsync();
+                return;
+            }
             if (S.ShowIndicator) OpenIndicator(monitor);
         }
         catch (Exception ex)
@@ -821,7 +855,16 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
             ShowError(ex);
             OnRecorderStateChanged();
         }
+        finally
+        {
+            _startInProgress = false;
+            _stopRequested = false;
+        }
     }
+
+    // Início em curso (sondagem de encoders + StartAsync): o estado do gravador ainda pode ser Idle/Starting.
+    private bool _startInProgress;
+    private bool _stopRequested;
 
     /// <summary>Encoders na ordem a tentar, só os que abriram no teste desta máquina.</summary>
     private async Task<List<string>> ResolveEncodersAsync(CaptureMonitor monitor)
@@ -840,7 +883,17 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
 
     public async Task StopRecordingAsync()
     {
-        if (!IsActive) return;
+        if (!IsActive)
+        {
+            // Ainda iniciando: guarda o pedido; StartRecordingAsync para assim que o início terminar.
+            if (_startInProgress) _stopRequested = true;
+            return;
+        }
+        await StopCoreAsync();
+    }
+
+    private async Task StopCoreAsync()
+    {
         try
         {
             HideIndicator();
@@ -1004,10 +1057,23 @@ public partial class RecordingViewModel : ObservableObject, IDisposable
         if (version != _libraryVersion) return;
 
         // Mantém os itens já carregados (miniatura pronta) e só troca o que mudou.
-        var existing = Recordings.ToDictionary(r => r.Path, StringComparer.OrdinalIgnoreCase);
-        Recordings.Clear();
-        foreach (var f in files)
-            Recordings.Add(existing.TryGetValue(f.Path, out var item) && item.File == f ? item : new RecordingItemViewModel(f));
+        // Atualiza no lugar (sem Clear): limpar recriava todos os cartões e miniaturas a cada visita.
+        var existing = new Dictionary<string, RecordingItemViewModel>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in Recordings) existing.TryAdd(r.Path, r);
+        var desired = files
+            .Select(f => existing.TryGetValue(f.Path, out var item) && item.File == f ? item : new RecordingItemViewModel(f))
+            .ToList();
+        var keep = new HashSet<RecordingItemViewModel>(desired);
+        for (int i = Recordings.Count - 1; i >= 0; i--)
+            if (!keep.Contains(Recordings[i])) Recordings.RemoveAt(i);
+        for (int i = 0; i < desired.Count; i++)
+        {
+            if (i < Recordings.Count && ReferenceEquals(Recordings[i], desired[i])) continue;
+            int at = Recordings.IndexOf(desired[i]);
+            if (at > i) Recordings.Move(at, i);
+            else Recordings.Insert(i, desired[i]);
+        }
+        while (Recordings.Count > desired.Count) Recordings.RemoveAt(Recordings.Count - 1);
         HasRecordings = Recordings.Count > 0;
         long total = files.Sum(f => f.SizeBytes);
         LibraryInfo = Recordings.Count == 0 ? "" : Loc.F("Rec_LibraryInfo", Recordings.Count, RecordingLibrary.FormatSize(total));

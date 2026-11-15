@@ -37,7 +37,7 @@
                                        HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         </Border>
                         <ui:Button Grid.Column="1" Click="CopyPixKey_Click"
-                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                   Appearance="Primary" FontWeight="SemiBold"
                                    Content="{Binding [Donate_CopyKey], Source={x:Static loc:Loc.Instance}}" />
                     </Grid>
                     <TextBlock x:Name="CopiedFeedback" Text="{Binding [Donate_Copied], Source={x:Static loc:Loc.Instance}}"

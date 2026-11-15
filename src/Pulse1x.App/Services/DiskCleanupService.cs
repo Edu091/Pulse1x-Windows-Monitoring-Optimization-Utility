@@ -19,9 +19,10 @@ public class DiskCleanupService
     /// <summary>Monta a lista de categorias, incluindo alvos dinâmicos (navegadores instalados).</summary>
     public IReadOnlyList<CleanupCategoryDefinition> GetCategories()
     {
-        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        // Pastas de quem usa o PC: elevado por outra conta, o perfil do processo seria o do administrador.
+        string local = InteractiveUser.LocalAppData;
         string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-        string temp = Path.GetTempPath();
+        string temp = Path.Combine(InteractiveUser.LocalAppData, "Temp");
         string winRoot = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 
         var categories = new List<CleanupCategoryDefinition>
@@ -66,7 +67,7 @@ public class DiskCleanupService
                 Title = Loc.S("DiskCat_Browser_Title"),
                 Description = Loc.S("DiskCat_Browser_Desc"),
                 Safety = CleanupSafety.TotallySafe,
-                Targets = BuildBrowserTargets(local, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)),
+                Targets = BuildBrowserTargets(local, InteractiveUser.RoamingAppData),
             },
             new()
             {
@@ -386,7 +387,7 @@ public class DiskCleanupService
             var apps = new Dictionary<string, InstalledAppInfo>(StringComparer.OrdinalIgnoreCase);
             ReadUninstallKey(Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", apps);
             ReadUninstallKey(Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", apps);
-            ReadUninstallKey(Microsoft.Win32.Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", apps);
+            ReadUninstallKey(InteractiveUser.Registry, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", apps);
             return apps.Values.OrderByDescending(a => a.Bytes).ToList();
         });
     }

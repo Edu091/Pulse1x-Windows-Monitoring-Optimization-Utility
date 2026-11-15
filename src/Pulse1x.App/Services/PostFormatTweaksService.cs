@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
 namespace Pulse1x.App.Services;
@@ -55,7 +56,8 @@ public class PostFormatTweaksService
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(
+            // Hive de quem usa o PC: elevado por outra conta, Registry.CurrentUser seria o do administrador.
+            using var key = InteractiveUser.Registry.CreateSubKey(
                 @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager");
             foreach (var name in new[]
             {
@@ -79,9 +81,10 @@ public class PostFormatTweaksService
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
-            key?.SetValue(name, value, RegistryValueKind.DWord);
+            using (var key = InteractiveUser.Registry.CreateSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"))
+                key?.SetValue(name, value, RegistryValueKind.DWord);
+            NotifyExplorer();
             return new CommandResult(0, $"{name} = {value}");
         }
         catch (Exception ex)
@@ -89,6 +92,22 @@ public class PostFormatTweaksService
             return new CommandResult(1, ex.Message);
         }
     }
+
+    // Avisa as janelas abertas do Explorador que o estado do shell mudou; sem isto extensões e
+    // arquivos ocultos só apareciam depois de reabrir o Explorador. Melhor esforço: falha é ignorada.
+    private static void NotifyExplorer()
+    {
+        try { SendMessageTimeout(HwndBroadcast, WmSettingChange, UIntPtr.Zero, "ShellState", SmtoAbortIfHung, 1000, out _); }
+        catch { }
+    }
+
+    private static readonly IntPtr HwndBroadcast = new(0xFFFF);
+    private const uint WmSettingChange = 0x001A;
+    private const uint SmtoAbortIfHung = 0x0002;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, string lParam,
+        uint flags, uint timeout, out UIntPtr result);
 
     private CommandResult OpenStartupManager()
     {

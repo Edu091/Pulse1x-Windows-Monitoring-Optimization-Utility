@@ -79,15 +79,17 @@ public class SpecialCommandsService
     public async Task<CommandResult> RunSequenceAsync(IEnumerable<(string exe, string args)> commands, IProgress<string>? onOutput = null)
     {
         var sb = new StringBuilder();
-        int lastExit = 0;
+        // Guarda o PRIMEIRO código diferente de zero: devolver só o último escondia falhas do meio
+        // (ex.: "winsock reset" falha e o "/flushdns" final sai com 0 → aparecia como sucesso).
+        int firstFailure = 0;
         foreach (var (exe, args) in commands)
         {
             onOutput?.Report($"> {exe} {args}");
             var r = await RunProcessAsync(exe, args, onOutput);
             sb.AppendLine(r.Output);
-            lastExit = r.ExitCode;
+            if (firstFailure == 0 && r.ExitCode != 0) firstFailure = r.ExitCode;
         }
-        return new CommandResult(lastExit, sb.ToString());
+        return new CommandResult(firstFailure, sb.ToString());
     }
 
     // ===================== Planos de energia =====================

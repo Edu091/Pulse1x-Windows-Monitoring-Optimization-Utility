@@ -257,7 +257,39 @@ public partial class SettingsViewModel : ObservableObject
     /// Copia o que está na tela para as configurações e manda o tema se reaplicar. Todas as
     /// propriedades de aparência caem aqui, então a mudança aparece na hora em todo o app.
     /// </summary>
-    private void ApplyAppearance()
+    private void ApplyAppearance() => ApplyAppearance(debounceSave: false);
+
+    /// <summary>
+    /// Sliders disparam dezenas de mudanças por segundo: o visual é aplicado na hora, mas a
+    /// gravação do settings.json espera o usuário parar de arrastar (400 ms).
+    /// </summary>
+    private readonly System.Windows.Threading.DispatcherTimer _saveDebounce =
+        new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private bool _saveDebounceHooked;
+
+    private void ScheduleSave()
+    {
+        if (!_saveDebounceHooked)
+        {
+            _saveDebounceHooked = true;
+            _saveDebounce.Tick += (_, _) => FlushPendingSave();
+            // Fechar o app logo depois de arrastar não pode perder o último valor.
+            var app = System.Windows.Application.Current;
+            if (app is not null) app.Exit += (_, _) => FlushPendingSave();
+        }
+        _saveDebounce.Stop();
+        _saveDebounce.Start();
+    }
+
+    /// <summary>Grava agora, se houver uma gravação adiada pendente.</summary>
+    public void FlushPendingSave()
+    {
+        if (!_saveDebounce.IsEnabled) return;
+        _saveDebounce.Stop();
+        try { _settingsService.Save(); } catch { }
+    }
+
+    private void ApplyAppearance(bool debounceSave)
     {
         if (_loadingAppearance) return;
 
@@ -281,25 +313,35 @@ public partial class SettingsViewModel : ObservableObject
         appearance.AdaptColorsToGame = AdaptColorsToGame;
 
         _themeService.RefreshBackgroundImage();
-        _themeService.Save();
+        if (debounceSave)
+        {
+            _themeService.Apply();
+            ScheduleSave();
+        }
+        else
+        {
+            // Esta gravação já leva tudo, inclusive o que um slider deixou pendente.
+            _saveDebounce.Stop();
+            _themeService.Save();
+        }
     }
 
     partial void OnPrimaryColorChanged(string value) => ApplyAppearance();
     partial void OnSecondaryColorChanged(string value) => ApplyAppearance();
     partial void OnAccentColorChanged(string value) => ApplyAppearance();
-    partial void OnTransparencyChanged(double value) => ApplyAppearance();
-    partial void OnBlurIntensityChanged(double value) => ApplyAppearance();
-    partial void OnAnimationIntensityChanged(double value) => ApplyAppearance();
+    partial void OnTransparencyChanged(double value) => ApplyAppearance(debounceSave: true);
+    partial void OnBlurIntensityChanged(double value) => ApplyAppearance(debounceSave: true);
+    partial void OnAnimationIntensityChanged(double value) => ApplyAppearance(debounceSave: true);
     partial void OnBackgroundModeChanged(BackgroundMode value) => ApplyAppearance();
     partial void OnBackgroundImagePathChanged(string? value) => ApplyAppearance();
     partial void OnBackgroundColorChanged(string value) => ApplyAppearance();
     partial void OnGradientStartChanged(string value) => ApplyAppearance();
     partial void OnGradientEndChanged(string value) => ApplyAppearance();
     partial void OnBackgroundFitChanged(BackgroundFit value) => ApplyAppearance();
-    partial void OnBackgroundOpacityChanged(double value) => ApplyAppearance();
-    partial void OnBackgroundBlurChanged(double value) => ApplyAppearance();
-    partial void OnBackgroundDarkenChanged(double value) => ApplyAppearance();
-    partial void OnBackgroundSaturationChanged(double value) => ApplyAppearance();
+    partial void OnBackgroundOpacityChanged(double value) => ApplyAppearance(debounceSave: true);
+    partial void OnBackgroundBlurChanged(double value) => ApplyAppearance(debounceSave: true);
+    partial void OnBackgroundDarkenChanged(double value) => ApplyAppearance(debounceSave: true);
+    partial void OnBackgroundSaturationChanged(double value) => ApplyAppearance(debounceSave: true);
     partial void OnAdaptColorsToGameChanged(bool value) => ApplyAppearance();
 
     [RelayCommand]

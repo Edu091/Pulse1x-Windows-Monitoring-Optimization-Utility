@@ -151,7 +151,7 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="920" HorizontalAlignment="Left">
 
             <!-- Título da categoria -->
             <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
@@ -183,7 +183,7 @@
                         <TextBlock TextWrapping="Wrap" Opacity="0.8" LineHeight="20" Margin="0,0,0,12"
                                    Text="{Binding [Health_Intro], Source={x:Static loc:Loc.Instance}}" />
                         <ui:Button Content="{Binding [Health_StartDiagnostic], Source={x:Static loc:Loc.Instance}}" Command="{Binding RunDiagnosticCommand}"
-                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                   Appearance="Primary" FontWeight="SemiBold"
                                    HorizontalAlignment="Left" Padding="18,8" />
                     </StackPanel>
 
@@ -338,7 +338,7 @@
                     <StackPanel>
                         <WrapPanel>
                             <ui:Button Content="{Binding [Health_Reanalyze], Source={x:Static loc:Loc.Instance}}" Command="{Binding RunDiagnosticCommand}"
-                                       Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                       Appearance="Primary" FontWeight="SemiBold"
                                        Margin="0,0,8,8" Padding="14,7" />
                             <ui:Button Content="{Binding [Health_FixAuto], Source={x:Static loc:Loc.Instance}}" Command="{Binding FixAutomaticallyCommand}"
                                        Margin="0,0,8,8" Padding="14,7" />

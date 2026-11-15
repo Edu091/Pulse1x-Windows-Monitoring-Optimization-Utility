@@ -130,7 +130,13 @@ public class SoundEngine
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         })!;
-        proc.WaitForExit(15000);
+        // Sem resposta em 15 s: ler ExitCode de um processo vivo lançaria; encerra e conta como falha.
+        if (!proc.WaitForExit(15000))
+        {
+            try { proc.Kill(entireProcessTree: true); } catch { }
+            if (enabled) throw new InvalidOperationException("schtasks.exe timeout");
+            return;
+        }
         if (enabled && proc.ExitCode != 0)
             throw new InvalidOperationException(proc.StandardError.ReadToEnd().Trim());
     }

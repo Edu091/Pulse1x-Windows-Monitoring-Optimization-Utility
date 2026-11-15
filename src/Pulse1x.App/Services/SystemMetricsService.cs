@@ -78,7 +78,8 @@ public class SystemMetricsService : ISystemMetricsService
                 _ => Loc.S("Disk_Other")
             };
 
-            readings.Add(new DiskReading(name, label, typeText, usedGb, freeGb, totalGb, percent));
+            bool isInternal = drive.DriveType == DriveType.Fixed && !usbLetters.Contains(name);
+            readings.Add(new DiskReading(name, label, typeText, usedGb, freeGb, totalGb, percent, isInternal));
         }
 
         return readings;

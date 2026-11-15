@@ -323,8 +323,19 @@ public partial class AdvancedOptimizationsViewModel : ObservableObject
     [RelayCommand]
     private async Task RevertChangeAsync(OptimizationChange change)
     {
-        await _service.RevertChangeAsync(change);
-        await RefreshAllAsync();
+        // O serviço lança quando o schtasks falha: sem o catch a exceção virava a janela genérica de
+        // erro e a tela não era atualizada. A falha é mostrada como no "Reverter tudo".
+        try
+        {
+            await _service.RevertChangeAsync(change);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"{change.OptimizationTitle}: {ex.Message}",
+                Loc.S("AdvOpt_RevertAllTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+        }
+        finally { await RefreshAllAsync(); }
     }
 
     /// <summary>Desativa a aceleração de hardware em todos os aplicativos encontrados.</summary>

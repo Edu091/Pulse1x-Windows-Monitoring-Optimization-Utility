@@ -43,6 +43,15 @@
             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
             </Style>
+            <!-- Os botões do Wpf.Ui são outro tipo (ui:Button) e não recebiam o estilo acima: no
+                 controle, o foco neles era o tracejado fino padrão. Aqui também ganham cantos mais
+                 arredondados (8, como os cartões e a navegação) e o cursor de mão. -->
+            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="MinHeight" Value="32" />
+            </Style>
             <!-- BasedOn aponta para a CHAVE EXPLÍCITA do Wpf.Ui. Com {x:Type ComboBox}, o
                  StaticResource era resolvido enquanto o dicionário do app ainda estava sendo
                  montado e caía no template claro padrão do Windows: a caixa ficava cinza-clara e a
@@ -150,7 +159,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bd" CornerRadius="6" SnapsToDevicePixels="True"
+                            <Border x:Name="Bd" CornerRadius="8" SnapsToDevicePixels="True"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"

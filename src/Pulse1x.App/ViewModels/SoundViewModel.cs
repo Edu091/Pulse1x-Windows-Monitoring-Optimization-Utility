@@ -119,9 +119,23 @@ public partial class SoundViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _apoStatusColor = "#F97316";
     [ObservableProperty] private string _statusText = "";
 
-    private void RefreshApo()
+    /// <summary>Leituras de registro do motor (só dados simples: podem ser feitas fora da thread da interface).</summary>
+    private sealed record ApoData(bool Installed, bool? OutOk, bool? InOk, bool? CallModes);
+
+    private ApoData ReadApoData(string? outId, string? inId)
     {
-        ApoInstalled = _engine.Apo.IsInstalled;
+        if (!_engine.Apo.IsInstalled) return new ApoData(false, null, null, null);
+        bool? outOk = _engine.Apo.IsActiveOn(outId);
+        bool? inOk = _engine.Apo.IsActiveOn(inId);
+        bool? callModes = inId is not null && inOk == true ? _engine.Apo.CallModesEnabled(inId) : null;
+        return new ApoData(true, outOk, inOk, callModes);
+    }
+
+    private void RefreshApo() => ApplyApo(ReadApoData(SelectedOutput?.Id, SelectedInput?.Id));
+
+    private void ApplyApo(ApoData data)
+    {
+        ApoInstalled = data.Installed;
         if (!ApoInstalled)
         {
             ApoReady = false;
@@ -130,8 +144,8 @@ public partial class SoundViewModel : ObservableObject, IDisposable
             return;
         }
 
-        bool? outOk = _engine.Apo.IsActiveOn(SelectedOutput?.Id);
-        bool? inOk = _engine.Apo.IsActiveOn(SelectedInput?.Id);
+        bool? outOk = data.OutOk;
+        bool? inOk = data.InOk;
         var missing = new List<string>();
         if (outOk == false && SelectedOutput is not null) missing.Add(SelectedOutput.Name);
         if (inOk == false && SelectedInput is not null) missing.Add(SelectedInput.Name);
@@ -148,20 +162,13 @@ public partial class SoundViewModel : ObservableObject, IDisposable
             ApoStatusColor = "#F97316";
         }
 
-        RefreshCallModes();
+        CallModesNeeded = SelectedInput is not null && data.InOk == true && data.CallModes == false;
         if (CallModesNeeded) ApoStatusColor = "#F97316";
     }
 
     /// <summary>O motor está no microfone, mas só no modo padrão: Discord/WhatsApp não recebem o efeito.</summary>
     [ObservableProperty] private bool _callModesNeeded;
     [ObservableProperty] private bool _isFixingCallModes;
-
-    private void RefreshCallModes()
-    {
-        CallModesNeeded = ApoInstalled && SelectedInput is not null
-            && _engine.Apo.IsActiveOn(SelectedInput.Id) == true
-            && _engine.Apo.CallModesEnabled(SelectedInput.Id) == false;
-    }
 
     [RelayCommand]
     private async Task EnableCallModesAsync()
@@ -196,19 +203,61 @@ public partial class SoundViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Refresh()
     {
+        _refreshVersion++; // uma leitura em segundo plano ainda pendente fica velha
+        ApplySnapshot(ReadSnapshot(S.OutputDeviceId, S.InputDeviceId));
+    }
+
+    /// <summary>Tudo o que a página lê do Windows ao aparecer, em dados simples (sem objetos COM).</summary>
+    private sealed record SoundSnapshot(IReadOnlyList<SoundDevice> Outputs, IReadOnlyList<SoundDevice> Inputs,
+        SoundDevice? Output, SoundDevice? Input, DeviceStateData State, ApoData Apo);
+
+    /// <summary>
+    /// Enumeração, volumes, topologia do driver e registro do motor. Cada chamada do SoundDeviceService
+    /// cria e descarta os próprios objetos MMDevice na thread que chamou, então pode rodar em Task.Run.
+    /// </summary>
+    private SoundSnapshot ReadSnapshot(string? outputId, string? inputId)
+    {
+        var outputs = Devices.List(input: false);
+        var inputs = Devices.List(input: true);
+        var output = outputs.FirstOrDefault(d => d.Id == outputId) ?? outputs.FirstOrDefault(d => d.IsDefault) ?? outputs.FirstOrDefault();
+        var input = inputs.FirstOrDefault(d => d.Id == inputId) ?? inputs.FirstOrDefault(d => d.IsDefault) ?? inputs.FirstOrDefault();
+        return new SoundSnapshot(outputs, inputs, output, input,
+            ReadDeviceStateData(output?.Id, input?.Id), ReadApoData(output?.Id, input?.Id));
+    }
+
+    private void ApplySnapshot(SoundSnapshot snap)
+    {
         _loading = true;
         try
         {
-            Outputs = Devices.List(input: false);
-            Inputs = Devices.List(input: true);
-            SelectedOutput = Outputs.FirstOrDefault(d => d.Id == S.OutputDeviceId) ?? Outputs.FirstOrDefault(d => d.IsDefault) ?? Outputs.FirstOrDefault();
-            SelectedInput = Inputs.FirstOrDefault(d => d.Id == S.InputDeviceId) ?? Inputs.FirstOrDefault(d => d.IsDefault) ?? Inputs.FirstOrDefault();
+            Outputs = snap.Outputs;
+            Inputs = snap.Inputs;
+            SelectedOutput = snap.Output;
+            SelectedInput = snap.Input;
             LoadFromSettings();
-            ReadDeviceState();
+            ApplyDeviceState(snap.State);
         }
         finally { _loading = false; }
-        RefreshApo();
+        ApplyApo(snap.Apo);
         ReopenMeters();
+    }
+
+    private int _refreshVersion;
+
+    /// <summary>
+    /// Versão da página aparecendo: a leitura (MMDevice, driver, registro) travava a interface a cada
+    /// visita; agora roda em segundo plano e só a atribuição volta para a thread da interface.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        int version = ++_refreshVersion;
+        string? outputId = S.OutputDeviceId, inputId = S.InputDeviceId;
+        SoundSnapshot snap;
+        try { snap = await Task.Run(() => ReadSnapshot(outputId, inputId)); }
+        catch { return; }
+        // Outra atualização começou enquanto esta lia (ou o usuário trocou o aparelho): descarta.
+        if (version != _refreshVersion || outputId != S.OutputDeviceId || inputId != S.InputDeviceId) return;
+        ApplySnapshot(snap);
     }
 
     // =====================================================================================
@@ -249,20 +298,33 @@ public partial class SoundViewModel : ObservableObject, IDisposable
         ScheduleApply();
     }
 
-    private void ReadDeviceState()
+    /// <summary>Volumes, mudo e amplificação do driver, como dados simples.</summary>
+    private sealed record DeviceStateData(int? OutputVolume, bool? OutputMuted, bool? InputMuted, int? InputVolume,
+        HardwareBoostInfo? Boost);
+
+    private DeviceStateData ReadDeviceStateData(string? outputId, string? inputId) => new(
+        Devices.GetVolume(outputId),
+        Devices.GetMute(outputId),
+        Devices.GetMute(inputId),
+        Devices.GetVolume(inputId),
+        Devices.GetHardwareBoost(inputId));
+
+    private void ReadDeviceState() => ApplyDeviceState(ReadDeviceStateData(SelectedOutput?.Id, SelectedInput?.Id));
+
+    private void ApplyDeviceState(DeviceStateData data)
     {
         bool was = _loading;
         _loading = true;
         try
         {
-            OutputVolume = Devices.GetVolume(SelectedOutput?.Id) ?? 0;
-            OutputMuted = Devices.GetMute(SelectedOutput?.Id) ?? false;
-            InputMuted = Devices.GetMute(SelectedInput?.Id) ?? false;
+            OutputVolume = data.OutputVolume ?? 0;
+            OutputMuted = data.OutputMuted ?? false;
+            InputMuted = data.InputMuted ?? false;
 
             // Sem um valor salvo, o slider mostra o volume atual do Windows (até 100%).
-            MicLevel = S.MicLevelPercent ?? Devices.GetVolume(SelectedInput?.Id) ?? 100;
+            MicLevel = S.MicLevelPercent ?? data.InputVolume ?? 100;
 
-            var boost = Devices.GetHardwareBoost(SelectedInput?.Id);
+            var boost = data.Boost;
             HardwareBoostSteps = boost?.Steps.Select(v => new BoostStep(v)).ToList() ?? new List<BoostStep>();
             HasHardwareBoost = HardwareBoostSteps.Count > 1;
             SelectedBoost = boost is null ? null
@@ -919,7 +981,7 @@ public partial class SoundViewModel : ObservableObject, IDisposable
 
     public void OnShown()
     {
-        Refresh();
+        _ = RefreshAsync();
         _meterTimer.Start();
     }
 

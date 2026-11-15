@@ -124,7 +124,7 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="920" HorizontalAlignment="Left">
 
             <!-- Título da categoria -->
             <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
@@ -161,7 +161,7 @@
                             Content="{Binding [Opt_MemOptimize], Source={x:Static loc:Loc.Instance}}"
                             Command="{Binding OptimizeMemoryCommand}"
                             Visibility="{Binding IsOptimizing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                            Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                            Appearance="Primary" FontWeight="SemiBold"
                             HorizontalAlignment="Left"
                             Padding="18,8" />
 
@@ -375,7 +375,7 @@
                                    ToolTip="{Binding [Opt_SmartCleanTooltip], Source={x:Static loc:Loc.Instance}}"
                                    Padding="16,8" Margin="0,0,8,8" />
                         <ui:Button Content="{Binding [Opt_FreeSpace], Source={x:Static loc:Loc.Instance}}" Command="{Binding CleanCommand}"
-                                   Background="{DynamicResource BrandAccentBrush}" Foreground="White" FontWeight="SemiBold"
+                                   Appearance="Primary" FontWeight="SemiBold"
                                    Padding="16,8" Margin="0,0,8,8" />
                         <ui:Button Content="{Binding [Opt_Recuar], Source={x:Static loc:Loc.Instance}}" Command="{Binding CollapseCommand}"
                                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}"
