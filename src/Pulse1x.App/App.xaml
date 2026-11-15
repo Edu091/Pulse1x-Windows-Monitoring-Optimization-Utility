@@ -15,6 +15,8 @@
                 <!-- Mesclado explicitamente para que a chave DefaultComboBoxStyle exista quando o
                      estilo implícito de ComboBox abaixo for resolvido (ver o comentário nele). -->
                 <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ComboBox/ComboBox.xaml" />
+                <!-- Mesmo motivo, para o estilo implícito de ui:Button abaixo (DefaultUiButtonStyle). -->
+                <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/Button/Button.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Cor de marca do Pulse1x (vermelho). Definida como recurso explícito para que
@@ -45,8 +47,11 @@
             </Style>
             <!-- Os botões do Wpf.Ui são outro tipo (ui:Button) e não recebiam o estilo acima: no
                  controle, o foco neles era o tracejado fino padrão. Aqui também ganham cantos mais
-                 arredondados (8, como os cartões e a navegação) e o cursor de mão. -->
-            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                 arredondados (8, como os cartões e a navegação) e o cursor de mão.
+                 BasedOn aponta para a CHAVE EXPLÍCITA do Wpf.Ui: com {x:Type ui:Button} a base era
+                 resolvida antes do dicionário dele e parte dos botões caía no visual padrão do
+                 Windows, branco e quadrado (bug da 1.25.0; o mesmo do ComboBox acima). -->
+            <Style TargetType="ui:Button" BasedOn="{StaticResource DefaultUiButtonStyle}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
                 <Setter Property="CornerRadius" Value="8" />
                 <Setter Property="Cursor" Value="Hand" />

@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.25.1 — 15/11/2026
+
+- **Corrigido:** na 1.25.0, alguns botões apareciam brancos e quadrados, no visual padrão do Windows, em vez do tema do Pulse1x.
+
 ## 1.25.0 — 15/11/2026
 
 - **Troca de categoria mais leve:** a página nova entra inteira com um único fade e começa a animar só depois de desenhada, sem a cascata de blocos que causava uma travadinha na 1.24.0.
