@@ -195,6 +195,12 @@ public class ThemeService
         SetBrush(resources, "AccentTextFillColorSecondaryBrush", secondary);
         SetBrush(resources, "AccentTextFillColorTertiaryBrush", Darken(primary, 0.30));
 
+        // Botões "Primary" e o botão principal dos diálogos usam estas chaves próprias.
+        SetBrush(resources, "AccentButtonBackground", primary);
+        SetBrush(resources, "AccentButtonBackgroundPointerOver", secondary);
+        SetBrush(resources, "AccentButtonBackgroundPressed", Darken(primary, 0.30));
+        SetBrush(resources, "AccentButtonBorderBrushPressed", Darken(primary, 0.30));
+
         // O dicionário do Wpf.Ui pode ter sido carregado antes de a preferência de tema ser
         // aplicada. Definimos os pincéis de texto explicitamente para que textos sem Foreground
         // próprio nunca permaneçam pretos no modo escuro (em especial nas Configurações).

@@ -71,7 +71,10 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Pulse1x" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource PageKicker}" Text="{Binding [NavGroup_Overview], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Style="{StaticResource PageTitle}" Text="{Binding [Nav_Dashboard], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
                 <ToggleButton
                     Grid.Column="1"
                     Style="{StaticResource BrandToggle}"

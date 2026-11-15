@@ -10,13 +10,21 @@ using Pulse1x.App.Services.GameHub;
 namespace Pulse1x.App.ViewModels.GameHub;
 
 /// <summary>Opção de filtro por plataforma (o "Todos" tem <see cref="Kind"/> nulo).</summary>
-public record LauncherFilterOption(LauncherKind? Kind, string Label);
+// ToString devolve o rótulo: a caixa fechada do HubCombo exibe o item em si (o template
+// personalizado não aplica o DisplayMemberPath), e antes aparecia "LauncherFilterOption { ... }".
+public record LauncherFilterOption(LauncherKind? Kind, string Label)
+{
+    public override string ToString() => Label;
+}
 
 /// <summary>Um perfil na lista de escolha rápida do destaque. Id nulo = "nenhum perfil".</summary>
 public record ProfileChoiceViewModel(string? Id, string Name, string Summary, bool IsCurrent);
 
 /// <summary>Opção de ordenação da biblioteca.</summary>
-public record SortOption(GameSortMode Mode, string Label);
+public record SortOption(GameSortMode Mode, string Label)
+{
+    public override string ToString() => Label;
+}
 
 /// <summary>
 /// ViewModel do GameHub: a biblioteca, a seleção em destaque, os filtros, a detecção automática e a

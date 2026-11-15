@@ -154,9 +154,10 @@
         <StackPanel MaxWidth="720" HorizontalAlignment="Left">
 
             <!-- Título da categoria -->
+            <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
             <StackPanel Orientation="Horizontal" Margin="6,0,0,2">
                 <ui:SymbolIcon Symbol="Heart24" Foreground="{DynamicResource BrandAccentBrush}" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBlock Text="{Binding [Health_Title], Source={x:Static loc:Loc.Instance}}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding [Health_Title], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource PageTitle}" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="{Binding [Health_Subtitle], Source={x:Static loc:Loc.Instance}}"
                        Opacity="0.6" FontSize="13" Margin="6,0,0,16" />
@@ -168,7 +169,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource BrandAccentBrush}">
-                            <TextBlock Text="🩺" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ui:SymbolIcon Symbol="Stethoscope24" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding [Health_SmartDiagnostic], Source={x:Static loc:Loc.Instance}}" FontSize="14" FontWeight="SemiBold" />

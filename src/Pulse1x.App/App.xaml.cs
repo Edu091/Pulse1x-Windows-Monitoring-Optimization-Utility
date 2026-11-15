@@ -469,8 +469,9 @@ public partial class App : Application
             MessageBoxButton.YesNo, MessageBoxImage.Information);
 
         if (choice != MessageBoxResult.Yes) return false;
+        if (result.DownloadUrl is not { } downloadUrl || result.AssetName is not { } assetName) return false;
 
-        var installResult = await updateService.DownloadAndInstallAsync(result.DownloadUrl, result.AssetName);
+        var installResult = await updateService.DownloadAndInstallAsync(downloadUrl, assetName);
         if (installResult.Started)
         {
             // O instalador espera o Pulse1x sair para substituir o .exe e depois o reabre.

@@ -127,7 +127,8 @@
         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
 
             <!-- Título da categoria -->
-            <TextBlock Text="{Binding [Opt_Title], Source={x:Static loc:Loc.Instance}}" FontSize="20" FontWeight="Bold" Margin="6,0,0,2" />
+            <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
+            <TextBlock Text="{Binding [Opt_Title], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource PageTitle}" Margin="6,0,0,2" />
             <TextBlock Text="{Binding [Opt_Subtitle], Source={x:Static loc:Loc.Instance}}"
                        Opacity="0.6" FontSize="13" Margin="6,0,0,16" />
 

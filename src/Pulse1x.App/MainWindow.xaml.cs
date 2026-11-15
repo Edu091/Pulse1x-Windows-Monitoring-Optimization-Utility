@@ -29,8 +29,10 @@ public partial class MainWindow : FluentWindow
     private readonly AboutPage _aboutPage;
     private readonly DonatePage _donatePage;
 
-    private Control[] _navButtons = System.Array.Empty<Control>();
-    private UIElement[] _navIndicators = System.Array.Empty<UIElement>();
+    /// <summary>Páginas da navegação lateral na ordem em que aparecem, com o item de cada uma.</summary>
+    private (System.Windows.Controls.Page Page, Controls.NavItem Item)[] _navMap = System.Array.Empty<(System.Windows.Controls.Page, Controls.NavItem)>();
+    private Controls.NavItem[] _navButtons = System.Array.Empty<Controls.NavItem>();
+    private Controls.NavItem? _activeNav;
     private bool _firstNavigation = true;
 
     public TrayIconService? TrayIconService { get; set; }
@@ -79,17 +81,42 @@ public partial class MainWindow : FluentWindow
         _latencyPage.InputLabRequested += NavigateToInputLab;
         _inputLabPage.BackRequested += NavigateToLatency;
 
-        _navButtons = new Control[]
+        // Ordem visual da barra lateral: Visão geral → Otimização → Utilidades → Aplicativo. Os
+        // ombros do controle percorrem as categorias nesta ordem (o GameHub fica de fora: ele
+        // tem a própria experiência de tela cheia e é aberto pelo botão View).
+        _navMap = new (System.Windows.Controls.Page, Controls.NavItem)[]
         {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton, GameHubButton,
-            UtilityButton, SettingsButton, AboutButton, DonateButton,
+            (_dashboardPage, DashboardButton),
+            (_optimizationPage, OptimizationButton),
+            (_latencyPage, LatencyButton),
+            (_healthPage, HealthButton),
+            (_benchmarkPage, BenchmarkButton),
+            (_fpsInGamePage, FpsInGameButton),
+            (_utilityPage, UtilityButton),
+            (_soundPage, SoundButton),
+            (_recordingPage, RecordingButton),
+            (_settingsPage, SettingsButton),
+            (_aboutPage, AboutButton),
+            (_donatePage, DonateButton),
         };
-        // Barras de acento (à esquerda de cada item) — paralelas a _navButtons, na mesma ordem.
-        _navIndicators = new UIElement[]
+        _navButtons = _navMap.Select(m => m.Item).Append(GameHubButton).ToArray();
+
+        UpdateVersionText();
+        Localization.Loc.Instance.LanguageChanged += UpdateVersionText;
+
+        // A barra de acento acompanha o item ativo também quando o layout muda (idioma, tamanho).
+        NavHost.SizeChanged += (_, _) => MoveSelectionPill(animate: false);
+
+        // Selo "REC" no item Gravação enquanto uma gravação está em andamento.
+        if (_recordingPage.DataContext is ViewModels.RecordingViewModel recording)
         {
-            DashboardIndicator, OptimizationIndicator, HealthIndicator, LatencyIndicator, FpsInGameIndicator, BenchmarkIndicator, SoundIndicator, RecordingIndicator, GameHubIndicator,
-            UtilityIndicator, SettingsIndicator, AboutIndicator, DonateIndicator,
-        };
+            recording.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(ViewModels.RecordingViewModel.IsRecording) or nameof(ViewModels.RecordingViewModel.IsPaused))
+                    Dispatcher.BeginInvoke(() => UpdateRecordingBadge(recording));
+            };
+            UpdateRecordingBadge(recording);
+        }
 
         // Anima a entrada de cada página ao navegar (fade + leve deslize), respeitando o
         // ajuste de animações nas Configurações. A animação de abertura (Loaded) cuida do
@@ -113,8 +140,11 @@ public partial class MainWindow : FluentWindow
             ApplicationThemeManager.Apply(_settingsService.Current.DarkTheme ? ApplicationTheme.Dark : ApplicationTheme.Light);
             _themeService.Apply();
 
-            // Animação de abertura: fade + leve zoom do conteúdo principal.
+            // Animação de abertura: fade + leve zoom do conteúdo principal, e os itens da
+            // navegação entram em cascata.
             Animations.OpenWindow(ContentRoot);
+            Animations.StaggerIn(NavHost.Children.OfType<Panel>().SelectMany(p => p.Children.OfType<UIElement>()), offsetY: 6, stepMs: 18);
+            MoveSelectionPill(animate: false);
         };
 
         // Plano de fundo personalizado: aplicado agora e a cada mudança nas Configurações ou de
@@ -209,7 +239,7 @@ public partial class MainWindow : FluentWindow
 
             // View abre o GameHub de qualquer tela — é o atalho para a experiência de sofá.
             case GamepadAction.Menu:
-                EnterGameHub();
+                RequestEnterGameHub();
                 break;
         }
     }
@@ -228,39 +258,22 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        var pages = new System.Windows.Controls.Page[]
-        {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage, _recordingPage,
-            _utilityPage, _settingsPage, _aboutPage, _donatePage,
-        };
-        var buttons = new Control[]
-        {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton,
-            UtilityButton, SettingsButton, AboutButton, DonateButton,
-        };
-
-        int index = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
-        buttons[index < 0 ? 0 : index].Focus();
+        int index = System.Array.FindIndex(_navMap, m => ReferenceEquals(m.Page, ContentFrame.Content));
+        (index < 0 ? DashboardButton : _navMap[index].Item).Focus();
     }
 
     /// <summary>Percorre as categorias da navegação lateral com os ombros do controle.</summary>
     private void CycleCategory(int delta)
     {
-        var pages = new System.Windows.Controls.Page[]
-        {
-            _dashboardPage, _optimizationPage, _healthPage, _latencyPage, _fpsInGamePage, _benchmarkPage, _soundPage, _recordingPage, _utilityPage, _settingsPage,
-        };
-        var buttons = new Control[]
-        {
-            DashboardButton, OptimizationButton, HealthButton, LatencyButton, FpsInGameButton, BenchmarkButton, SoundButton, RecordingButton, UtilityButton, SettingsButton,
-        };
+        // Sobre e Doar ficam fora do ciclo: são páginas informativas no fim da lista.
+        var cycle = _navMap.Where(m => !ReferenceEquals(m.Page, _aboutPage) && !ReferenceEquals(m.Page, _donatePage)).ToArray();
 
-        int current = System.Array.FindIndex(pages, p => ReferenceEquals(p, ContentFrame.Content));
-        if (ReferenceEquals(ContentFrame.Content, _inputLabPage)) current = 3;
+        object? content = ReferenceEquals(ContentFrame.Content, _inputLabPage) ? _latencyPage : ContentFrame.Content;
+        int current = System.Array.FindIndex(cycle, m => ReferenceEquals(m.Page, content));
         if (current < 0) current = 0;
 
-        int next = (current + delta + pages.Length) % pages.Length;
-        NavigateTo(pages[next], buttons[next]);
+        int next = (current + delta + cycle.Length) % cycle.Length;
+        NavigateTo(cycle[next].Page, cycle[next].Item);
     }
 
     /// <summary>
@@ -319,18 +332,50 @@ public partial class MainWindow : FluentWindow
     }
 
     // Navega para a página e marca a aba correspondente como ativa.
-    private void NavigateTo(System.Windows.Controls.Page page, Control navButton)
+    private void NavigateTo(System.Windows.Controls.Page page, Controls.NavItem navButton)
     {
-        ContentFrame.Navigate(page);
+        // Clicar de novo na aba já aberta não recarrega nem reanima a página.
+        if (!ReferenceEquals(ContentFrame.Content, page))
+            ContentFrame.Navigate(page);
         SetActiveNav(navButton);
     }
 
-    // Destaca a aba ativa acendendo sua barra de acento (à esquerda) e apagando as demais.
-    private void SetActiveNav(Control active)
+    // Marca o item ativo (realce + ícone preenchido) e desliza a barra de acento até ele.
+    private void SetActiveNav(Controls.NavItem active)
     {
-        int idx = System.Array.IndexOf(_navButtons, active);
-        for (int i = 0; i < _navIndicators.Length; i++)
-            Animations.FadeTo(_navIndicators[i], i == idx ? 1.0 : 0.0);
+        foreach (var item in _navButtons)
+            item.IsActive = ReferenceEquals(item, active);
+
+        bool changed = !ReferenceEquals(_activeNav, active);
+        _activeNav = active;
+
+        // O layout do item pode ainda não existir (primeira navegação, volta do GameHub).
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+            () => MoveSelectionPill(animate: changed && IsLoaded));
+    }
+
+    private void MoveSelectionPill(bool animate)
+    {
+        var active = _activeNav;
+        if (active is null || !active.IsVisible || NavHost.ActualHeight <= 0)
+        {
+            NavSelectionPill.BeginAnimation(UIElement.OpacityProperty, null);
+            NavSelectionPill.Opacity = 0;
+            return;
+        }
+
+        double y = active.TranslatePoint(new Point(0, 0), NavHost).Y + (active.ActualHeight - NavSelectionPill.Height) / 2;
+        Animations.SlideIndicator(NavSelectionPill, NavPillTransform, y, animate);
+    }
+
+    private void UpdateVersionText() =>
+        VersionText.Text = Localization.Loc.F("Shell_Version", AppInfoService.Version);
+
+    private void UpdateRecordingBadge(ViewModels.RecordingViewModel recording)
+    {
+        RecordingButton.Badge = recording.IsRecording || recording.IsPaused
+            ? Localization.Loc.S("Shell_RecBadge")
+            : null;
     }
 
     private System.Windows.Controls.Button? _pressedButton;
@@ -378,7 +423,7 @@ public partial class MainWindow : FluentWindow
         }
 
         if (e.Content is UIElement content)
-            Animations.FadeSlideIn(content);
+            Animations.PageEnter(content);
     }
 
     private void DashboardButton_Click(object sender, RoutedEventArgs e) => NavigateTo(_dashboardPage, DashboardButton);
@@ -412,7 +457,52 @@ public partial class MainWindow : FluentWindow
         NavigateTo(_recordingPage, RecordingButton);
     }
 
-    private void GameHubButton_Click(object sender, RoutedEventArgs e) => EnterGameHub();
+    private void GameHubButton_Click(object sender, RoutedEventArgs e) => RequestEnterGameHub();
+
+    private bool _confirmingGameHub;
+
+    /// <summary>
+    /// Pede confirmação antes de entrar no GameHub. O hub muda bastante a janela (tela cheia,
+    /// some a navegação), então um clique por engano na barra lateral ou no botão View do
+    /// controle não deve levar o usuário para lá sem querer. A abertura automática ao iniciar
+    /// (Configurações ▸ GameHub) é uma escolha explícita e continua sem perguntar.
+    /// </summary>
+    public async void RequestEnterGameHub()
+    {
+        if (_inGameHub || _confirmingGameHub) return;
+        _confirmingGameHub = true;
+        try
+        {
+            var box = new Wpf.Ui.Controls.MessageBox
+            {
+                Owner = this,
+                Title = Localization.Loc.S("Hub_ConfirmTitle"),
+                Content = new System.Windows.Controls.TextBlock
+                {
+                    Text = Localization.Loc.S("Hub_ConfirmBody"),
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 380,
+                },
+                PrimaryButtonText = Localization.Loc.S("Hub_ConfirmEnter"),
+                PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Primary,
+                CloseButtonText = Localization.Loc.S("Hub_ConfirmCancel"),
+                IsSecondaryButtonEnabled = false,
+            };
+
+            var result = await box.ShowDialogAsync();
+            if (result == Wpf.Ui.Controls.MessageBoxResult.Primary)
+                EnterGameHub();
+        }
+        catch
+        {
+            // Se o diálogo não puder abrir, não deixa o usuário preso fora do hub.
+            EnterGameHub();
+        }
+        finally
+        {
+            _confirmingGameHub = false;
+        }
+    }
 
     // =====================================================================================
     //  Modo GameHub
@@ -448,6 +538,7 @@ public partial class MainWindow : FluentWindow
         {
             NavColumn.Width = new GridLength(0);
             NavPanel.Visibility = Visibility.Collapsed;
+            SetContentSurfaceChrome(false);
             // A barra de título sai de cena: o hub desenha o próprio cromo, e a janela continua
             // arrastável pela área superior dele.
             AppTitleBar.Visibility = Visibility.Collapsed;
@@ -456,6 +547,28 @@ public partial class MainWindow : FluentWindow
 
         _inGameHub = true;
         NavigateTo(_gameHubPage, GameHubButton);
+    }
+
+    /// <summary>
+    /// A camada arredondada da área de conteúdo só faz sentido ao lado da navegação lateral. No
+    /// GameHub imersivo o hub ocupa a janela inteira, sem borda nem véu por cima da arte do jogo.
+    /// </summary>
+    private void SetContentSurfaceChrome(bool visible)
+    {
+        if (visible)
+        {
+            ContentSurface.SetResourceReference(Border.BackgroundProperty, "LayerFillColorDefaultBrush");
+            ContentSurface.BorderThickness = new Thickness(1, 1, 0, 0);
+            ContentSurface.CornerRadius = new CornerRadius(12, 0, 0, 0);
+            AmbientGlow.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ContentSurface.Background = Brushes.Transparent;
+            ContentSurface.BorderThickness = new Thickness(0);
+            ContentSurface.CornerRadius = new CornerRadius(0);
+            AmbientGlow.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>
@@ -480,8 +593,9 @@ public partial class MainWindow : FluentWindow
 
         _gameHubPage.DetachGamepad();
 
-        NavColumn.Width = new GridLength(220);
+        NavColumn.Width = new GridLength(236);
         NavPanel.Visibility = Visibility.Visible;
+        SetContentSurfaceChrome(true);
         AppTitleBar.Visibility = Visibility.Visible;
         TitleRow.Height = GridLength.Auto;
 

@@ -22,7 +22,9 @@
         </Style>
     </Page.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="16" MaxWidth="520">
+    <StackPanel Margin="22,16,22,20" MaxWidth="660" HorizontalAlignment="Left">
+        <TextBlock Style="{StaticResource PageKicker}" Text="{Binding [NavGroup_App], Source={x:Static loc:Loc.Instance}}" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding [Nav_Settings], Source={x:Static loc:Loc.Instance}}" Margin="0,0,0,16" />
         <TextBlock Text="{Binding [Settings_Appearance], Source={x:Static loc:Loc.Instance}}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_DarkTheme], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding IsDarkTheme}" Margin="0,0,0,8" />
         <ui:ToggleSwitch Content="{Binding [Settings_Animations], Source={x:Static loc:Loc.Instance}}" IsChecked="{Binding AnimationsEnabled}" Margin="0,0,0,2" />
@@ -79,7 +81,7 @@
         <!-- Intensidades -->
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -90,7 +92,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -101,7 +103,7 @@
 
         <Grid Margin="0,0,0,14">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -132,7 +134,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
@@ -184,7 +186,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -195,7 +197,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -206,7 +208,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -217,7 +219,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
@@ -313,7 +315,7 @@
 
         <Grid Style="{StaticResource SettingsSliderRow}" IsEnabled="{Binding SoundEnabled}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>

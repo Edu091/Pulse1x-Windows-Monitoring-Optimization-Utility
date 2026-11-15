@@ -4,20 +4,141 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:loc="clr-namespace:Pulse1x.App.Localization"
+    xmlns:controls="clr-namespace:Pulse1x.App.Controls"
+    xmlns:converters="clr-namespace:Pulse1x.App.Converters"
     Title="Pulse1x"
     Icon="pack://application:,,,/Pulse1x.App;component/Resources/pulse1x_taskbar.png"
-    Height="780"
-    Width="1180"
+    Height="800"
+    Width="1240"
     MinHeight="600"
-    MinWidth="900"
+    MinWidth="940"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica"
     WindowStartupLocation="CenterScreen"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Background="{DynamicResource ApplicationBackgroundBrush}"
+    FontFamily="Segoe UI, Segoe UI Emoji"
     Closing="FluentWindow_Closing"
     StateChanged="FluentWindow_StateChanged"
     PreviewKeyDown="MainWindow_PreviewKeyDown">
+    <ui:FluentWindow.Resources>
+        <converters:StringToVisibilityConverter x:Key="NavStrToVis" />
+
+        <!-- Rótulo de grupo da navegação lateral (Visão geral, Otimização, Utilidades...). -->
+        <Style x:Key="NavGroupLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Margin" Value="14,14,0,6" />
+        </Style>
+
+        <!--
+            Item da navegação lateral. Três camadas: o realce de hover (cinza sutil), o realce de
+            item ativo (cor de marca translúcida) e o conteúdo. A barra de acento que desliza de um
+            item para o outro NÃO fica aqui: é um único elemento na MainWindow (NavSelectionPill),
+            animado em código, para que o movimento entre as abas seja contínuo.
+        -->
+        <Style TargetType="controls:NavItem">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="True" />
+            <!-- Sem Content, o botão não teria nome para leitores de tela e automação. -->
+            <Setter Property="AutomationProperties.Name" Value="{Binding Label, RelativeSource={RelativeSource Self}}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource GamepadFocusVisual}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="controls:NavItem">
+                        <Grid Background="Transparent" SnapsToDevicePixels="True">
+                            <Border x:Name="HoverFill" CornerRadius="8" Opacity="0"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            <Border x:Name="ActiveFill" CornerRadius="8" Opacity="0"
+                                    Background="{DynamicResource BrandAccentBrush}" />
+                            <Grid Margin="16,0,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ui:SymbolIcon x:Name="Icon" Grid.Column="0" FontSize="18" VerticalAlignment="Center"
+                                               Symbol="{TemplateBinding Symbol}"
+                                               Foreground="{TemplateBinding Foreground}">
+                                    <ui:SymbolIcon.RenderTransform>
+                                        <TranslateTransform X="0" />
+                                    </ui:SymbolIcon.RenderTransform>
+                                </ui:SymbolIcon>
+                                <TextBlock x:Name="LabelText" Grid.Column="1" Margin="12,0,0,0" FontSize="13.5"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           Text="{TemplateBinding Label}"
+                                           Foreground="{TemplateBinding Foreground}" />
+                                <Border Grid.Column="2" CornerRadius="4" Padding="5,1" VerticalAlignment="Center"
+                                        Background="#E11D48"
+                                        Visibility="{Binding Badge, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource NavStrToVis}}">
+                                    <TextBlock Text="{TemplateBinding Badge}" FontSize="9.5" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+                                            <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="2" Duration="0:0:0.18">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                            <DoubleAnimation Storyboard.TargetName="Icon" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="0" Duration="0:0:0.2">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsActive" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Setter TargetName="LabelText" Property="FontWeight" Value="SemiBold" />
+                                <Setter TargetName="Icon" Property="Filled" Value="True" />
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource BrandAccentBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ActiveFill" Storyboard.TargetProperty="Opacity" To="0.16" Duration="0:0:0.22" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ActiveFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="HoverFill" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </ui:FluentWindow.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TitleRow" Height="Auto" />
@@ -38,110 +159,122 @@
         </Image>
         <Rectangle x:Name="BackgroundDarken" Grid.Row="0" Grid.RowSpan="2" Fill="Black" Opacity="0" Visibility="Collapsed" />
 
-        <ui:TitleBar x:Name="AppTitleBar" Title="Pulse1x" Grid.Row="0" />
+        <!-- Brilho ambiente na cor de marca, no canto superior esquerdo (atrás da navegação). É
+             estático de propósito: uma animação contínua manteria a GPU acordada o tempo todo
+             num app que mede desempenho. -->
+        <Rectangle x:Name="AmbientGlow" Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False" Opacity="0.22">
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0,0" GradientOrigin="0,0" RadiusX="0.55" RadiusY="0.7">
+                    <GradientStop Offset="0" Color="{DynamicResource BrandAccentColor}" />
+                    <GradientStop Offset="1" Color="Transparent" />
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <ui:TitleBar x:Name="AppTitleBar" Title="" Grid.Row="0" Height="36" />
 
         <Grid x:Name="ContentRoot" Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="NavColumn" Width="220" />
+                <ColumnDefinition x:Name="NavColumn" Width="236" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel x:Name="NavPanel" Grid.Column="0" Margin="8">
-                <ui:Button x:Name="DashboardButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="DashboardButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="DashboardIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Home24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Dashboard], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="OptimizationButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="OptimizationButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="OptimizationIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Rocket24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Optimization], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="HealthButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="HealthButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="HealthIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Heart24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Health], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="LatencyButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="LatencyButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="LatencyIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Globe24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Latency], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="FpsInGameButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="FpsInGameButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="FpsInGameIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="TopSpeed24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_FpsInGame], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="BenchmarkButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="BenchmarkButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="BenchmarkIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="DataTrending24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Benchmark], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="SoundButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="SoundButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="SoundIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Speaker224" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Sound], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="RecordingButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="RecordingButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="RecordingIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Record24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Recording], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="GameHubButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="GameHubButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="GameHubIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Games24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_GameHub], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="UtilityButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="UtilityButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="UtilityIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Toolbox24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Utility], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Margin="0,8" />
-                <ui:Button x:Name="SettingsButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="SettingsButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="SettingsIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Settings24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Settings], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="AboutButton" HorizontalContentAlignment="Left" Margin="0,0,0,4" Click="AboutButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="AboutIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="Info24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_About], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="DonateButton" HorizontalContentAlignment="Left" Click="DonateButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="DonateIndicator" Width="3" Height="16" CornerRadius="2" Background="{DynamicResource BrandAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0" />
-                        <ui:SymbolIcon Symbol="DrinkCoffee24" Foreground="{DynamicResource BrandAccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding [Nav_Donate], Source={x:Static loc:Loc.Instance}}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-            </StackPanel>
+            <!-- ============================ Navegação lateral ============================ -->
+            <Grid x:Name="NavPanel" Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-            <Frame x:Name="ContentFrame" Grid.Column="1" NavigationUIVisibility="Hidden" />
+                <!-- Marca -->
+                <Grid x:Name="BrandHeader" Grid.Row="0" Margin="18,0,12,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="10" VerticalAlignment="Center"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                        <Image Source="pack://application:,,,/Pulse1x.App;component/Resources/pulse1x_taskbar.png"
+                               Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Pulse1x" FontSize="17" FontWeight="Bold" />
+                        <TextBlock x:Name="VersionText" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+                </Grid>
+
+                <ScrollViewer x:Name="NavScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <Grid x:Name="NavHost" Margin="10,0" MinHeight="{Binding ViewportHeight, ElementName=NavScroll}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Style="{StaticResource NavGroupLabel}" Margin="14,4,0,6"
+                                       Text="{Binding [NavGroup_Overview], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="DashboardButton" Symbol="Home24" Click="DashboardButton_Click"
+                                              Label="{Binding [Nav_Dashboard], Source={x:Static loc:Loc.Instance}}" />
+
+                            <TextBlock Style="{StaticResource NavGroupLabel}"
+                                       Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="OptimizationButton" Symbol="Rocket24" Click="OptimizationButton_Click"
+                                              Label="{Binding [Nav_Optimization], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="LatencyButton" Symbol="Globe24" Click="LatencyButton_Click"
+                                              Label="{Binding [Nav_Latency], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="HealthButton" Symbol="HeartPulse24" Click="HealthButton_Click"
+                                              Label="{Binding [Nav_Health], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="BenchmarkButton" Symbol="DataTrending24" Click="BenchmarkButton_Click"
+                                              Label="{Binding [Nav_Benchmark], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="FpsInGameButton" Symbol="TopSpeed24" Click="FpsInGameButton_Click"
+                                              Label="{Binding [Nav_FpsInGame], Source={x:Static loc:Loc.Instance}}" />
+
+                            <TextBlock Style="{StaticResource NavGroupLabel}"
+                                       Text="{Binding [NavGroup_Utilities], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="UtilityButton" Symbol="Toolbox24" Click="UtilityButton_Click"
+                                              Label="{Binding [Nav_PostFormat], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="SoundButton" Symbol="Speaker224" Click="SoundButton_Click"
+                                              Label="{Binding [Nav_Sound], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="RecordingButton" Symbol="Record24" Click="RecordingButton_Click"
+                                              Label="{Binding [Nav_Recording], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="GameHubButton" Symbol="Games24" Click="GameHubButton_Click"
+                                              Label="{Binding [Nav_GameHub], Source={x:Static loc:Loc.Instance}}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Margin="0,14,0,10">
+                            <Border Height="1" Margin="10,0,10,8" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                            <controls:NavItem x:Name="SettingsButton" Symbol="Settings24" Click="SettingsButton_Click"
+                                              Label="{Binding [Nav_Settings], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="AboutButton" Symbol="Info24" Click="AboutButton_Click"
+                                              Label="{Binding [Nav_About], Source={x:Static loc:Loc.Instance}}" />
+                            <controls:NavItem x:Name="DonateButton" Symbol="DrinkCoffee24" Click="DonateButton_Click"
+                                              Label="{Binding [Nav_Donate], Source={x:Static loc:Loc.Instance}}" />
+                        </StackPanel>
+
+                        <!-- Barra de acento que desliza até o item ativo (ver MoveSelectionPill). -->
+                        <Canvas Grid.Row="0" Grid.RowSpan="3" IsHitTestVisible="False" ClipToBounds="False">
+                            <Border x:Name="NavSelectionPill" Width="3" Height="18" CornerRadius="1.5"
+                                    Canvas.Left="3" Canvas.Top="0" Opacity="0"
+                                    Background="{DynamicResource BrandAccentBrush}">
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="NavPillTransform" Y="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Canvas>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ============================ Área de conteúdo ============================
+                 Uma "camada" arredondada sobre o fundo, como na navegação do Windows 11: separa a
+                 moldura (navegação) do conteúdo. No GameHub imersivo ela some (ver EnterGameHub). -->
+            <Border x:Name="ContentSurface" Grid.Column="1" CornerRadius="12,0,0,0" BorderThickness="1,1,0,0"
+                    Background="{DynamicResource LayerFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Focusable="False" />
+            </Border>
         </Grid>
     </Grid>
 </ui:FluentWindow>

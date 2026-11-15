@@ -45,6 +45,12 @@ public static class Animations
 
     /// <summary>Entrada suave: fade + leve deslize de baixo para cima. Usada nas transições de página
     /// e em painéis que surgem.</summary>
+    /// <remarks>
+    /// A opacidade termina no valor PRÓPRIO do elemento (ex.: um rótulo com Opacity="0.55"), não em
+    /// 1: antes, todo texto secundário que surgia com animação ficava aceso, com opacidade total,
+    /// até a página ser recriada. A animação é removida ao terminar, para que bindings de Opacity
+    /// voltem a valer.
+    /// </remarks>
     public static void FadeSlideIn(UIElement element, double fromOffsetY = 14, Duration? duration = null)
     {
         if (element is null) return;
@@ -52,21 +58,168 @@ public static class Animations
         if (!AnimationSettings.Enabled)
         {
             element.BeginAnimation(UIElement.OpacityProperty, null);
-            element.Opacity = 1;
-            element.RenderTransform = Transform.Identity;
+            if (element.RenderTransform is TranslateTransform t) t.BeginAnimation(TranslateTransform.YProperty, null);
             return;
         }
 
         var dur = AnimationSettings.Scale(duration ?? Normal);
         fromOffsetY = AnimationSettings.ScaleOffset(fromOffsetY);
-        var tt = new TranslateTransform(0, fromOffsetY);
-        element.RenderTransform = tt;
-        element.RenderTransformOrigin = new Point(0.5, 0.5);
 
-        element.BeginAnimation(UIElement.OpacityProperty,
-            new DoubleAnimation(0, 1, dur) { EasingFunction = EaseOut });
-        tt.BeginAnimation(TranslateTransform.YProperty,
+        AnimateOpacityIn(element, dur, TimeSpan.Zero);
+        var tt = EnsureTranslate(element);
+        tt?.BeginAnimation(TranslateTransform.YProperty,
             new DoubleAnimation(fromOffsetY, 0, dur) { EasingFunction = EaseOut });
+    }
+
+    /// <summary>
+    /// Entrada de página: os blocos de primeiro nível do conteúdo (cabeçalho, cartões) surgem em
+    /// cascata. Páginas sem um painel reconhecível entram inteiras com <see cref="FadeSlideIn"/>.
+    /// </summary>
+    public static void PageEnter(UIElement page)
+    {
+        if (page is null) return;
+        var panel = FindStaggerPanel(page);
+        if (panel is null || !AnimationSettings.Enabled)
+        {
+            FadeSlideIn(page);
+            return;
+        }
+
+        StaggerIn(panel.Children.OfType<UIElement>(), offsetY: 16, stepMs: 40);
+    }
+
+    /// <summary>
+    /// Faz uma lista de elementos surgir em cascata (fade + deslize), cada um um pouco depois do
+    /// anterior. A partir de <paramref name="maxItems"/>, os demais entram junto com o último.
+    /// </summary>
+    public static void StaggerIn(IEnumerable<UIElement> elements, double offsetY = 12, int stepMs = 35, int maxItems = 12)
+    {
+        if (!AnimationSettings.Enabled) return;
+
+        var dur = AnimationSettings.Scale(new Duration(TimeSpan.FromMilliseconds(320)));
+        double offset = AnimationSettings.ScaleOffset(offsetY);
+        double step = stepMs * Math.Clamp(AnimationSettings.Intensity, 0.2, 1.5);
+        int index = 0;
+
+        foreach (var element in elements)
+        {
+            if (element.Visibility != Visibility.Visible) continue;
+
+            var delay = TimeSpan.FromMilliseconds(Math.Min(index, maxItems) * step);
+            AnimateOpacityIn(element, dur, delay);
+
+            var tt = EnsureTranslate(element);
+            if (tt is not null)
+            {
+                var slide = new DoubleAnimationUsingKeyFrames { Duration = dur.TimeSpan + delay, FillBehavior = FillBehavior.Stop };
+                slide.KeyFrames.Add(new DiscreteDoubleKeyFrame(offset, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+                slide.KeyFrames.Add(new DiscreteDoubleKeyFrame(offset, KeyTime.FromTimeSpan(delay)));
+                slide.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(delay + dur.TimeSpan), new QuinticEase { EasingMode = EasingMode.EaseOut }));
+                tt.BeginAnimation(TranslateTransform.YProperty, slide);
+            }
+            index++;
+        }
+    }
+
+    /// <summary>
+    /// Desliza a barra de acento da navegação até <paramref name="y"/>, esticando-a no meio do
+    /// caminho (efeito elástico discreto). Sem animação, apenas posiciona.
+    /// </summary>
+    public static void SlideIndicator(FrameworkElement pill, TranslateTransform transform, double y, bool animate)
+    {
+        const double restHeight = 18;
+        bool wasHidden = pill.Opacity < 0.5;
+        pill.BeginAnimation(UIElement.OpacityProperty, null);
+        pill.Opacity = 1;
+
+        if (!animate || wasHidden || !AnimationSettings.Enabled)
+        {
+            transform.BeginAnimation(TranslateTransform.YProperty, null);
+            pill.BeginAnimation(FrameworkElement.HeightProperty, null);
+            transform.Y = y;
+            pill.Height = restHeight;
+            return;
+        }
+
+        var dur = AnimationSettings.Scale(new Duration(TimeSpan.FromMilliseconds(380)));
+        // Fixa a posição de destino como valor base: assim um SizeChanged no meio do caminho
+        // reposiciona sem "voltar" para o item anterior.
+        double from = transform.Y;
+        transform.BeginAnimation(TranslateTransform.YProperty, null);
+        transform.Y = y;
+        transform.BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(from, y, dur) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
+
+        var stretch = new DoubleAnimationUsingKeyFrames { Duration = dur, FillBehavior = FillBehavior.Stop };
+        stretch.KeyFrames.Add(new EasingDoubleKeyFrame(restHeight + 14, KeyTime.FromPercent(0.3), new CubicEase { EasingMode = EasingMode.EaseOut }));
+        stretch.KeyFrames.Add(new EasingDoubleKeyFrame(restHeight, KeyTime.FromPercent(1.0), new CubicEase { EasingMode = EasingMode.EaseInOut }));
+        pill.Height = restHeight;
+        pill.BeginAnimation(FrameworkElement.HeightProperty, stretch);
+    }
+
+    // Anima a opacidade de 0 até o valor base do elemento, começando após 'delay'. O quadro inicial
+    // em 0 evita que o elemento apareça por um instante antes de o atraso terminar.
+    private static void AnimateOpacityIn(UIElement element, Duration dur, TimeSpan delay)
+    {
+        element.BeginAnimation(UIElement.OpacityProperty, null);
+        double target = element.Opacity;
+        if (target <= 0.01) return;
+
+        var fade = new DoubleAnimationUsingKeyFrames { Duration = dur.TimeSpan + delay, FillBehavior = FillBehavior.Stop };
+        fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(delay)));
+        fade.KeyFrames.Add(new EasingDoubleKeyFrame(target, KeyTime.FromTimeSpan(delay + dur.TimeSpan), EaseOut));
+        element.BeginAnimation(UIElement.OpacityProperty, fade);
+    }
+
+    // Garante um TranslateTransform no elemento sem destruir outra transformação que ele já use
+    // (escala do clique, rotação do chevron). Nesse caso devolve null e só a opacidade anima.
+    private static TranslateTransform? EnsureTranslate(UIElement element)
+    {
+        switch (element.RenderTransform)
+        {
+            case TranslateTransform existing when !existing.IsFrozen:
+                return existing;
+            case null:
+            case MatrixTransform { IsFrozen: true } m when m.Matrix.IsIdentity:
+            case Transform t when ReferenceEquals(t, Transform.Identity):
+                var tt = new TranslateTransform();
+                element.RenderTransform = tt;
+                return tt;
+            default:
+                return null;
+        }
+    }
+
+    // Desce do conteúdo da página (ScrollViewer → Border/Grid → StackPanel) até o painel cujos
+    // filhos são os blocos da página.
+    private static System.Windows.Controls.Panel? FindStaggerPanel(UIElement page)
+    {
+        object? node = page is System.Windows.Controls.Page p ? p.Content : page;
+        for (int depth = 0; depth < 5 && node is not null; depth++)
+        {
+            switch (node)
+            {
+                case System.Windows.Controls.StackPanel stack when stack.Children.Count >= 2:
+                    return stack;
+                case System.Windows.Controls.ScrollViewer sv:
+                    node = sv.Content;
+                    break;
+                case System.Windows.Controls.Decorator d:
+                    node = d.Child;
+                    break;
+                case System.Windows.Controls.Grid g when g.Children.Count == 1:
+                    node = g.Children[0];
+                    break;
+                case System.Windows.Controls.Grid g:
+                    // Grade com cabeçalho fixo + rolagem: procura o ScrollViewer dela.
+                    node = g.Children.OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault();
+                    break;
+                default:
+                    return null;
+            }
+        }
+        return null;
     }
 
     /// <summary>Animação de abertura da janela: fade + leve zoom (escala) do conteúdo raiz.</summary>

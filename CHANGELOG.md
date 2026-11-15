@@ -1,5 +1,26 @@
 # Histórico de versões
 
+## 1.24.0 — 15/11/2026
+
+- **Visual renovado.** A barra lateral agora separa as categorias em grupos:
+  - **Visão geral:** Dashboard.
+  - **Otimização:** Otimizações, Latência, Saúde, Benchmark e Fps-In-Game.
+  - **Utilidades:** Pós-formatação, Som, Gravação e GameHub.
+  - **Aplicativo:** Configurações, Sobre e Buy me a coffee, fixados no rodapé.
+- A barra lateral mostra a marca e a versão instalada, ícones que ficam preenchidos no item aberto, realce ao passar o mouse e uma barra de destaque que desliza até a categoria escolhida.
+- O conteúdo fica numa área com cantos arredondados, separada da navegação, como nos apps do Windows 11. Um brilho suave na cor do tema fica atrás da barra lateral.
+- **Cabeçalho igual em todas as páginas:** o grupo (Otimização ou Utilidades) aparece na cor do tema acima de um título do mesmo tamanho em todas as categorias. As Configurações ganharam título e alinhamento iguais aos das outras páginas.
+- **Animações:** ao trocar de página, os blocos entram em cascata. Os itens da barra lateral surgem um a um quando o app abre. Os painéis recolhíveis abrem com animação e a seta gira. Tudo segue o interruptor e a intensidade das animações nas Configurações.
+- Durante uma gravação, o item Gravação mostra o selo **REC**.
+- Clicar de novo na categoria que já está aberta não recarrega mais a página.
+- **Confirmação antes de entrar no GameHub:** o botão GameHub da barra lateral e o botão View do controle perguntam antes de abrir o hub em tela cheia. Quem marcou "Abrir no GameHub" nas Configurações continua entrando direto ao iniciar.
+- **Corrigido:** os botões principais (ex.: "Ativar em apps de chamada" no Som) apareciam em azul-claro em vez da cor do tema.
+- **Corrigido:** no GameHub, os filtros de plataforma e de ordenação mostravam textos internos ("LauncherFilterOption { ... }") em vez do nome da opção.
+- **Corrigido:** alguns ícones (como o do Diagnóstico Inteligente na Saúde e os de reparo do Windows) apareciam como um quadrado vazio.
+- **Corrigido:** textos secundários (subtítulos, rótulos) ficavam com opacidade total depois de aparecer com animação, perdendo o tom mais claro.
+- **Corrigido:** nas Configurações, o rótulo "Intensidade das animações" aparecia cortado.
+- Os itens da barra lateral agora têm nome para leitores de tela e para a automação de interface.
+
 ## 1.23.0 — 12/11/2026
 
 - **Corrigido: a gravação não começava e a aceleração por GPU aparecia toda como "indisponível"** quando o FFmpeg tinha sido instalado pelo winget. O Windows não deixa um programa aberto como administrador executar pelo atalho que o winget cria, então o Pulse1x agora executa o FFmpeg de verdade, na pasta onde o winget o instalou.

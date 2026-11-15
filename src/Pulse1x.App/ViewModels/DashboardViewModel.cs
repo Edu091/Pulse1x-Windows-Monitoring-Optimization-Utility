@@ -166,7 +166,11 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
             _settingsService.Save();
         }
 
+        // Campo direto de propósito: ainda no construtor (antes do binding) e sem disparar o
+        // OnIsFirmwareExpandedChanged, que salvaria as configurações à toa.
+#pragma warning disable MVVMTK0034
         _isFirmwareExpanded = _settingsService.Current.DashboardFirmwareExpanded;
+#pragma warning restore MVVMTK0034
 
         var savedVisibility = _settingsService.Current.DashboardSectionVisibility;
         foreach (var section in orderedSections)

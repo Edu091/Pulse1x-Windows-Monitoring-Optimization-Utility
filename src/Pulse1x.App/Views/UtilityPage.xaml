@@ -73,8 +73,8 @@
         <StackPanel MaxWidth="900" HorizontalAlignment="Left">
 
             <!-- Cabeçalho -->
-            <TextBlock Text="{Binding [Nav_Utility], Source={x:Static loc:Loc.Instance}}" Opacity="0.55" FontSize="12" Margin="6,0,0,0" />
-            <TextBlock Text="{Binding [Pf_Title], Source={x:Static loc:Loc.Instance}}" FontSize="22" FontWeight="Bold" Margin="6,0,0,2" />
+            <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Utilities], Source={x:Static loc:Loc.Instance}}" />
+            <TextBlock Text="{Binding [Pf_Title], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource PageTitle}" Margin="6,0,0,2" />
             <TextBlock Text="{Binding [Pf_Subtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" FontSize="13" Margin="6,0,0,14" TextWrapping="Wrap" />
 
             <!--

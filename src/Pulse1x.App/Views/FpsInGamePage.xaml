@@ -55,7 +55,8 @@
 
         <!-- Título -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="{Binding [Fps_Title], Source={x:Static loc:Loc.Instance}}" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource PageKicker}" Margin="0,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
+            <TextBlock Text="{Binding [Fps_Title], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource PageTitle}" />
             <TextBlock Text="{Binding [Fps_Subtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,0,0" />
         </StackPanel>
 

@@ -18,7 +18,9 @@ public static partial class FunctionSafety
     {
         var map = new Dictionary<string, ToolSafety>(StringComparer.Ordinal);
         foreach (var list in new[] { Advanced, Special, PostFormat, Sound, RecordingArea })
-            foreach (var (key, level) in list)
+            // As listas vêm dos outros arquivos parciais e já existem quando o Lazy roda (primeiro
+            // uso, depois da inicialização da classe); o compilador só não enxerga isso.
+            foreach (var (key, level) in list!)
                 map[key] = level;
         return map;
     });

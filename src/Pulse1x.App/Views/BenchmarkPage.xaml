@@ -28,7 +28,8 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24,16,24,20">
-            <TextBlock Text="{Binding [Bench_PageTitle], Source={x:Static loc:Loc.Instance}}" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource PageKicker}" Margin="0,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
+            <TextBlock Text="{Binding [Bench_PageTitle], Source={x:Static loc:Loc.Instance}}" Style="{StaticResource PageTitle}" />
             <TextBlock Text="{Binding [Bench_PageSubtitle], Source={x:Static loc:Loc.Instance}}" Opacity="0.65" TextWrapping="Wrap" Margin="0,2,0,12" />
 
             <!-- Resultado geral + ações -->
