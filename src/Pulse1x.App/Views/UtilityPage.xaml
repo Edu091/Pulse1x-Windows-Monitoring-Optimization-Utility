@@ -70,7 +70,12 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+        <!-- Largura fixa (coluna com limite), não a do conteúdo: ver LatencyPage.xaml. -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="900" />
+            </Grid.ColumnDefinitions>
+        <StackPanel>
 
             <!-- Cabeçalho -->
             <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Utilities], Source={x:Static loc:Loc.Instance}}" />
@@ -346,5 +351,6 @@
             </Border>
 
         </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>

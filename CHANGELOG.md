@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.25.2 — 15/11/2026
+
+- **Corrigido: o Pulse1x travava depois de abrir a Latência.** Desde a 1.25.0, a largura da página acompanhava o conteúdo, então cada leitura ao vivo (ping, velocidade, DNS) que mudava um número reformatava a página inteira a cada 2 segundos e a cada passo de rolagem. Agora a página tem largura fixa. Numa medição de 15 segundos, o tempo com a interface ocupada caiu de cerca de 4,5 s para 0,5 s, e as travadas de até 1,6 s sumiram.
+- A mesma correção vale para Otimizações, Saúde, Input Lab e Pós-formatação. Nesta última o efeito aparece durante as instalações.
+
 ## 1.25.1 — 15/11/2026
 
 - **Corrigido:** na 1.25.0, alguns botões apareciam brancos e quadrados, no visual padrão do Windows, em vez do tema do Pulse1x.

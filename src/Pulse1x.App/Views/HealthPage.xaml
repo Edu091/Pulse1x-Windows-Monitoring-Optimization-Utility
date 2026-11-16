@@ -151,7 +151,14 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel MaxWidth="920" HorizontalAlignment="Left">
+        <!-- Largura FIXA (coluna com limite), não a do conteúdo: com HorizontalAlignment=Left a
+             largura acompanhava o texto, e cada leitura ao vivo que mudava um número fazia a
+             página inteira ser reformatada (travava o app inteiro na Latência, 1.25.x). -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="920" />
+            </Grid.ColumnDefinitions>
+        <StackPanel>
 
             <!-- Título da categoria -->
             <TextBlock Style="{StaticResource PageKicker}" Margin="6,0,0,2" Text="{Binding [NavGroup_Optimization], Source={x:Static loc:Loc.Instance}}" />
@@ -370,5 +377,6 @@
                 </StackPanel>
             </StackPanel>
         </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>
